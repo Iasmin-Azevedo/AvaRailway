@@ -1,205 +1,250 @@
-# AVA MJ - Explicacao do Sistema
+AVA MJ - Explicação do Sistema
+1) O que é este sistema
 
-## 1) O que e este sistema
-
-O AVA MJ e uma plataforma educacional digital para apoiar escolas e redes de ensino.
+O AVA MJ é uma plataforma educacional digital para apoiar escolas e redes de ensino.
 
 Em termos simples, ele funciona como um ambiente onde:
 
-- alunos entram com login e realizam trilhas/missoes;
-- professores e gestores acompanham resultados;
-- a equipe pode medir evolucao de aprendizagem com mais clareza.
+alunos entram com login e realizam trilhas/missões;
 
-## 2) Qual problema ele resolve
+professores e gestores acompanham resultados;
 
-Hoje, muitas redes tem dificuldade para:
+a equipe pode medir a evolução da aprendizagem com mais clareza.
 
-- acompanhar desempenho de forma continua;
-- transformar dados em acao pedagogica;
-- manter o aluno engajado no estudo.
+2) Qual problema ele resolve
+
+Hoje, muitas redes têm dificuldade para:
+
+acompanhar o desempenho de forma contínua;
+
+transformar dados em ação pedagógica;
+
+manter o aluno engajado no estudo.
 
 O AVA MJ foi desenhado para organizar esse processo com:
 
-- experiencia gamificada para o aluno;
-- indicadores e relatorios para equipe pedagogica;
-- base tecnica para integracao com Moodle e IA.
+experiência gamificada para o aluno;
 
-## 3) Como o sistema funciona no dia a dia
+indicadores e relatórios para a equipe pedagógica;
 
+base técnica para integração com Moodle e IA.
+
+3) Como o sistema funciona no dia a dia
 Fluxo resumido:
 
-1. A pessoa cria conta e entra no sistema.
-2. O sistema identifica o perfil dela (aluno, professor, gestor, admin).
-3. Cada perfil vai para sua tela inicial.
-4. No caso do aluno, ele acessa trilhas e missoes.
-5. O progresso fica registrado para analise posterior.
+A pessoa cria conta e entra no sistema.
 
-## 4) O que ja esta pronto neste momento
+O sistema identifica o perfil dela (aluno, professor, gestor, admin).
 
-Atualmente, estao implementados:
+Cada perfil é direcionado para sua tela inicial.
 
-- pagina inicial institucional;
-- login e cadastro;
-- redirecionamento por perfil no login;
-- area inicial do aluno;
-- tela visual da "Missao 1" (layout completo);
-- menu mobile com hamburguer e acessibilidade inicial (A+, A-, alto contraste);
-- botao de sair (logout), que encerra a sessao.
+No caso do aluno, ele acessa trilhas e missões.
 
-## 5) Perfis de acesso (visao funcional)
+O progresso fica registrado para análise posterior.
 
-- **Aluno**: acessa trilhas, missoes e progresso.
-- **Professor**: estrutura de tela inicial pronta (base para evolucao).
-- **Gestor**: estrutura de tela inicial pronta (base para evolucao).
-- **Admin**: estrutura de tela inicial pronta (base para evolucao).
+4) O que já está pronto neste momento
 
-## 6) Seguranca e sessao (sem detalhes tecnicos excessivos)
+Atualmente, estão implementados:
 
-- O login gera uma credencial de sessao.
-- Essa sessao e armazenada com protecao no navegador.
-- O botao "Sair" remove a sessao.
-- Rotas e dados podem ser controlados por perfil de usuario.
+página inicial institucional;
 
-## 7) O que a lideranca ganha com esse projeto
+login e cadastro;
 
-- Visibilidade: acompanhamento estruturado da aprendizagem.
-- Escalabilidade: base para crescer por escola, turma e rede.
-- Governanca: padrao unico de acesso e navegacao por perfil.
-- Potencial pedagogico: caminho para intervencao orientada por dados.
+redirecionamento por perfil no login;
 
-## 8) Como abrir e demonstrar rapidamente
+área inicial do aluno;
 
-Para apresentacao interna, o roteiro sugerido e:
+tela visual da Missão 1 (layout completo);
 
-1. Abrir pagina inicial.
-2. Mostrar login e cadastro.
-3. Entrar como aluno.
-4. Exibir tela inicial do aluno.
-5. Clicar em "Comecar Aventura" e mostrar a Missao 1.
-6. Demonstrar menu mobile e recursos de acessibilidade.
-7. Mostrar logout.
+menu mobile com hambúrguer e acessibilidade inicial (A+, A-, alto contraste);
 
-## 9) Proximos passos recomendados
+botão de sair (logout), que encerra a sessão.
 
-- Conectar missoes com banco de dados real (conteudo dinamico).
-- Transformar telas de professor e gestor em paineis operacionais.
-- Definir indicadores de sucesso pedagogico (KPI educacional).
-- Formalizar trilha de implantacao por rede/escola.
+5) Perfis de acesso (visão funcional)
 
-## 10) Resumo executivo
+Aluno: acessa trilhas, missões e progresso.
 
-O AVA MJ ja possui uma base funcional consistente para autenticacao, navegacao por perfil e experiencia inicial do aluno.
-Com a evolucao das camadas de conteudo e analytics, ele pode se tornar um instrumento de gestao pedagogica em larga escala.
-# AVA MJ Backend
+Professor: estrutura de tela inicial pronta (base para evolução).
 
-Backend em `FastAPI` para o sistema AVA MJ, com API + templates Jinja2 para telas web (login, cadastro, aluno, professor, gestor e admin).
+Gestor: estrutura de tela inicial pronta (base para evolução).
 
-## Stack
+Admin: estrutura de tela inicial pronta (base para evolução).
 
-- Python 3.11+
-- FastAPI + Uvicorn
-- SQLAlchemy
-- MySQL (via PyMySQL)
-- Jinja2 (templates server-side)
-- JWT (autenticacao)
-- SlowAPI (rate limit)
+6) Segurança e sessão
 
-## Estrutura principal
+O login gera uma credencial de sessão.
 
-```text
+Essa sessão é armazenada com proteção no navegador.
+
+O botão "Sair" remove a sessão.
+
+Rotas e dados podem ser controlados por perfil de usuário.
+
+7) O que a liderança ganha com esse projeto
+
+Visibilidade: acompanhamento estruturado da aprendizagem.
+
+Escalabilidade: base para crescer por escola, turma e rede.
+
+Governança: padrão único de acesso e navegação por perfil.
+
+Potencial pedagógico: caminho para intervenção orientada por dados.
+
+8) Como abrir e demonstrar rapidamente
+
+Para apresentação interna:
+
+Abrir a página inicial.
+
+Mostrar login e cadastro.
+
+Entrar como aluno.
+
+Exibir a tela inicial do aluno.
+
+Clicar em "Começar Aventura" e mostrar a Missão 1.
+
+Demonstrar menu mobile e recursos de acessibilidade.
+
+Mostrar o logout.
+
+9) Próximos passos recomendados
+
+Conectar missões com banco de dados real (conteúdo dinâmico).
+
+Transformar telas de professor e gestor em painéis operacionais.
+
+Definir indicadores de sucesso pedagógico (KPI educacional).
+
+Formalizar trilha de implantação por rede/escola.
+
+10) Resumo executivo
+
+O AVA MJ já possui uma base funcional consistente para autenticação, navegação por perfil e experiência inicial do aluno.
+
+Com a evolução das camadas de conteúdo e analytics, ele pode se tornar um instrumento de gestão pedagógica em larga escala.
+
+AVA MJ Backend
+
+Backend em FastAPI para o sistema AVA MJ, com API + templates Jinja2 para telas web (login, cadastro, aluno, professor, gestor e admin).
+
+Stack
+
+Python 3.11+
+
+FastAPI + Uvicorn
+
+SQLAlchemy
+
+MySQL (via PyMySQL)
+
+Jinja2 (templates server-side)
+
+JWT (autenticação)
+
+SlowAPI (rate limit)
+
+Estrutura principal
 app/
-  core/           # config, banco, seguranca
+  core/           # config, banco, segurança
   models/         # modelos SQLAlchemy
   repositories/   # acesso ao banco
-  services/       # regras de negocio
-  routers/        # rotas API e paginas
+  services/       # regras de negócio
+  routers/        # rotas API e páginas
   schemas/        # schemas Pydantic
   templates/      # templates Jinja2
   main.py         # app FastAPI
 requirements.txt
-```
+Requisitos de ambiente
 
-## Requisitos de ambiente
+Crie um arquivo .env na raiz com:
 
-Crie um arquivo `.env` na raiz com:
-
-```env
 DATABASE_URL=mysql+pymysql://USUARIO:SENHA@localhost:3306/avamj
 SECRET_KEY=sua_chave_secreta
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 MOODLE_URL=https://seu-moodle
 MOODLE_TOKEN=seu_token
-```
-
-## Instalacao
-
-### Windows (PowerShell)
-
-```powershell
+Instalação
+Windows (PowerShell)
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-### Linux/macOS
-
-```bash
+Linux/macOS
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-```
-
-## Executar o projeto
+Executar o projeto
 
 Na raiz do projeto:
 
-```powershell
 python -m uvicorn app.main:app --reload
-```
 
 Servidor local:
 
-- API/UI: `http://127.0.0.1:8000`
-- Swagger: `http://127.0.0.1:8000/docs`
+API/UI: http://127.0.0.1:8000
 
-## Rotas web principais
+Swagger: http://127.0.0.1:8000/docs
 
-- `GET /` -> landing page
-- `GET /login` -> tela de login
-- `GET /cadastro` -> tela de cadastro
-- `GET /aluno` -> home do aluno
-- `GET /aluno/missao1` -> tela visual da missao 1
-- `GET /professor` -> home professor (placeholder)
-- `GET /gestor` -> home gestor (placeholder)
-- `GET /admin` -> home admin (placeholder)
+Rotas web principais
 
-## Rotas de autenticacao
+GET / → landing page
 
-- `POST /auth/login`
-  - JSON: retorna token
-  - Form HTML: autentica, grava cookie `access_token` e redireciona por perfil:
-    - aluno -> `/aluno`
-    - professor -> `/professor`
-    - gestor -> `/gestor`
-    - admin -> `/admin`
-- `GET /auth/logout` -> remove cookie `access_token` e redireciona para `/login`
+GET /login → tela de login
 
-## Cadastro de aluno
+GET /cadastro → tela de cadastro
 
-- Fluxo web: `POST /aluno` (form do cadastro)
-- Fluxo API: `POST /alunos/cadastro` (JSON)
+GET /aluno → home do aluno
 
-Parametros obrigatorios para criar aluno:
+GET /aluno/missao1 → tela visual da Missão 1
 
-- `nome`
-- `email`
-- `senha`
-- `turma_id`
-- `ano`
+GET /professor → home do professor (placeholder)
 
-## Observacoes
+GET /gestor → home do gestor (placeholder)
 
-- Arquivos estaticos sao servidos em `/static` a partir de `app/templates/static`.
-- As tabelas sao criadas no startup (`Base.metadata.create_all`).
-- O projeto usa `bcrypt==4.0.1` para compatibilidade com `passlib==1.7.4`.
+GET /admin → home do admin (placeholder)
+
+Rotas de autenticação
+POST /auth/login
+
+JSON: retorna token
+
+Form HTML: autentica, grava cookie access_token e redireciona por perfil:
+
+aluno → /aluno
+
+professor → /professor
+
+gestor → /gestor
+
+admin → /admin
+
+GET /auth/logout
+
+Remove cookie access_token e redireciona para /login.
+
+Cadastro de aluno
+
+Fluxo web: POST /aluno (form do cadastro)
+
+Fluxo API: POST /alunos/cadastro (JSON)
+
+Parâmetros obrigatórios:
+
+nome
+
+email
+
+senha
+
+turma_id
+
+ano
+
+Observações
+
+Arquivos estáticos são servidos em /static a partir de app/templates/static.
+
+As tabelas são criadas no startup (Base.metadata.create_all).
+
+O projeto usa bcrypt==4.0.1 para compatibilidade com passlib==1.7.4.
