@@ -1,4 +1,4 @@
-# AVA MJ - Explicacao do Sistema (visao para gestao)
+# AVA MJ - Explicacao do Sistema
 
 ## 1) O que e este sistema
 
