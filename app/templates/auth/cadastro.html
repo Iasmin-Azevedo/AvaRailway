@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar conta — AVA MJ</title>
+    <link rel="shortcut icon" href="/static/img/icon.png" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="login-page-mj  bg-image-login min-vh-100 d-flex flex-lg-row flex-column">
+    <aside class="login-brand-mj d-none d-lg-flex flex-column justify-content-center align-items-center p-5 p-xl-6">
+        <!-- <p class="text-mj-primary mt-4 mb-0 fw-medium small text-center" style="max-width: 20rem;">
+            Cadastre-se conforme seu perfil na rede e acesse trilhas, gamificação e relatórios por descritor SAEB.
+        </p> -->
+    </aside>
+
+    <main class="login-form-mj flex-grow-1 d-flex p-4">
+        <div class="login-card-mj card border-0 shadow rounded-5 p-4 p-sm-5 flex-grow-1 d-flex flex-column justify-content-center align-items-center overflow-auto">
+            <div class="login-card-inner w-100" style="max-width: 480px;">
+                <a href="/" class="d-flex align-items-center justify-content-center gap-2 text-mj-dark text-decoration-none mb-3">
+                    <img src="/static/img/icon.png" alt="AVA MJ" width="36" height="36">
+                    <span class="fs-4 fw-bold">AVA MJ</span>
+                </a>
+                <h2 class="fw-bold text-mj-dark mb-1" style="font-size: 1.75rem;">Criar conta</h2>
+                <p class="text-muted small mb-4">Escolha o tipo de cadastro</p>
+
+                <!-- Etapa 1: escolher tipo de cadastro -->
+                <div id="cadastro-etapa-cards">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6 cadastro-card-wrap" style="animation-delay: 0.05s">
+                            <button type="button" class="cadastro-card-mj cadastro-card-mj--aluno card border-0 shadow-sm w-100 h-100 text-start p-4" data-tipo="aluno" aria-pressed="false">
+                                <span class="cadastro-card-check d-none"><i class="fas fa-check-circle"></i></span>
+                                <div class="cadastro-card-icon icon-mj icon-mj-sm bg-mj-primary text-mj-white mb-3"><i class="fas fa-user-graduate"></i></div>
+                                <h6 class="fw-bold text-mj-dark mb-2">Aluno</h6>
+                                <p class="cadastro-card-desc small mb-0">Acesse trilhas, atividades e medalhas.</p>
+                            </button>
+                        </div>
+                        <div class="col-6 cadastro-card-wrap" style="animation-delay: 0.1s">
+                            <button type="button" class="cadastro-card-mj cadastro-card-mj--professor card border-0 shadow-sm w-100 h-100 text-start p-4" data-tipo="professor" aria-pressed="false">
+                                <span class="cadastro-card-check d-none"><i class="fas fa-check-circle"></i></span>
+                                <div class="cadastro-card-icon icon-mj icon-mj-sm bg-success text-white mb-3"><i class="fas fa-chalkboard-teacher"></i></div>
+                                <h6 class="fw-bold text-mj-dark mb-2">Professor</h6>
+                                <p class="cadastro-card-desc small mb-0">Acompanhe turmas e relatórios por descritor.</p>
+                            </button>
+                        </div>
+                        <div class="col-6 cadastro-card-wrap" style="animation-delay: 0.15s">
+                            <button type="button" class="cadastro-card-mj cadastro-card-mj--coordenador card border-0 shadow-sm w-100 h-100 text-start p-4" data-tipo="coordenador" aria-pressed="false">
+                                <span class="cadastro-card-check d-none"><i class="fas fa-check-circle"></i></span>
+                                <div class="cadastro-card-icon icon-mj icon-mj-sm bg-info text-white mb-3"><i class="fas fa-users-cog"></i></div>
+                                <h6 class="fw-bold text-mj-dark mb-2">Coordenador</h6>
+                                <p class="cadastro-card-desc small mb-0">Visão por escola e indicadores pedagógicos.</p>
+                            </button>
+                        </div>
+                        <div class="col-6 cadastro-card-wrap" style="animation-delay: 0.2s">
+                            <button type="button" class="cadastro-card-mj cadastro-card-mj--gestor card border-0 shadow-sm w-100 h-100 text-start p-4" data-tipo="gestor" aria-pressed="false">
+                                <span class="cadastro-card-check d-none"><i class="fas fa-check-circle"></i></span>
+                                <div class="cadastro-card-icon icon-mj icon-mj-sm bg-warning text-mj-dark mb-3"><i class="fas fa-chart-line"></i></div>
+                                <h6 class="fw-bold text-mj-dark mb-2">Gestor</h6>
+                                <p class="cadastro-card-desc small mb-0">Painéis da rede e projeção IDEB.</p>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="cadastro-btn-continuar-wrap" class="text-center d-none mb-2">
+                        <button type="button" class="btn btn-mj rounded-pill px-4 py-2" id="cadastro-btn-continuar">
+                            <i class="fas fa-arrow-right me-2"></i> Continuar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Etapa 2: formulário de cadastro (oculto inicialmente) -->
+                <div id="cadastro-etapa-form" class="d-none">
+                    <p class="text-muted small mb-3 text-center">
+                        Cadastro como <strong id="cadastro-tipo-label">—</strong>
+                        <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-mj-primary" id="cadastro-voltar">Alterar</button>
+                    </p>
+                    <form action="/aluno" method="post" class="needs-validation" novalidate id="form-cadastro">
+                        <input type="hidden" name="tipo" id="cadastro-tipo-input" value="">
+                        <input type="hidden" name="turma_id" id="cadastro-turma-id" value="1">
+                        <input type="hidden" name="ano" id="cadastro-ano" value="1">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control form-control-mj" id="nome" name="nome" placeholder="Nome completo" required>
+                            <label for="nome">Nome completo</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control form-control-mj" id="email" name="email" placeholder="E-mail" required autocomplete="email">
+                            <label for="email">E-mail</label>
+                        </div>
+                        <div class="form-floating form-floating-password mb-3">
+                            <input type="password" class="form-control form-control-mj" id="senha" name="senha" placeholder="Senha" required minlength="6" autocomplete="new-password">
+                            <label for="senha">Senha</label>
+                            <button type="button" class="password-toggle-mj" id="toggleSenha" aria-label="Mostrar senha" title="Mostrar senha">
+                                <i class="fas fa-eye" id="toggleSenhaIcon" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="form-floating form-floating-password mb-4">
+                            <input type="password" class="form-control form-control-mj" id="senha_confirmar" name="senha_confirmar" placeholder="Confirmar senha" required minlength="6" autocomplete="new-password">
+                            <label for="senha_confirmar">Confirmar senha</label>
+                            <button type="button" class="password-toggle-mj" id="toggleSenhaConfirmar" aria-label="Mostrar senha" title="Mostrar senha">
+                                <i class="fas fa-eye" id="toggleSenhaConfirmarIcon" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <button type="submit" class="btn btn-mj w-100 rounded-pill py-3 fw-semibold mb-2">
+                            <i class="fas fa-user-plus me-2"></i> Cadastrar
+                        </button>
+                    </form>
+                </div>
+
+                <p class="text-center mb-3 mt-4">
+                    <span class="text-muted small">Não tem uma conta?</span>
+                    <a href="/login" class="login-link-cadastrar text-mj-primary text-decoration-none fw-medium ms-2">
+                        <i class="fas fa-sign-in-alt me-1"></i> Entrar
+                    </a>
+                </p>
+                <p class="text-muted text-center small mb-0 mt-1">
+                    <a href="/" class="text-decoration-none text-muted"><i class="fas fa-arrow-left me-1"></i> Voltar à apresentação</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            var labels = { aluno: 'Aluno', professor: 'Professor', coordenador: 'Coordenador', gestor: 'Gestor' };
+            var etapaCards = document.getElementById('cadastro-etapa-cards');
+            var etapaForm = document.getElementById('cadastro-etapa-form');
+            var tipoInput = document.getElementById('cadastro-tipo-input');
+            var tipoLabel = document.getElementById('cadastro-tipo-label');
+
+            var btnContinuar = document.getElementById('cadastro-btn-continuar');
+            var btnContinuarWrap = document.getElementById('cadastro-btn-continuar-wrap');
+
+            document.querySelectorAll('.cadastro-card-mj').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var tipo = this.getAttribute('data-tipo');
+                    var isSelected = this.classList.contains('cadastro-card-mj--selected');
+                    document.querySelectorAll('.cadastro-card-mj').forEach(function (b) {
+                        b.classList.remove('cadastro-card-mj--selected');
+                        b.setAttribute('aria-pressed', 'false');
+                        b.querySelector('.cadastro-card-check').classList.add('d-none');
+                    });
+                    if (!isSelected) {
+                        this.classList.add('cadastro-card-mj--selected');
+                        this.setAttribute('aria-pressed', 'true');
+                        this.querySelector('.cadastro-card-check').classList.remove('d-none');
+                        tipoInput.value = tipo;
+                        tipoLabel.textContent = labels[tipo] || tipo;
+                        btnContinuarWrap.classList.remove('d-none');
+                    } else {
+                        tipoInput.value = '';
+                        btnContinuarWrap.classList.add('d-none');
+                    }
+                });
+            });
+
+            if (btnContinuar) btnContinuar.addEventListener('click', function () {
+                if (!tipoInput.value) return;
+                etapaCards.classList.add('d-none');
+                etapaForm.classList.remove('d-none');
+            });
+
+            document.getElementById('cadastro-voltar').addEventListener('click', function () {
+                etapaForm.classList.add('d-none');
+                etapaCards.classList.remove('d-none');
+                document.querySelectorAll('.cadastro-card-mj').forEach(function (b) {
+                    b.classList.remove('cadastro-card-mj--selected');
+                    b.setAttribute('aria-pressed', 'false');
+                    b.querySelector('.cadastro-card-check').classList.add('d-none');
+                });
+                btnContinuarWrap.classList.add('d-none');
+                tipoInput.value = '';
+            });
+
+            var form = document.getElementById('form-cadastro');
+            if (form) form.addEventListener('submit', function (e) {
+                if (tipoInput.value !== 'aluno') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    alert('No momento, somente o cadastro de aluno esta habilitado.');
+                    return;
+                }
+                var senha = document.getElementById('senha').value;
+                var confirmar = document.getElementById('senha_confirmar').value;
+                if (senha !== confirmar) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    document.getElementById('senha_confirmar').classList.add('is-invalid');
+                } else {
+                    document.getElementById('senha_confirmar').classList.remove('is-invalid');
+                }
+                if (!form.checkValidity()) { e.preventDefault(); e.stopPropagation(); }
+                form.classList.add('was-validated');
+            });
+
+            function setupPasswordToggle(inputId, iconId, btnId) {
+                var btn = document.getElementById(btnId);
+                var input = document.getElementById(inputId);
+                var icon = document.getElementById(iconId);
+                if (btn && input && icon) {
+                    btn.addEventListener('click', function () {
+                        var isPassword = input.type === 'password';
+                        input.type = isPassword ? 'text' : 'password';
+                        icon.classList.toggle('fa-eye', !isPassword);
+                        icon.classList.toggle('fa-eye-slash', isPassword);
+                    });
+                }
+            }
+            setupPasswordToggle('senha', 'toggleSenhaIcon', 'toggleSenha');
+            setupPasswordToggle('senha_confirmar', 'toggleSenhaConfirmarIcon', 'toggleSenhaConfirmar');
+        })();
+    </script>
+</body>
+</html>

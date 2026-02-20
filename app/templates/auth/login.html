@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar — AVA MJ</title>
+    <link rel="shortcut icon" href="/static/img/icon.png" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="login-page-mj bg-image-login min-vh-100 d-flex flex-lg-row flex-column">
+    <!-- Painel esquerdo: fundo suave + ilustração -->
+    <aside class="login-brand-mj d-none d-lg-flex flex-column justify-content-center align-items-center p-5 p-xl-6">
+        <!-- <div class="login-illustration-mj w-100 position-relative">
+            <img src="/static/img/undraw_secure-login_m11a 1.png" alt="Educação e tecnologia" class="login-illus-img" onerror="this.style.display='none'; document.getElementById('login-illus-fallback').classList.remove('d-none');">
+            <div id="login-illus-fallback" class="d-none login-illus-fallback text-mj-primary">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+        </div>
+        <p class="text-mj-primary mt-4 mb-0 fw-medium small text-center" style="max-width: 20rem;">
+            Trilhas por descritor SAEB, gamificação e Professor Virtual para sua rede.
+        </p> -->
+    </aside>
+
+    <!-- Painel direito: card preenche o lado com margem ao redor -->
+    <main class="login-form-mj flex-grow-1 d-flex p-4">
+        <div class="login-card-mj card border-0 shadow rounded-5 p-4 p-sm-5 flex-grow-1 d-flex flex-column justify-content-center align-items-center">
+            <div class="login-card-inner">
+                <a href="/" class="d-flex align-items-center w-100 justify-content-center gap-2 text-mj-dark text-decoration-none mb-4">
+                    <img src="/static/img/icon.png" alt="AVA MJ" width="36" height="36">
+                    <span class="fs-4 fw-bold">AVA MJ</span>
+                </a>
+
+                <h2 class="fw-bold text-mj-dark mb-1" style="font-size: 1.75rem;">Entrar</h2>
+                <p class="text-muted small mb-4">Use seu e-mail e senha para acessar o sistema.</p>
+
+                <form action="/auth/login" method="post" class="needs-validation" novalidate>
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control form-control-mj" id="email" name="email" placeholder="E-mail" required autocomplete="email">
+                        <label for="email">E-mail</label>
+                    </div>
+                    <div class="form-floating form-floating-password mb-4">
+                        <input type="password" class="form-control form-control-mj" id="senha" name="senha" required autocomplete="current-password" placeholder="Senha">
+                        <label for="senha">Senha</label>
+                        <button type="button" class="password-toggle-mj" id="toggleSenha" aria-label="Mostrar senha" title="Mostrar senha">
+                            <i class="fas fa-eye" id="toggleSenhaIcon" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-mj w-100 fs-5 rounded-pill py-3 fw-semibold mb-2">
+                        <i class="fas fa-sign-in-alt me-2"></i> Entrar
+                    </button>
+                    <p class="text-center mb-4 mt-3">
+                        <span class="text-muted small">Não tem uma conta?</span>
+                        <a href="/cadastro" class="login-link-cadastrar text-mj-primary text-decoration-none fw-medium ms-2">
+                            <i class="fas fa-user-plus me-1"></i> Cadastrar-se
+                        </a>
+                    </p>
+                </form>
+
+                <p class="text-muted text-center small mb-2">
+                    <a href="/" class="text-decoration-none text-muted"><i class="fas fa-arrow-left me-1"></i> Voltar à apresentação</a>
+                </p>
+                <!-- <p class="text-muted small mb-0">
+                    <a href="#" class="text-mj-primary text-decoration-none">Política de privacidade</a>
+                </p> -->
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            var form = document.querySelector('.needs-validation');
+            if (form) form.addEventListener('submit', function (e) {
+                if (!form.checkValidity()) { e.preventDefault(); e.stopPropagation(); }
+                form.classList.add('was-validated');
+            });
+
+            var toggle = document.getElementById('toggleSenha');
+            var senha = document.getElementById('senha');
+            var icon = document.getElementById('toggleSenhaIcon');
+            if (toggle && senha && icon) {
+                toggle.addEventListener('click', function () {
+                    var isPassword = senha.type === 'password';
+                    senha.type = isPassword ? 'text' : 'password';
+                    icon.classList.toggle('fa-eye', !isPassword);
+                    icon.classList.toggle('fa-eye-slash', isPassword);
+                    toggle.setAttribute('aria-label', isPassword ? 'Ocultar senha' : 'Mostrar senha');
+                    toggle.setAttribute('title', isPassword ? 'Ocultar senha' : 'Mostrar senha');
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

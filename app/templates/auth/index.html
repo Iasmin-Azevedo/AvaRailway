@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVA MJ — Ambiente Virtual de Aprendizagem Integrado ao Moodle</title>
+    <link rel="shortcut icon" href="/static/img/icon.png" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-mj fixed-top py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold fs-5 text-mj-white" href="/">
+                <img src="/static/img/icon.png" alt="AVA MJ" class="img-fluid" width="32" height="32">
+                <span>AVA MJ</span>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarLanding" aria-controls="navbarLanding" aria-expanded="false" aria-label="Menu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarLanding">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-1 gap-lg-3">
+                    <li class="nav-item"><a class="nav-link px-3 py-2 rounded" href="#funcionalidades">Funcionalidades</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2 rounded" href="#beneficios">Benefícios</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2 rounded" href="#como-funciona">Como funciona</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2 rounded" href="#contato">Contato</a></li>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-mj-light btn-sm px-4 py-2 rounded-pill shadow-sm" href="/login">
+                            <i class="fas fa-sign-in-alt me-1"></i> Entrar
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero-mj text-mj-white position-relative">
+        <div class="container position-relative py-5 py-lg-5">
+            <div class="row align-items-center min-vh-75 py-5">
+                <div class="col-lg-7 text-center text-lg-start">
+                    <p class="mb-3"><span class="badge bg-white bg-opacity-20 text-mj-primary fw-bold border-0 rounded-pill px-3 py-2 fw-medium">2º, 5º e 9º ano — Ensino Fundamental</span></p>
+                    <h1 class="display-2 fw-bold mb-4 lh-sm" style="letter-spacing: -0.02em;">
+                        Ambiente Virtual de Aprendizagem integrado ao Moodle
+                    </h1>
+                    <p class="lead fs-5 mb-4 opacity-90" style="max-width: 32rem;">
+                        Tecnologia e inovação a serviço da educação: oferecemos a melhor experiência pedagógica para sua rede, com análise por descritor SAEB, gamificação e Professor Virtual.
+                    </p>
+                    <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
+                        <a href="/login" class="btn btn-mj-light btn-lg px-5 py-3 rounded-pill shadow">
+                            <i class="fas fa-arrow-right me-2"></i> Acessar o sistema
+                        </a>
+                        <a href="#funcionalidades" class="btn btn-outline-light btn-lg px-4 py-3 rounded-pill fw-medium">
+                            Conhecer as funcionalidades
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-5 text-center mt-5 mt-lg-0 position-relative">
+                    <!-- Ilustração flat isométrica: unDraw (MIT) · fallback: ícone Font Awesome -->
+                    <div class="hero-mj-visual p-4 p-lg-5">
+                        <img src="/static/img/landingImage.svg" alt="Ambiente Virtual de Aprendizagem — educação e tecnologia" id="hero-img" width="400" height="400" class="d-none hero-mj-img" onload="this.classList.remove('d-none'); document.getElementById('hero-fallback').classList.add('d-none');" onerror="document.getElementById('hero-fallback').classList.remove('d-none');">
+                        <i class="fas fa-chalkboard-teacher hero-mj-icon-fallback" id="hero-fallback"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Faixa de números / destaques -->
+    <section class="strip-mj py-4">
+        <div class="container">
+            <div class="row g-4 text-center">
+                <div class="col-6 col-md-3">
+                    <div class="num">Moodle</div>
+                    <div class="small opacity-75">Integração via API</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="num">SAEB</div>
+                    <div class="small opacity-75">Por descritor</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="num">Gamificação</div>
+                    <div class="small opacity-75">Medalhas e níveis</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="num">IA</div>
+                    <div class="small opacity-75">Professor virtual</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Diferenciais (Por que o AVA MJ?) -->
+    <section class="py-5 py-lg-5 bg-white border-bottom">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title-mj text-center display-6 fw-bold text-mj-dark mb-2">Por que o AVA MJ?</h2>
+                <p class="text-muted mb-0">Soluções sob medida para sua rede de ensino</p>
+            </div>
+            <div class="row g-3 g-lg-4 justify-content-center differentials-mj">
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="differential-item-mj d-flex align-items-center gap-3 p-3 rounded-3 h-100">
+                        <div class="icon-mj icon-mj-sm bg-mj-light text-mj-primary flex-shrink-0"><i class="fas fa-mobile-alt"></i></div>
+                        <span class="fw-semibold text-mj-dark">Plataforma responsiva</span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="differential-item-mj d-flex align-items-center gap-3 p-3 rounded-3 h-100">
+                        <div class="icon-mj icon-mj-sm bg-mj-light text-mj-primary flex-shrink-0"><i class="fas fa-desktop"></i></div>
+                        <span class="fw-semibold text-mj-dark">Acesso multiplataforma</span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="differential-item-mj d-flex align-items-center gap-3 p-3 rounded-3 h-100">
+                        <div class="icon-mj icon-mj-sm bg-mj-light text-mj-primary flex-shrink-0"><i class="fas fa-robot"></i></div>
+                        <span class="fw-semibold text-mj-dark">Apoio de IA</span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="differential-item-mj d-flex align-items-center gap-3 p-3 rounded-3 h-100">
+                        <div class="icon-mj icon-mj-sm bg-mj-light text-mj-primary flex-shrink-0"><i class="fas fa-palette"></i></div>
+                        <span class="fw-semibold text-mj-dark">Design moderno</span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="differential-item-mj d-flex align-items-center gap-3 p-3 rounded-3 h-100">
+                        <div class="icon-mj icon-mj-sm bg-mj-light text-mj-primary flex-shrink-0"><i class="fas fa-trophy"></i></div>
+                        <span class="fw-semibold text-mj-dark">Gamificação</span>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="differential-item-mj d-flex align-items-center gap-3 p-3 rounded-3 h-100">
+                        <div class="icon-mj icon-mj-sm bg-mj-light text-mj-primary flex-shrink-0"><i class="fas fa-chart-line"></i></div>
+                        <span class="fw-semibold text-mj-dark">Foco IDEB / SAEB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Funcionalidades -->
+    <section id="funcionalidades" class="py-5 py-lg-5 anchor-offset-mj bg-white">
+        <div class="container">
+            <div class="text-center mb-5 pb-2">
+                <h2 class="section-title-mj text-center display-5 fw-bold text-mj-dark mb-2">Funcionalidades</h2>
+                <p class="lead text-muted mt-3">Tudo que o sistema oferece para sua rede de ensino</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-mj h-100 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="icon-mj bg-mj-light text-mj-primary mb-3">
+                                <i class="fas fa-plug"></i>
+                            </div>
+                            <h5 class="card-title fw-bold mb-2">Integração Moodle</h5>
+                            <p class="card-text text-muted small mb-0">API REST oficial: usuários, matrículas e notas. Backend independente e desacoplado.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-mj border-success h-100 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="icon-mj bg-success bg-opacity-10 text-success mb-3">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                            <h5 class="card-title fw-bold mb-2">Motor de Gamificação</h5>
+                            <p class="card-text text-muted small mb-0">Pontos por atividade, medalhas por descritor SAEB, níveis e ranking cooperativo.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-mj border-info h-100 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="icon-mj bg-info bg-opacity-10 text-info mb-3">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h5 class="card-title fw-bold mb-2">Análise por descritor SAEB</h5>
+                            <p class="card-text text-muted small mb-0">Desempenho por habilidade, eixo cognitivo e evolução temporal.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-mj border-warning h-100 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="icon-mj bg-warning bg-opacity-10 text-warning mb-3">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <h5 class="card-title fw-bold mb-2">Relatórios consolidados</h5>
+                            <p class="card-text text-muted small mb-0">Painéis para professor, coordenador e gestor. Indicadores por turma e escola.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-mj border-secondary h-100 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="icon-mj bg-secondary bg-opacity-10 text-secondary mb-3">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <h5 class="card-title fw-bold mb-2">IA educacional</h5>
+                            <p class="card-text text-muted small mb-0">Professor virtual, chat de dúvidas e estrutura preparada para LGPD.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-mj border-3 border-start border-danger h-100 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="icon-mj bg-danger bg-opacity-10 text-danger mb-3">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <h5 class="card-title fw-bold mb-2">Segurança e perfis</h5>
+                            <p class="card-text text-muted small mb-0">Autenticação JWT, RBAC por perfil (aluno, professor, coordenador, gestor, admin).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefícios -->
+    <section id="beneficios" class="py-5 py-lg-5 anchor-offset-mj bg-mj-soft">
+        <div class="container container-lg">
+            <div class="text-center mb-5 pb-2">
+                <h2 class="section-title-mj text-center display-5 fw-bold text-mj-dark mb-2">Benefícios</h2>
+                <p class="lead text-muted mt-3 fs-5">O que sua rede ganha com o AVA MJ</p>
+            </div>
+            <div class="row g-4 g-lg-5">
+                <div class="col-12 col-lg-6">
+                    <div class="benefit-block-mj d-flex gap-4 p-4 p-lg-5 bg-white shadow-sm h-100 align-items-start">
+                        <div class="icon-mj icon-mj-lg bg-mj-primary text-mj-white flex-shrink-0">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <div class="pt-1">
+                            <h5 class="fw-bold text-mj-dark mb-3">Indicadores reais</h5>
+                            <p class="text-muted mb-0 fs-6 lh-lg">Cálculo de desempenho por descritor e identificação de lacunas críticas para o IDEB. Dados concretos para decisões pedagógicas e projeção de resultados.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="benefit-block-mj d-flex gap-4 p-4 p-lg-5 bg-white shadow-sm h-100 align-items-start">
+                        <div class="icon-mj icon-mj-lg bg-success text-white flex-shrink-0">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="pt-1">
+                            <h5 class="fw-bold text-mj-dark mb-3">Foco no aluno</h5>
+                            <p class="text-muted mb-0 fs-6 lh-lg">Avaliação diagnóstica, formativa e simulados. Acompanhe a evolução por habilidade, identifique risco de evasão e personalize intervenções.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="benefit-block-mj d-flex gap-4 p-4 p-lg-5 bg-white shadow-sm h-100 align-items-start">
+                        <div class="icon-mj icon-mj-lg bg-info text-white flex-shrink-0">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="pt-1">
+                            <h5 class="fw-bold text-mj-dark mb-3">LGPD e privacidade</h5>
+                            <p class="text-muted mb-0 fs-6 lh-lg">Arquitetura preparada para dados locais e conformidade com a lei. Segurança e controle de acesso por perfil em todo o sistema.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="benefit-block-mj d-flex gap-4 p-4 p-lg-5 bg-white shadow-sm h-100 align-items-start">
+                        <div class="icon-mj icon-mj-lg bg-warning text-mj-dark flex-shrink-0">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div class="pt-1">
+                            <h5 class="fw-bold text-mj-dark mb-3">Apoio ao professor</h5>
+                            <p class="text-muted mb-0 fs-6 lh-lg">Relatórios por turma e por descritor, materiais de apoio e visibilidade do desempenho para planejar intervenções e recuperação com mais precisão.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Aplicações práticas -->
+    <section id="aplicacoes" class="py-5 py-lg-5 anchor-offset-mj bg-white">
+        <div class="container">
+            <div class="text-center mb-5 pb-2">
+                <h2 class="section-title-mj text-center display-5 fw-bold text-mj-dark mb-2">Aplicações práticas</h2>
+                <p class="lead text-muted mt-3 fs-5">Onde e como o sistema é usado no dia a dia da sua rede</p>
+            </div>
+            <div class="row g-4 g-lg-5">
+                <div class="col-12 col-lg-4">
+                    <div class="card app-block-mj shadow-sm h-100">
+                        <div class="app-header-mj bg-mj-primary text-mj-white">
+                            <i class="fas fa-users me-2 opacity-90"></i> Público-alvo
+                        </div>
+                        <div class="app-body-mj">
+                            <ul class="list-unstyled mb-0">
+                                <li class="d-flex align-items-start gap-3"><i class="fas fa-check-circle text-success mt-1 fa-lg"></i><span><strong>2º, 5º e 9º ano</strong> do Ensino Fundamental</span></li>
+                                <li class="d-flex align-items-start gap-3"><i class="fas fa-check-circle text-success mt-1 fa-lg"></i><span><strong>Língua Portuguesa e Matemática</strong>, com foco em habilidades SAEB</span></li>
+                                <li class="d-flex align-items-start gap-3"><i class="fas fa-check-circle text-success mt-1 fa-lg"></i><span>Conteúdos e avaliações <strong>alinhados à BNCC</strong> e matrizes de referência</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="card app-block-mj shadow-sm h-100">
+                        <div class="app-header-mj text-mj-white bg-mj-gradient">
+                            <i class="fas fa-tasks me-2 opacity-90"></i> Tipos de avaliação
+                        </div>
+                        <div class="app-body-mj">
+                            <ul class="list-unstyled mb-0">
+                                <li class="d-flex align-items-start gap-3"><i class="fas fa-clipboard-check text-primary mt-1 fa-lg"></i><span><strong>Avaliação diagnóstica</strong> para mapear lacunas e montar trilhas</span></li>
+                                <li class="d-flex align-items-start gap-3"><i class="fas fa-clipboard-check text-primary mt-1 fa-lg"></i><span><strong>Avaliação formativa contínua</strong> ao longo das unidades</span></li>
+                                <li class="d-flex align-items-start gap-3"><i class="fas fa-clipboard-check text-primary mt-1 fa-lg"></i><span><strong>Simulados no padrão SAEB</strong> para preparação às provas externas</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="card app-block-mj shadow-sm h-100">
+                        <div class="app-header-mj text-mj-white bg-mj-dark-soft">
+                            <i class="fas fa-building me-2 opacity-90"></i> Gestão e rede
+                        </div>
+                        <div class="app-body-mj">
+                            <ul class="list-unstyled mb-0">
+                                <li class="d-flex align-items-start gap-3"><i class="fas fa-chart-bar text-primary mt-1 fa-lg"></i><span><strong>Relatórios por turma e escola</strong> para coordenadores e gestores</span></li>
+                                <li class="d-flex align-items-start gap-3"><i class="fas fa-chart-bar text-primary mt-1 fa-lg"></i><span><strong>Formação de professores</strong> e materiais de apoio à prática</span></li>
+                                <li class="d-flex align-items-start gap-3"><i class="fas fa-chart-bar text-primary mt-1 fa-lg"></i><span><strong>Projeção de proficiência e IDEB</strong> para planejamento da rede</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Como funciona (Jornada) -->
+    <section id="como-funciona" class="py-5 py-lg-5 anchor-offset-mj bg-mj-soft">
+        <div class="container">
+            <div class="text-center mb-5 pb-2">
+                <h2 class="section-title-mj text-center display-5 fw-bold text-mj-dark mb-2">Como funciona</h2>
+                <p class="lead text-muted mt-3 fs-5">Da avaliação ao reconhecimento: a jornada do aluno na plataforma</p>
+            </div>
+            <div class="journey-mj">
+                <div class="row g-4 justify-content-center">
+                    <div class="col-12 col-md-6 col-xl-2 journey-step-mj">
+                        <div class="card border-0 bg-white shadow-sm rounded-3 h-100 text-center p-4 journey-card-mj">
+                            <span class="step-num bg-mj-primary text-mj-white mb-3">1</span>
+                            <h6 class="fw-bold text-mj-dark mb-2">Diagnóstico</h6>
+                            <p class="small text-muted mb-0 lh-sm">Avaliação inicial e mapeamento de lacunas por descritor.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-2 journey-step-mj">
+                        <div class="card border-0 bg-white shadow-sm rounded-3 h-100 text-center p-4 journey-card-mj">
+                            <span class="step-num bg-mj-primary text-mj-white mb-3">2</span>
+                            <h6 class="fw-bold text-mj-dark mb-2">Trilhas</h6>
+                            <p class="small text-muted mb-0 lh-sm">Conteúdos e atividades personalizadas por necessidade.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-2 journey-step-mj">
+                        <div class="card border-0 bg-white shadow-sm rounded-3 h-100 text-center p-4 journey-card-mj">
+                            <span class="step-num bg-mj-primary text-mj-white mb-3">3</span>
+                            <h6 class="fw-bold text-mj-dark mb-2">Atividades</h6>
+                            <p class="small text-muted mb-0 lh-sm">Exercícios e simulados no padrão SAEB no Moodle.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-2 journey-step-mj">
+                        <div class="card border-0 bg-white shadow-sm rounded-3 h-100 text-center p-4 journey-card-mj">
+                            <span class="step-num bg-mj-primary text-mj-white mb-3">4</span>
+                            <h6 class="fw-bold text-mj-dark mb-2">Feedback</h6>
+                            <p class="small text-muted mb-0 lh-sm">Professor Virtual e feedback constante por habilidade.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-2 journey-step-mj">
+                        <div class="card border-0 bg-white shadow-sm rounded-3 h-100 text-center p-4 journey-card-mj">
+                            <span class="step-num bg-mj-primary text-mj-white mb-3">5</span>
+                            <h6 class="fw-bold text-mj-dark mb-2">Medalhas</h6>
+                            <p class="small text-muted mb-0 lh-sm">Gamificação: pontos, níveis e ranking cooperativo.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-2 journey-step-mj">
+                        <div class="card border-0 bg-white shadow-sm rounded-3 h-100 text-center p-4 journey-card-mj">
+                            <span class="step-num bg-mj-primary text-mj-white mb-3">6</span>
+                            <h6 class="fw-bold text-mj-dark mb-2">Relatórios</h6>
+                            <p class="small text-muted mb-0 lh-sm">Painéis para professor, coordenador e gestor.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Depoimentos -->
+    <!-- <section class="py-5 py-lg-5 bg-white">
+        <div class="container">
+            <div class="text-center mb-5 pb-2">
+                <h2 class="section-title-mj text-center display-5 fw-bold text-mj-dark mb-2">O que falam de nós</h2>
+                <p class="lead text-muted mt-3 fs-5">Experiências de quem já utiliza soluções educacionais integradas</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 p-4">
+                        <p class="text-muted mb-3">"Plataforma que realmente apoia o professor e traz visibilidade do desempenho por habilidade. A gamificação aumentou o engajamento dos alunos."</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-mj-light text-mj-primary d-flex align-items-center justify-content-center fw-bold" style="width:3rem;height:3rem;">A</div>
+                            <div>
+                                <span class="fw-semibold text-mj-dark">Gestão escolar</span>
+                                <span class="d-block small text-muted">Rede municipal</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 p-4">
+                        <p class="text-muted mb-3">"O acompanhamento por descritor SAEB e a projeção para o IDEB nos ajudam a tomar decisões pedagógicas com base em dados concretos."</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-mj-light text-mj-primary d-flex align-items-center justify-content-center fw-bold" style="width:3rem;height:3rem;">C</div>
+                            <div>
+                                <span class="fw-semibold text-mj-dark">Coordenadora pedagógica</span>
+                                <span class="d-block small text-muted">Secretaria de Educação</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 p-4">
+                        <p class="text-muted mb-3">"Os alunos adoram as medalhas e o ranking. O Professor Virtual tira dúvidas em linguagem acessível e complementa o trabalho em sala."</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-mj-light text-mj-primary d-flex align-items-center justify-content-center fw-bold" style="width:3rem;height:3rem;">P</div>
+                            <div>
+                                <span class="fw-semibold text-mj-dark">Professora</span>
+                                <span class="d-block small text-muted">5º ano — EF</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section> -->
+
+    <!-- Entre em contato -->
+    <section id="contato" class="py-5 py-lg-5 anchor-offset-mj bg-mj-soft">
+        <div class="container">
+            <div class="row align-items-center justify-content-between">
+                <div class="col-lg-6 text-center text-lg-start mb-4 mb-lg-0">
+                    <h2 class="display-6 fw-bold text-mj-dark mb-3">Entre em contato</h2>
+                    <p class="lead text-muted mb-4">Solicite uma demonstração ou fale com nossa equipe. Estamos prontos para atender sua rede de ensino.</p>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><i class="fas fa-envelope text-mj-primary me-2"></i><a href="mailto:contato@avamj.edu.br" class="text-decoration-none text-mj-dark">contato@avamj.edu.br</a></li>
+                        <li><i class="fas fa-calendar-check text-mj-primary me-2"></i><span class="text-muted">Agende uma reunião com um especialista</span></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 text-center text-lg-end">
+                    <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-lg-end align-items-center">
+                        <!-- <a href="/login" class="btn btn-mj btn-sm rounded-pill px-4 py-2">Acessar o sistema</a> -->
+                        <a href="mailto:contato@avamj.edu.br" class="btn btn-mj btn-sm rounded-pill px-4 py-2">Solicitar demonstração</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA final -->
+    <section class="hero-mj text-mj-white py-5 py-lg-5">
+        <div class="container py-4 text-center">
+            <h2 class="h2 fw-bold mb-3">Pronto para começar?</h2>
+            <p class="lead mb-4 opacity-90">Acesse o ambiente com seu usuário Moodle ou solicite uma demonstração para sua rede.</p>
+            <div class="d-flex flex-wrap gap-3 justify-content-center">
+                <a href="/login" class="btn btn-mj-light btn-lg rounded-pill px-5 py-3 shadow">
+                    <i class="fas fa-sign-in-alt me-2"></i> Ir para o login
+                </a>
+                <a href="#contato" class="btn btn-outline-light btn-lg rounded-pill px-5 py-3 fw-medium">
+                    <i class="fas fa-comments me-2"></i> Fale com um especialista
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer-mj text-white-50 py-4 mt-auto">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
+                    <span class="fw-bold text-mj-white"><img src="/static/img/icon.png" alt="AVA MJ" class="img-fluid" width="16" height="16"> AVA MJ</span>
+                    <span class="ms-2 small">Ambiente Virtual de Aprendizagem — Integrado ao Moodle</span>
+                </div>
+                <div class="col-md-6 text-center text-md-end small">
+                    <a href="#contato" class="text-white-50 text-decoration-none me-3">Contato</a>
+                    <a href="/docs" class="text-white-50 text-decoration-none me-3">API</a>
+                    <a href="#" class="text-white-50 text-decoration-none me-3">Política de privacidade</a>
+                    <span>&copy; 2025</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/charts.js"></script>
+</body>
+</html>
