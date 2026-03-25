@@ -33,6 +33,7 @@ def escolas_list(
 ):
     escolas = EscolaRepository().listar(db, ativo_only=False)
     return templates.TemplateResponse(
+        request,
         "admin/escolas_list.html",
         {"request": request, "escolas": escolas},
     )
@@ -45,6 +46,7 @@ def escolas_nova(
     current_user: Usuario = Depends(require_admin_redirect),
 ):
     return templates.TemplateResponse(
+        request,
         "admin/escola_form.html",
         {"request": request, "escola": None},
     )
@@ -61,6 +63,7 @@ def escolas_editar(
     if not escola:
         return RedirectResponse(url="/admin/escolas", status_code=302)
     return templates.TemplateResponse(
+        request,
         "admin/escola_form.html",
         {"request": request, "escola": escola},
     )
@@ -109,6 +112,7 @@ def turmas_list(
     turmas = TurmaRepository().listar(db, escola_id=escola_id)
     escolas = EscolaRepository().listar(db, ativo_only=False)
     return templates.TemplateResponse(
+        request,
         "admin/turmas_list.html",
         {"request": request, "turmas": turmas, "escolas": escolas},
     )
@@ -122,6 +126,7 @@ def turmas_nova(
 ):
     escolas = EscolaRepository().listar(db, ativo_only=False)
     return templates.TemplateResponse(
+        request,
         "admin/turma_form.html",
         {"request": request, "turma": None, "escolas": escolas},
     )
@@ -139,6 +144,7 @@ def turmas_editar(
         return RedirectResponse(url="/admin/turmas", status_code=302)
     escolas = EscolaRepository().listar(db, ativo_only=False)
     return templates.TemplateResponse(
+        request,
         "admin/turma_form.html",
         {"request": request, "turma": turma, "escolas": escolas},
     )
@@ -187,6 +193,7 @@ def cursos_list(
 ):
     cursos = CursoRepository().listar(db)
     return templates.TemplateResponse(
+        request,
         "admin/cursos_list.html",
         {"request": request, "cursos": cursos},
     )
@@ -199,6 +206,7 @@ def cursos_nova(
     current_user: Usuario = Depends(require_admin_redirect),
 ):
     return templates.TemplateResponse(
+        request,
         "admin/curso_form.html",
         {"request": request, "curso": None},
     )
@@ -215,6 +223,7 @@ def cursos_editar(
     if not curso:
         return RedirectResponse(url="/admin/cursos", status_code=302)
     return templates.TemplateResponse(
+        request,
         "admin/curso_form.html",
         {"request": request, "curso": curso},
     )
@@ -257,6 +266,7 @@ def trilhas_list(
     trilhas = TrilhaRepository().listar(db, curso_id=curso_id)
     cursos = CursoRepository().listar(db)
     return templates.TemplateResponse(
+        request,
         "admin/trilhas_list.html",
         {"request": request, "trilhas": trilhas, "cursos": cursos},
     )
@@ -270,6 +280,7 @@ def trilhas_nova(
 ):
     cursos = CursoRepository().listar(db)
     return templates.TemplateResponse(
+        request,
         "admin/trilha_form.html",
         {"request": request, "trilha": None, "cursos": cursos},
     )
@@ -287,6 +298,7 @@ def trilhas_editar(
         return RedirectResponse(url="/admin/trilhas", status_code=302)
     cursos = CursoRepository().listar(db)
     return templates.TemplateResponse(
+        request,
         "admin/trilha_form.html",
         {"request": request, "trilha": trilha, "cursos": cursos},
     )
@@ -338,6 +350,7 @@ def descritores_list(
 ):
     descritores = DescritorRepository().listar(db, disciplina=disciplina)
     return templates.TemplateResponse(
+        request,
         "admin/descritores_list.html",
         {"request": request, "descritores": descritores},
     )
@@ -350,6 +363,7 @@ def descritores_novo(
     current_user: Usuario = Depends(require_admin_redirect),
 ):
     return templates.TemplateResponse(
+        request,
         "admin/descritor_form.html",
         {"request": request, "descritor": None},
     )
@@ -366,6 +380,7 @@ def descritores_editar(
     if not descritor:
         return RedirectResponse(url="/admin/descritores", status_code=302)
     return templates.TemplateResponse(
+        request,
         "admin/descritor_form.html",
         {"request": request, "descritor": descritor},
     )
@@ -484,6 +499,7 @@ def usuarios_list(
             pass
     usuarios = UserRepository().listar(db, role=role_enum, ativo_only=False)
     return templates.TemplateResponse(
+        request,
         "admin/usuarios_list.html",
         {"request": request, "usuarios": usuarios},
     )
@@ -498,6 +514,7 @@ def usuarios_novo(
     escolas = EscolaRepository().listar(db, ativo_only=True)
     turmas = TurmaRepository().listar(db)
     return templates.TemplateResponse(
+        request,
         "admin/usuario_form.html",
         {
             "request": request,
@@ -546,6 +563,7 @@ def usuarios_editar(
                     aluno_escola_id = t.escola_id
                     break
     return templates.TemplateResponse(
+        request,
         "admin/usuario_form.html",
         {
             "request": request,
@@ -681,6 +699,7 @@ def atividades_h5p_list(
     trilhas = TrilhaRepository().listar(db)
     trilha_nomes = {t.id: t.nome for t in trilhas}
     return templates.TemplateResponse(
+        request,
         "admin/atividades_h5p_list.html",
         {"request": request, "atividades": atividades, "trilhas": trilhas, "trilha_nomes": trilha_nomes},
     )
@@ -695,6 +714,7 @@ def atividades_h5p_nova(
     trilhas = TrilhaRepository().listar(db)
     descritores = DescritorRepository().listar(db)
     return templates.TemplateResponse(
+        request,
         "admin/atividade_h5p_form.html",
         {"request": request, "atividade": None, "trilhas": trilhas, "descritores": descritores},
     )
@@ -713,6 +733,7 @@ def atividades_h5p_editar(
     trilhas = TrilhaRepository().listar(db)
     descritores = DescritorRepository().listar(db)
     return templates.TemplateResponse(
+        request,
         "admin/atividade_h5p_form.html",
         {"request": request, "atividade": atividade, "trilhas": trilhas, "descritores": descritores},
     )

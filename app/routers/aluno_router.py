@@ -78,9 +78,9 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
         )
 
     return templates.TemplateResponse(
+        request,
         "aluno/dashboard.html",
         {
-            "request": request,
             "aluno_nome": aluno_nome,
             "aluno_ano": aluno_ano,
             "stats": stats,
@@ -96,8 +96,9 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
 def aluno_missao_1(request: Request, db: Session = Depends(get_db)):
     aluno_nome = _get_aluno_nome(request, db)
     return templates.TemplateResponse(
+        request,
         "aluno/missao1_desafios.html",
-        {"request": request, "aluno_nome": aluno_nome},
+        {"aluno_nome": aluno_nome},
     )
 
 
@@ -160,9 +161,9 @@ def aluno_trilhas(request: Request, db: Session = Depends(get_db)):
         descritores_por_trilha[t.id] = lista_d
 
     return templates.TemplateResponse(
+        request,
         "aluno/trilhas.html",
         {
-            "request": request,
             "aluno_nome": aluno_nome,
             "aluno_ano": aluno_ano,
             "trilhas": trilhas,
@@ -193,9 +194,9 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
     template_path = tipo_para_template.get(atividade.tipo, "aluno/atividade_h5p_outro.html")
 
     return templates.TemplateResponse(
+        request,
         template_path,
         {
-            "request": request,
             "aluno_nome": aluno_nome,
             "atividade": atividade,
             "content_url": f"/api/h5p/content/{id}/content.json",
