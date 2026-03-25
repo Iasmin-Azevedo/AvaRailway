@@ -31,6 +31,15 @@
 
                 <!-- Etapa 1: escolher tipo de cadastro -->
                 <div id="cadastro-etapa-cards">
+                    <div class="row">
+                        <div class="col-12 d-flex gap-2 flex-wrap justify-content-between">
+                            <a href="/aluno" class="text-decoration-none btn btn-primary"><i class="fas fa-person me-1"></i>Tela do aluno</a>
+                            <a href="/professor" class="text-decoration-none btn btn-success"><i class="fas fa-person me-1"></i>Tela do professor</a>
+                            <a href="/coordenador" class="text-decoration-none btn btn-info"><i class="fas fa-person me-1"></i>Tela do coordenador</a>
+                            <a href="/gestor" class="text-decoration-none btn btn-warning"><i class="fas fa-person me-1"></i>Tela do gestor</a>
+                            <a href="/admin" class="text-decoration-none btn btn-danger"><i class="fas fa-person me-1"></i>Tela do admin</a>
+                        </div>
+                    </div>
                     <div class="row g-3 mb-3">
                         <div class="col-6 cadastro-card-wrap" style="animation-delay: 0.05s">
                             <button type="button" class="cadastro-card-mj cadastro-card-mj--aluno card border-0 shadow-sm w-100 h-100 text-start p-4" data-tipo="aluno" aria-pressed="false">
@@ -79,9 +88,30 @@
                         <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-mj-primary" id="cadastro-voltar">Alterar</button>
                     </p>
                     <form action="/aluno" method="post" class="needs-validation" novalidate id="form-cadastro">
-                        <input type="hidden" name="tipo" id="cadastro-tipo-input" value="">
-                        <input type="hidden" name="turma_id" id="cadastro-turma-id" value="1">
-                        <input type="hidden" name="ano" id="cadastro-ano" value="1">
+                        <input type="hidden" name="tipo" id="cadastro-tipo-input" value="aluno">
+                        <input type="hidden" name="ano" id="cadastro-ano" value="">
+                        <div id="cadastro-escola-wrap" class="mb-3 d-none">
+                            <label class="form-label fw-bold">Escola</label>
+                            <select class="form-select form-control-mj rounded-pill" id="cadastro-escola-select">
+                                <option value="">Selecione a escola</option>
+                                {% for e in escolas %}
+                                <option value="{{ e.id }}">{{ e.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="cadastro-turma-wrap" class="mb-3 d-none">
+                            <label class="form-label fw-bold">Turma</label>
+                            <select class="form-select form-control-mj rounded-pill" id="cadastro-turma-select" name="turma_id">
+                                <option value="">Selecione a turma</option>
+                                {% for t in turmas %}
+                                <option value="{{ t.id }}"
+                                        data-ano="{{ t.ano_escolar }}"
+                                        data-escola="{{ t.escola_id }}">
+                                    {{ t.nome }} ({{ t.ano_escolar }}º ano){% if t.escola %} — {{ t.escola.nome }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <div class="form-floating mb-3">
                             <input type="text" class="form-control form-control-mj" id="nome" name="nome" placeholder="Nome completo" required>
                             <label for="nome">Nome completo</label>
@@ -158,10 +188,38 @@
                 });
             });
 
+            var escolaWrap = document.getElementById('cadastro-escola-wrap');
+            var escolaSelect = document.getElementById('cadastro-escola-select');
+            var turmaWrap = document.getElementById('cadastro-turma-wrap');
+            var turmaSelect = document.getElementById('cadastro-turma-select');
+            var anoInput = document.getElementById('cadastro-ano');
             if (btnContinuar) btnContinuar.addEventListener('click', function () {
                 if (!tipoInput.value) return;
                 etapaCards.classList.add('d-none');
                 etapaForm.classList.remove('d-none');
+                if (tipoInput.value === 'aluno') {
+                    if (escolaWrap) {
+                        escolaWrap.classList.remove('d-none');
+                        if (escolaSelect) escolaSelect.required = true;
+                    }
+                    if (turmaWrap) {
+                        turmaWrap.classList.remove('d-none');
+                        if (turmaSelect) turmaSelect.required = true;
+                    }
+                } else {
+                    if (escolaWrap) {
+                        escolaWrap.classList.add('d-none');
+                        if (escolaSelect) escolaSelect.required = false;
+                    }
+                    if (turmaWrap) {
+                        turmaWrap.classList.add('d-none');
+                        if (turmaSelect) turmaSelect.required = false;
+                    }
+                }
+            });
+            if (turmaSelect && anoInput) turmaSelect.addEventListener('change', function () {
+                var opt = this.options[this.selectedIndex];
+                anoInput.value = opt && opt.getAttribute('data-ano') ? opt.getAttribute('data-ano') : '';
             });
 
             document.getElementById('cadastro-voltar').addEventListener('click', function () {
@@ -174,7 +232,35 @@
                 });
                 btnContinuarWrap.classList.add('d-none');
                 tipoInput.value = '';
+                if (escolaWrap) escolaWrap.classList.add('d-none');
+                if (escolaSelect) escolaSelect.required = false;
+                if (turmaWrap) turmaWrap.classList.add('d-none');
+                if (turmaSelect) turmaSelect.required = false;
             });
+
+            function filtrarTurmasPorEscola() {
+                if (!turmaSelect) return;
+                var escolaId = escolaSelect ? escolaSelect.value : '';
+                var firstVisible = null;
+                for (var i = 0; i < turmaSelect.options.length; i++) {
+                    var opt = turmaSelect.options[i];
+                    if (!opt.value) {
+                        opt.hidden = false;
+                        continue;
+                    }
+                    var optEscola = opt.getAttribute('data-escola');
+                    var visivel = !escolaId || optEscola === escolaId;
+                    opt.hidden = !visivel;
+                    if (visivel && !firstVisible) {
+                        firstVisible = opt;
+                    }
+                }
+                turmaSelect.value = '';
+                if (anoInput) anoInput.value = '';
+            }
+            if (escolaSelect && turmaSelect) {
+                escolaSelect.addEventListener('change', filtrarTurmasPorEscola);
+            }
 
             var form = document.getElementById('form-cadastro');
             if (form) form.addEventListener('submit', function (e) {

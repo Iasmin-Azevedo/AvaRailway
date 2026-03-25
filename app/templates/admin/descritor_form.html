@@ -1,0 +1,38 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ "Editar Descritor" if descritor else "Novo Descritor" }}{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Admin{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/descritores">Voltar à lista</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-4">
+    <a href="/admin/descritores" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Descritores</a>
+    <h2 class="fw-bold text-mj-dark mt-2">{{ "Editar Descritor" if descritor else "Novo Descritor" }}</h2>
+</div>
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <form method="post" action="{% if descritor %}/admin/descritores/{{ descritor.id }}/editar{% else %}/admin/descritores/novo{% endif %}">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Código</label>
+                <input type="text" name="codigo" class="form-control rounded-pill" value="{{ descritor.codigo if descritor else '' }}" required placeholder="Ex: D12">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Descrição</label>
+                <input type="text" name="descricao" class="form-control rounded-pill" value="{{ descritor.descricao if descritor else '' }}" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold">Disciplina</label>
+                <select name="disciplina" class="form-select rounded-pill" required>
+                    <option value="LP" {% if descritor and descritor.disciplina == 'LP' %}selected{% endif %}>Língua Portuguesa</option>
+                    <option value="MAT" {% if descritor and descritor.disciplina == 'MAT' %}selected{% endif %}>Matemática</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-mj rounded-pill">Salvar</button>
+            <a href="/admin/descritores" class="btn btn-mj-outline rounded-pill ms-2"><i class="fa-solid fa-arrow-left me-1"></i> Voltar à lista</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

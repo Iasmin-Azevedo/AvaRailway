@@ -1,0 +1,241 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Portal Docente{% endblock %}
+{% block brand_link %}/professor{% endblock %}
+{% block menu_title %}Menu do Professor{% endblock %}
+
+{% block header_right %}
+<div class="d-flex align-items-center gap-2 bg-mj-soft px-3 py-1 rounded-3 border border-mj-primary border-opacity-25">
+    <span class="text-mj-dark small fw-bold">Turma Atual:</span>
+    <select class="form-select form-select-sm bg-white text-mj-primary fw-bold border-0">
+        <option value="" {% if not selected_turma_id %}selected{% endif %}>Todas as turmas</option>
+        {% for t in professor_turmas %}
+        <option value="{{ t.id }}" {% if selected_turma_id == t.id %}selected{% endif %}>
+            {{ t.nome }} - {{ t.escola.nome if t.escola else "Sem escola" }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+<div class="vr text-muted"></div>
+<div class="d-flex align-items-center gap-2">
+    <div class="text-end d-none d-md-block">
+        <div class="mission-user-name mb-0">
+            {{ current_user.nome if current_user else "Professor(a)" }}
+        </div>
+        <small class="text-mj-muted">Professor(a)</small>
+    </div>
+    <div class="position-relative">
+        <span class="mission-user-avatar bg-success text-white" style="font-size: 0.65rem;">
+            {{ avatar_iniciais }}
+        </span>
+        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" title="Novos alertas"></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block offcanvas_extra %}{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Desempenho</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Radar de Alunos</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="#">Dúvidas Chatbot</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="alert alert-warning border-0 shadow-sm border-start border-warning border-5 d-flex align-items-start gap-3 mb-4 rounded-3" role="alert">
+    <div class="bg-warning bg-opacity-25 p-2 rounded-circle text-warning">
+        <i class="fa-solid fa-robot fs-4"></i>
+    </div>
+    <div class="flex-grow-1">
+        <h6 class="fw-bold mb-1 text-dark">Alerta da IA: Dificuldade Coletiva Detectada</h6>
+        <p class="small text-muted mb-2">
+            Após o último simulado, notei que <strong>45% da turma</strong> apresentou erros recorrentes no descritor <strong>Inferir sentido de palavras (EF02LP09)</strong>. As dúvidas no chat confirmam essa lacuna.
+        </p>
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm btn-mj"><i class="fa-solid fa-paper-plane me-1"></i> Liberar Atividade H5P de Reforço</button>
+            <button class="btn btn-sm btn-mj-outline">Ver Questões Erradas</button>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card dash-stat-card h-100 border-0">
+            <span class="dash-stat-label mb-3">Proficiência da Turma</span>
+            <div class="d-flex align-items-center justify-content-between">
+                <h2 class="dash-stat-value mb-0">{{ stats.proficiencia_turma_pct|default(68) }}%</h2>
+                <div class="bg-success bg-opacity-10 text-success px-2 py-1 rounded small fw-bold">
+                    <i class="fa-solid fa-arrow-up"></i> 4%
+                </div>
+            </div>
+            <small class="text-muted mt-2 d-block">Média no último simulado SAEB</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card dash-stat-card h-100 border-0">
+            <span class="dash-stat-label mb-3">Engajamento nas Trilhas</span>
+            <div class="d-flex align-items-center justify-content-between">
+                <h2 class="dash-stat-value text-mj-primary mb-0">{{ stats.engajamento_pct|default(82) }}%</h2>
+                <i class="fa-solid fa-gamepad fs-3 text-mj-primary opacity-25"></i>
+            </div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-mj-primary" style="width: {{ stats.engajamento_pct|default(82) }}%;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card dash-stat-card dash-stat-card--danger h-100">
+            <span class="dash-stat-label mb-3">Alunos em Risco</span>
+            <div class="d-flex align-items-center justify-content-between">
+                <h2 class="dash-stat-value text-danger mb-0">{{ stats.alunos_risco|default(0) }}</h2>
+                <i class="fa-solid fa-user-xmark fs-3 text-danger opacity-25"></i>
+            </div>
+            <small class="text-danger fw-bold mt-2 d-block">Requer intervenção imediata</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card dash-card h-100 bg-mj-gradient text-white border-0">
+            <div class="card-body p-3">
+                <span class="small text-uppercase fw-bold opacity-75">Moedas da Turma</span>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <h2 class="fw-bold mb-0">{{ stats.moedas_turma|default(12450) }}</h2>
+                    <i class="fa-solid fa-coins fs-3 opacity-50"></i>
+                </div>
+                <small class="mt-2 d-block fw-bold"><i class="fa-solid fa-trophy text-warning"></i> 2º Lugar na Escola</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card dash-card mb-4">
+            <div class="dash-card-header d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-dark">Desempenho por Habilidades BNCC/SAEB</h6>
+                <button class="btn btn-sm btn-mj-outline">Exportar CSV</button>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-4 small fw-bold text-muted">EF02LP01 - Ler palavras novas</div>
+                    <div class="col-md-6">
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-success" style="width: 88%"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-end small fw-bold text-success">88% (Adequado)</div>
+                </div>
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-4 small fw-bold text-muted">EF02LP04 - Produzir frases c/ pontuação</div>
+                    <div class="col-md-6">
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-mj-primary" style="width: 72%"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-end small fw-bold text-mj-primary">72% (Bom)</div>
+                </div>
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-4 small fw-bold text-danger">EF02LP09 - Inferir sentido (Alerta)</div>
+                    <div class="col-md-6">
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-end small fw-bold text-danger">45% (Crítico)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card dash-card">
+            <div class="dash-card-header">
+                <h6 class="fw-bold mb-0 text-dark">Radar de Acompanhamento Individual</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase text-muted">
+                            <tr>
+                                <th class="ps-4">Aluno</th>
+                                <th>Status</th>
+                                <th>Principal Dificuldade</th>
+                                <th class="text-end pe-4">Ação Sugerida</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            <tr>
+                                <td class="ps-4 fw-bold text-dark">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-danger rounded-circle" style="width: 8px; height: 8px;"></div>
+                                        Marcos Silva
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-danger bg-opacity-25 text-danger border border-danger">Evasão / Baixo Acesso</span></td>
+                                <td class="text-muted">Não acessa o AVA há 8 dias</td>
+                                <td class="text-end pe-4"><button class="btn btn-sm btn-outline-danger">Notificar Coordenação</button></td>
+                            </tr>
+                            <tr>
+                                <td class="ps-4 fw-bold text-dark">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-warning rounded-circle" style="width: 8px; height: 8px;"></div>
+                                        Ana Júlia
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-warning bg-opacity-25 text-warning border border-warning">Dificuldade Pedagógica</span></td>
+                                <td class="text-muted">Segmentação de palavras (Trilha 1)</td>
+                                <td class="text-end pe-4"><button class="btn btn-sm btn-mj-outline">Atribuir Microaula H5P</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 d-flex flex-column gap-4">
+        <div class="card dash-card flex-grow-1">
+            <div class="dash-card-header d-flex align-items-center gap-2">
+                <i class="fa-regular fa-comments text-mj-primary fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Dúvidas Frequentes no Chatbot IA</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush small">
+                    <div class="list-group-item p-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-dark">"O que é personagem principal?"</span>
+                            <span class="badge bg-secondary rounded-pill">12x</span>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 0.8rem;">O agente explicou o conceito usando exemplos de fábulas.</p>
+                    </div>
+                    <div class="list-group-item p-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-dark">"Onde coloco a vírgula?"</span>
+                            <span class="badge bg-secondary rounded-pill">8x</span>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 0.8rem;">O agente direcionou para o Quiz de Pontuação da Trilha 3.</p>
+                    </div>
+                    <div class="list-group-item p-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-dark">"Não entendi a questão 4."</span>
+                            <span class="badge bg-secondary rounded-pill">5x</span>
+                        </div>
+                        <p class="text-muted mb-0" style="font-size: 0.8rem;">Questão do simulado sobre localização de informação explícita.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-top text-center py-2">
+                <a href="#" class="small text-decoration-none fw-bold text-mj-primary">Ver histórico completo do chat</a>
+            </div>
+        </div>
+
+        <div class="card dash-card bg-light">
+            <div class="card-body p-3">
+                <h6 class="fw-bold small text-muted text-uppercase mb-3">Ações Rápidas</h6>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-white border shadow-sm text-start fw-bold text-mj-primary"><i class="fa-solid fa-video me-2"></i> Agendar Live de Revisão</button>
+                    <button class="btn btn-white border shadow-sm text-start fw-bold text-success"><i class="fa-solid fa-medal me-2"></i> Enviar Medalha Coletiva</button>
+                    <button class="btn btn-white border shadow-sm text-start fw-bold text-mj-muted"><i class="fa-solid fa-file-lines me-2"></i> Ver Dashboard Completo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

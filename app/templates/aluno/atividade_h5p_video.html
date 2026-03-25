@@ -1,0 +1,79 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ atividade.titulo }}{% endblock %}
+{% block brand_link %}/aluno{% endblock %}
+{% block menu_title %}Atividade - Vídeo interativo{% endblock %}
+
+{% block header_right %}
+<div class="mission-user-name">{{ aluno_nome }}</div>
+{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno/atividade/{{ atividade.id }}">Esta atividade</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-3 d-flex justify-content-between align-items-center">
+    <a href="/aluno/trilhas" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Voltar às trilhas</a>
+    <h5 class="fw-bold text-mj-dark mb-0">{{ atividade.titulo }}</h5>
+</div>
+
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <div class="mission-hero-mj border-0 rounded-4 shadow-sm p-3 mb-4">
+            <span class="mission-chip-mj mb-2">
+                <i class="fas fa-video me-2"></i> Vídeo interativo
+            </span>
+            <h3 class="h5 fw-bold text-mj-dark mt-3 mb-2">Prévia: assista e responda</h3>
+            <p class="text-mj-muted mb-0">Em pontos do vídeo, aparecerão perguntas e desafios.</p>
+        </div>
+
+        <div class="row g-3 align-items-stretch">
+            <div class="col-lg-8">
+                <div class="mission-question-card p-4 h-100">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <span class="mission-question-pill">Parte 01</span>
+                        <div class="gm-chip">
+                            <i class="fas fa-clock text-warning"></i>
+                            <span class="gm-chip__value">3 min</span>
+                        </div>
+                    </div>
+
+                    <div class="mission-illustration-mj">
+                        <i class="fas fa-play-circle"></i>
+                        <div class="text-center mt-3">
+                            <div class="fw-bold text-mj-dark mb-1">Player (prévia)</div>
+                            <div class="text-mj-muted small">O vídeo interativo será exibido pelo H5P.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-center mt-4">
+                        <button class="gm-btn gm-btn--blue" disabled>
+                            <i class="fas fa-play me-2"></i> Assistir
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="mission-question-card p-4 h-100">
+                    <div class="mission-chip-mj mb-3">
+                        <i class="fas fa-bullseye me-2"></i> Objetivo
+                    </div>
+                    <h4 class="h6 fw-bold text-mj-dark mb-2">Entender e aplicar</h4>
+                    <p class="text-mj-muted mb-0">Responda às interações para ganhar pontos e avançar.</p>
+
+                    <div class="mission-feedback-mj mission-feedback-mj--ok mt-4 mb-0">
+                        <div class="mission-avatar"><i class="fas fa-robot"></i></div>
+                        <div class="mission-bubble w-100"><strong>Mascote:</strong> Preste atenção! No fim, você vai se superar.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<p class="small text-muted mt-2">Prévia visual: o conteúdo H5P será integrado em seguida.</p>
+{% endblock %}
+

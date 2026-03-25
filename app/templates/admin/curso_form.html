@@ -1,0 +1,27 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ "Editar Curso" if curso else "Novo Curso" }}{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Admin{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/cursos">Voltar à lista</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-4">
+    <a href="/admin/cursos" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Cursos</a>
+    <h2 class="fw-bold text-mj-dark mt-2">{{ "Editar Curso" if curso else "Novo Curso" }}</h2>
+</div>
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <form method="post" action="{% if curso %}/admin/cursos/{{ curso.id }}/editar{% else %}/admin/cursos/nova{% endif %}">
+            <div class="mb-4">
+                <label class="form-label fw-bold">Nome</label>
+                <input type="text" name="nome" class="form-control rounded-pill" value="{{ curso.nome if curso else '' }}" required placeholder="Ex: Língua Portuguesa, Matemática">
+            </div>
+            <button type="submit" class="btn btn-mj rounded-pill">Salvar</button>
+            <a href="/admin/cursos" class="btn btn-mj-outline rounded-pill ms-2"><i class="fa-solid fa-arrow-left me-1"></i> Voltar à lista</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

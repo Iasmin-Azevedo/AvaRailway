@@ -1,0 +1,196 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ "Editar Usuário" if usuario else "Novo Usuário" }}{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Admin{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/usuarios">Voltar à lista</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-4">
+    <a href="/admin/usuarios" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Usuários</a>
+    <h2 class="fw-bold text-mj-dark mt-2">{{ "Editar Usuário" if usuario else "Novo Usuário" }}</h2>
+</div>
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <form method="post" action="{% if usuario %}/admin/usuarios/{{ usuario.id }}/editar{% else %}/admin/usuarios/novo{% endif %}">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Nome</label>
+                <input type="text" name="nome" class="form-control rounded-pill" value="{{ usuario.nome if usuario else '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">E-mail</label>
+                <input type="email" name="email" class="form-control rounded-pill" value="{{ usuario.email if usuario else '' }}" required {% if usuario %}readonly{% endif %}>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Senha {% if usuario %}(deixe em branco para manter){% endif %}</label>
+                <input type="password" name="senha" class="form-control rounded-pill" {% if not usuario %}required{% endif %} minlength="6">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Perfil</label>
+                <select name="role" class="form-select rounded-pill" required>
+                    {% for r in roles %}
+                    <option value="{{ r.value }}" {% if usuario and usuario.role == r %}selected{% endif %}>{{ r.value|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="aluno-fields" class="mb-3 d-none">
+                <label class="form-label fw-bold">Escola e Turma do Aluno</label>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <select class="form-select rounded-pill" id="aluno-escola-select">
+                            <option value="">Selecione a escola</option>
+                            {% for e in escolas %}
+                            <option value="{{ e.id }}" {% if aluno_escola_id and aluno_escola_id == e.id %}selected{% endif %}>
+                                {{ e.nome }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <select class="form-select rounded-pill" id="aluno-turma-select" name="aluno_turma_id">
+                            <option value="">Selecione a turma</option>
+                            {% for t in turmas %}
+                            <option value="{{ t.id }}"
+                                    data-escola="{{ t.escola_id }}"
+                                    data-ano="{{ t.ano_escolar }}"
+                                    {% if aluno_turma_id and aluno_turma_id == t.id %}selected{% endif %}>
+                                {{ t.nome }} ({{ t.ano_escolar }}º ano){% if t.escola %} — {{ t.escola.nome }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <input type="hidden" name="aluno_ano" id="aluno-ano-input" value="{{ aluno_ano or '' }}">
+                <small class="text-muted">Primeiro selecione a escola para então escolher uma turma disponível.</small>
+            </div>
+            <div id="professor-fields" class="mb-3 d-none">
+                <label class="form-label fw-bold">Turmas do Professor</label>
+                <div class="row row-cols-1 row-cols-md-2 g-2">
+                    {% for t in turmas %}
+                    <div class="col">
+                        <div class="form-check">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                name="professor_turmas"
+                                value="{{ t.id }}"
+                                id="prof_turma_{{ t.id }}"
+                                {% if t.id in professor_turma_ids %}checked{% endif %}
+                            >
+                            <label class="form-check-label" for="prof_turma_{{ t.id }}">
+                                {{ t.nome }} - {{ t.escola.nome if t.escola else "Sem escola" }}
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <small class="text-muted">Marque uma ou mais turmas que este professor irá atender.</small>
+            </div>
+            <div id="gestor-fields" class="mb-3 d-none">
+                <label class="form-label fw-bold">Escolas que o Gestor Administra</label>
+                <div class="row row-cols-1 row-cols-md-2 g-2">
+                    {% for e in escolas %}
+                    <div class="col">
+                        <div class="form-check">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                name="gestor_escolas"
+                                value="{{ e.id }}"
+                                id="gestor_escola_{{ e.id }}"
+                                {% if e.id in gestor_escola_ids %}checked{% endif %}
+                            >
+                            <label class="form-check-label" for="gestor_escola_{{ e.id }}">
+                                {{ e.nome }}
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <small class="text-muted">Marque uma ou mais escolas que este gestor irá administrar.</small>
+            </div>
+            <div id="coordenador-fields" class="mb-3 d-none">
+                <label class="form-label fw-bold">Escola do Coordenador</label>
+                <select name="coordenador_escola" class="form-select rounded-pill">
+                    <option value="">Selecione uma escola</option>
+                    {% for e in escolas %}
+                    <option value="{{ e.id }}"
+                        {% if coordenador_escola_id and coordenador_escola_id == e.id %}selected{% endif %}>
+                        {{ e.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">Cada coordenador só pode gerenciar uma escola.</small>
+            </div>
+            {% if usuario %}
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="ativo" value="true" {% if usuario.ativo %}checked{% endif %}>
+                    <label class="form-check-label">Ativo</label>
+                </div>
+            </div>
+            {% endif %}
+            <button type="submit" class="btn btn-mj rounded-pill">Salvar</button>
+            <a href="/admin/usuarios" class="btn btn-mj-outline rounded-pill ms-2"><i class="fa-solid fa-arrow-left me-1"></i> Voltar à lista</a>
+        </form>
+    </div>
+</div>
+<script>
+    (function () {
+        const roleSelect = document.querySelector('select[name="role"]');
+        const alunoFields = document.getElementById('aluno-fields');
+        const professorFields = document.getElementById('professor-fields');
+        const gestorFields = document.getElementById('gestor-fields');
+        const coordenadorFields = document.getElementById('coordenador-fields');
+        const alunoEscolaSelect = document.getElementById('aluno-escola-select');
+        const alunoTurmaSelect = document.getElementById('aluno-turma-select');
+        const alunoAnoInput = document.getElementById('aluno-ano-input');
+
+        function updateRoleFields() {
+            const role = (roleSelect.value || '').toLowerCase();
+            alunoFields.classList.toggle('d-none', role !== 'aluno');
+            professorFields.classList.toggle('d-none', role !== 'professor');
+            gestorFields.classList.toggle('d-none', role !== 'gestor');
+            coordenadorFields.classList.toggle('d-none', role !== 'coordenador');
+        }
+
+        function filtrarTurmasAlunoPorEscola() {
+            if (!alunoTurmaSelect) return;
+            const escolaId = alunoEscolaSelect ? alunoEscolaSelect.value : '';
+            for (let i = 0; i < alunoTurmaSelect.options.length; i++) {
+                const opt = alunoTurmaSelect.options[i];
+                if (!opt.value) {
+                    opt.hidden = false;
+                    continue;
+                }
+                const optEscola = opt.getAttribute('data-escola');
+                const visivel = !escolaId || optEscola === escolaId;
+                opt.hidden = !visivel;
+            }
+            alunoTurmaSelect.value = '';
+            if (alunoAnoInput) alunoAnoInput.value = '';
+        }
+
+        function atualizarAnoAluno() {
+            if (!alunoTurmaSelect || !alunoAnoInput) return;
+            const opt = alunoTurmaSelect.options[alunoTurmaSelect.selectedIndex];
+            const ano = opt && opt.getAttribute('data-ano') ? opt.getAttribute('data-ano') : '';
+            alunoAnoInput.value = ano;
+        }
+
+        if (roleSelect) {
+            roleSelect.addEventListener('change', updateRoleFields);
+            updateRoleFields();
+        }
+        if (alunoEscolaSelect && alunoTurmaSelect) {
+            alunoEscolaSelect.addEventListener('change', filtrarTurmasAlunoPorEscola);
+        }
+        if (alunoTurmaSelect && alunoAnoInput) {
+            alunoTurmaSelect.addEventListener('change', atualizarAnoAluno);
+            atualizarAnoAluno();
+        }
+    })();
+</script>
+{% endblock %}

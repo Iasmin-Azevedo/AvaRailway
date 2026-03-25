@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIPE - Jornada do Conhecimento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #f0f2f5; }
+        
+        /* Cores de Gamificação (Customizadas quando o Bootstrap não atende) */
+        .bg-xp { background-color: #4e73df; } /* Cor de Experiência */
+        .bg-level { background-color: #6f42c1; } /* Cor de Nível */
+        .text-gold { color: #ffca2c; }
+        
+        /* Efeito de Hover nas Missões */
+        .mission-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border: 2px solid transparent; }
+        .mission-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; border-color: #4e73df; }
+        
+        /* Sidebar Estilizada */
+        .sidebar-gamer { background: #0b1d37; min-height: 100vh; color: white; }
+        .nav-link-gamer { color: #a3b1c2; border-radius: 12px; margin-bottom: 5px; }
+        .nav-link-gamer:hover, .nav-link-gamer.active { background: #1a2e4c; color: #fff; }
+        
+        .progress-slim { height: 8px; border-radius: 10px; }
+        .avatar-frame { border: 3px solid #ffca2c; padding: 3px; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-3 col-lg-2 d-md-block sidebar-gamer p-3 shadow">
+            <div class="d-flex align-items-center mb-4 ps-2">
+                <i class="bi bi-controller fs-3 me-2 text-primary"></i>
+                <span class="fw-black fs-4 tracking-tight">DIPE <span class="text-primary text-uppercase">Edu</span></span>
+            </div>
+
+            <div class="mb-4 text-center">
+                <div class="position-relative d-inline-block">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Weslem" alt="Avatar" class="rounded-circle avatar-frame bg-white" width="80">
+                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-level border border-white">Nível 12</span>
+                </div>
+                <h6 class="mt-2 mb-0 fw-bold">Olá, Explorador!</h6>
+                <p class="small text-secondary">Weslem Rodrigues</p>
+            </div>
+
+            <hr class="text-secondary">
+
+            <ul class="nav flex-column">
+                <li class="nav-item"><a class="nav-link nav-link-gamer active" href="#"><i class="bi bi-map me-2"></i> Mapa da Jornada</a></li>
+                <li class="nav-item"><a class="nav-link nav-link-gamer" href="#"><i class="bi bi-trophy me-2"></i> Minhas Conquistas</a></li>
+                <li class="nav-item"><a class="nav-link nav-link-gamer" href="#"><i class="bi bi-people me-2"></i> Ranking da Turma</a></li>
+                <li class="nav-item"><a class="nav-link nav-link-gamer" href="#"><i class="bi bi-shop me-2"></i> Loja de Itens</a></li>
+            </ul>
+
+            <div class="mt-5 p-3 bg-dark rounded-4 small">
+                <p class="mb-1 text-uppercase fw-bold text-secondary" style="font-size: 0.7rem;">Status de Energia</p>
+                <div class="progress progress-slim bg-secondary mb-2">
+                    <div class="progress-bar bg-warning" style="width: 85%"></div>
+                </div>
+                <p class="mb-0 text-white" style="font-size: 0.75rem;">850 / 1000 XP para o Nível 13</p>
+            </div>
+        </nav>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+            
+            <div class="row mb-4 align-items-center">
+                <div class="col-md-6">
+                    <h2 class="fw-900 text-dark mb-0">JORNADA: LÍNGUA PORTUGUESA</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Início</a></li>
+                            <li class="breadcrumb-item active">2º Ano Fundamental</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="col-md-6 d-flex justify-content-end gap-3">
+                    <div class="bg-white p-2 px-3 rounded-pill shadow-sm border d-flex align-items-center">
+                        <i class="bi bi-coin text-gold fs-5 me-2"></i>
+                        <span class="fw-bold">1,250</span>
+                    </div>
+                    <div class="bg-white p-2 px-3 rounded-pill shadow-sm border d-flex align-items-center">
+                        <i class="bi bi-lightning-fill text-primary fs-5 me-2"></i>
+                        <span class="fw-bold">14 Dias de Ofensiva</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 rounded-4 shadow-sm mb-4 bg-white">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold"><i class="bi bi-flag-fill me-2 text-danger"></i> Progresso da Unidade Atual</span>
+                        <span class="badge bg-success">40% Completado</span>
+                    </div>
+                    <div class="progress rounded-pill" style="height: 15px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 40%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card mission-card h-100 shadow-sm rounded-4 overflow-hidden">
+                        <div class="p-3 bg-primary text-white d-flex justify-content-between align-items-center">
+                            <span class="small fw-bold text-uppercase">Missão 01</span>
+                            <i class="bi bi-unlock-fill"></i>
+                        </div>
+                        <div class="card-body text-center py-4">
+                            <div class="bg-light rounded-circle d-inline-flex p-3 mb-3">
+                                <i class="bi bi-book fs-1 text-primary"></i>
+                            </div>
+                            <h5 class="fw-bold">Portal das Letras</h5>
+                            <p class="text-muted small">Consolide sua leitura de palavras e frases curtas.</p>
+                            <button class="btn btn-primary w-100 rounded-pill fw-bold">COMEÇAR DESAFIO</button>
+                        </div>
+                        <div class="card-footer bg-white border-0 text-center pb-3">
+                            <span class="text-secondary small"><i class="bi bi-star-fill text-gold me-1"></i> Ganhos: +50 XP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card mission-card h-100 shadow-sm rounded-4 overflow-hidden">
+                        <div class="p-3 bg-success text-white d-flex justify-content-between align-items-center">
+                            <span class="small fw-bold text-uppercase">Missão 02</span>
+                            <i class="bi bi-lock-fill"></i>
+                        </div>
+                        <div class="card-body text-center py-4">
+                            <div class="bg-light rounded-circle d-inline-flex p-3 mb-3">
+                                <i class="bi bi-search fs-1 text-success"></i>
+                            </div>
+                            <h5 class="fw-bold opacity-75">Enigma do Texto</h5>
+                            <p class="text-muted small">Localize informações e descubra segredos nos textos.</p>
+                            <button class="btn btn-outline-secondary w-100 rounded-pill fw-bold" disabled>BLOQUEADO</button>
+                        </div>
+                        <div class="card-footer bg-white border-0 text-center pb-3">
+                            <span class="text-secondary small">Requer Missão 01 completa</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-0 rounded-4 shadow-sm bg-white h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 px-4">
+                            <h6 class="fw-bold mb-0">Cofre de Medalhas</h6>
+                        </div>
+                        <div class="card-body px-4">
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="text-center" style="width: 70px;">
+                                    <div class="bg-light rounded-circle p-2 border border-warning shadow-sm mb-1">
+                                        <i class="bi bi-award-fill text-warning fs-3"></i>
+                                    </div>
+                                    <span class="d-block" style="font-size: 0.65rem;">Leitor Fluente</span>
+                                </div>
+                                <div class="text-center opacity-25" style="width: 70px;">
+                                    <div class="bg-light rounded-circle p-2 border mb-1">
+                                        <i class="bi bi-mortarboard-fill text-secondary fs-3"></i>
+                                    </div>
+                                    <span class="d-block" style="font-size: 0.65rem;">Mestre 2º Ano</span>
+                                </div>
+                                <div class="text-center opacity-25" style="width: 70px;">
+                                    <div class="bg-light rounded-circle p-2 border mb-1">
+                                        <i class="bi bi-pencil-square text-secondary fs-3"></i>
+                                    </div>
+                                    <span class="d-block" style="font-size: 0.65rem;">Escritor</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-3 border-top">
+                                <h6 class="fw-bold mb-3 small">Desafio Diário</h6>
+                                <div class="bg-light p-3 rounded-3 d-flex align-items-center">
+                                    <i class="bi bi-alarm-fill text-danger me-3 fs-4"></i>
+                                    <div>
+                                        <p class="mb-0 fw-bold small">Corrida Contra o Tempo</p>
+                                        <p class="mb-0 text-muted" style="font-size: 0.7rem;">Leia 3 textos em 5 min.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <h5 class="fw-bold mb-3">Recursos de Apoio</h5>
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="bg-white p-3 rounded-4 shadow-sm border-start border-primary border-5 d-flex align-items-center">
+                            <i class="bi bi-play-circle-fill text-primary me-3 fs-3"></i>
+                            <span class="fw-bold small">Videoaulas</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="bg-white p-3 rounded-4 shadow-sm border-start border-success border-5 d-flex align-items-center">
+                            <i class="bi bi-puzzle-fill text-success me-3 fs-3"></i>
+                            <span class="fw-bold small">Atividades H5P</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="bg-white p-3 rounded-4 shadow-sm border-start border-info border-5 d-flex align-items-center">
+                            <i class="bi bi-robot text-info me-3 fs-3"></i>
+                            <span class="fw-bold small">Ajuda da IA</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="bg-white p-3 rounded-4 shadow-sm border-start border-warning border-5 d-flex align-items-center">
+                            <i class="bi bi-file-earmark-pdf-fill text-warning me-3 fs-3"></i>
+                            <span class="fw-bold small">Materiais PDF</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

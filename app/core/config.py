@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     MOODLE_URL: str
     MOODLE_TOKEN: str
+    H5P_CONTENT_DIR: str = "app/templates/static/h5p"
 
     class Config:
         env_file = ".env"

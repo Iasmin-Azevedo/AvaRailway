@@ -1,0 +1,75 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ atividade.titulo }}{% endblock %}
+{% block brand_link %}/aluno{% endblock %}
+{% block menu_title %}Atividade{% endblock %}
+
+{% block header_right %}
+<div class="mission-user-name">{{ aluno_nome }}</div>
+{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno/atividade/{{ atividade.id }}">Esta atividade</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-3 d-flex justify-content-between align-items-center">
+    <a href="/aluno/trilhas" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Voltar às trilhas</a>
+    <h5 class="fw-bold text-mj-dark mb-0">{{ atividade.titulo }}</h5>
+</div>
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <div id="h5p-container" class="min-vh-50"></div>
+    </div>
+</div>
+<p class="small text-muted mt-2">Ao concluir a atividade, seu progresso será registrado automaticamente.</p>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/styles/h5p.css">
+<script src="https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/main.bundle.js" charset="UTF-8"></script>
+<script>
+(function() {
+  var container = document.getElementById('h5p-container');
+  if (!container || typeof H5PStandalone === 'undefined') return;
+  var contentUrl = "{{ content_url }}";
+  var options = {
+    h5pJsonPath: contentUrl,
+    frameJs: 'https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/frame.bundle.js',
+    frameCss: 'https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/styles/h5p.css',
+    postUserStatistics: false,
+    ajax: {
+      setFinishedUrl: '/api/h5p/atividades/{{ atividade.id }}/concluir',
+      contentUserDataUrl: null
+    }
+  };
+  try {
+    new H5PStandalone.H5P(container, options);
+  } catch (e) {
+    container.innerHTML = '<div class="alert alert-warning">Não foi possível carregar a atividade. Verifique se o conteúdo está disponível.</div>';
+    console.error('H5P init error:', e);
+  }
+})();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var checkComplete = setInterval(function() {
+    var iframe = document.querySelector('#h5p-container iframe');
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.addEventListener('message', function(ev) {
+          if (ev.data && (ev.data === 'finished' || (ev.data.context && ev.data.context === 'h5p'))) {
+            fetch('/api/h5p/atividades/{{ atividade.id }}/concluir', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ concluido: true, score: null })
+            }).then(function() { clearInterval(checkComplete); });
+          }
+        });
+      } catch (e) {}
+    }
+  }, 2000);
+  setTimeout(function() { clearInterval(checkComplete); }, 120000);
+});
+</script>
+{% endblock %}

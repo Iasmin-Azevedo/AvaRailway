@@ -6,7 +6,7 @@ class Aluno(Base):
     __tablename__ = "alunos"
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
-    turma_id = Column(Integer)
+    turma_id = Column(Integer, ForeignKey("turmas.id"), nullable=True)
     ano_escolar = Column(Integer)
     nivel_risco = Column(String(20), default="BAIXO")
     

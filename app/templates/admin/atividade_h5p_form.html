@@ -1,0 +1,70 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ "Editar Atividade H5P" if atividade else "Nova Atividade H5P" }}{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Admin{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/atividades-h5p">Voltar à lista</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-4">
+    <a href="/admin/atividades-h5p" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Atividades H5P</a>
+    <h2 class="fw-bold text-mj-dark mt-2">{{ "Editar Atividade H5P" if atividade else "Nova Atividade H5P" }}</h2>
+</div>
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <form method="post" action="{% if atividade %}/admin/atividades-h5p/{{ atividade.id }}/editar{% else %}/admin/atividades-h5p/nova{% endif %}">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Título</label>
+                <input type="text" name="titulo" class="form-control rounded-pill" value="{{ atividade.titulo if atividade else '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Tipo</label>
+                <select name="tipo" class="form-select rounded-pill" required>
+                    <option value="quiz" {% if atividade and atividade.tipo == 'quiz' %}selected{% endif %}>Quiz</option>
+                    <option value="drag-drop" {% if atividade and atividade.tipo == 'drag-drop' %}selected{% endif %}>Arrastar e soltar</option>
+                    <option value="video" {% if atividade and atividade.tipo == 'video' %}selected{% endif %}>Vídeo interativo</option>
+                    <option value="flashcards" {% if atividade and atividade.tipo == 'flashcards' %}selected{% endif %}>Flashcards</option>
+                    <option value="presentation" {% if atividade and atividade.tipo == 'presentation' %}selected{% endif %}>Apresentação</option>
+                    <option value="outro" {% if atividade and atividade.tipo not in ['quiz','drag-drop','video','flashcards','presentation'] %}selected{% endif %}>Outro</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Caminho do conteúdo (pasta ou arquivo JSON)</label>
+                <input type="text" name="path_ou_json" class="form-control rounded-pill" value="{{ atividade.path_ou_json if atividade else '' }}" required placeholder="Ex: 1/content.json ou pasta/">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Trilha (opcional)</label>
+                <select name="trilha_id" class="form-select rounded-pill">
+                    <option value="">— Nenhuma —</option>
+                    {% for t in trilhas %}
+                    <option value="{{ t.id }}" {% if atividade and atividade.trilha_id == t.id %}selected{% endif %}>{{ t.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Descritor SAEB (opcional)</label>
+                <select name="descritor_id" class="form-select rounded-pill">
+                    <option value="">— Nenhum —</option>
+                    {% for d in descritores %}
+                    <option value="{{ d.id }}" {% if atividade and atividade.descritor_id == d.id %}selected{% endif %}>{{ d.codigo }} - {{ d.descricao[:40] }}...</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Ordem</label>
+                <input type="number" name="ordem" class="form-control rounded-pill" value="{{ atividade.ordem if atividade else 0 }}" min="0">
+            </div>
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="ativo" value="true" {% if not atividade or atividade.ativo %}checked{% endif %}>
+                    <label class="form-check-label">Ativo</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-mj rounded-pill">Salvar</button>
+            <a href="/admin/atividades-h5p" class="btn btn-mj-outline rounded-pill ms-2"><i class="fa-solid fa-arrow-left me-1"></i> Voltar à lista</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

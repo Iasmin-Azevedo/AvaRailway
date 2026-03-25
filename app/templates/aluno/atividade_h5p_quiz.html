@@ -1,0 +1,107 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ atividade.titulo }}{% endblock %}
+{% block brand_link %}/aluno{% endblock %}
+{% block menu_title %}Atividade - Quiz{% endblock %}
+
+{% block header_right %}
+<div class="mission-user-name">{{ aluno_nome }}</div>
+{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno/atividade/{{ atividade.id }}">Esta atividade</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-3 d-flex justify-content-between align-items-center">
+    <a href="/aluno/trilhas" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Voltar às trilhas</a>
+    <h5 class="fw-bold text-mj-dark mb-0">{{ atividade.titulo }}</h5>
+</div>
+
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <div class="mission-hero-mj border-0 rounded-4 shadow-sm p-3 mb-4">
+            <span class="mission-chip-mj mb-2">
+                <i class="fas fa-graduation-cap me-2"></i> Quiz
+            </span>
+            <h3 class="h5 fw-bold text-mj-dark mt-3 mb-2">Prévia do Quiz</h3>
+            <p class="text-mj-muted mb-0">Responda às questões para avançar e ganhar XP.</p>
+        </div>
+
+        <div class="mission-progress-head d-flex flex-column flex-md-row justify-content-between gap-2 mb-2">
+            <strong>Questão 01 de 05</strong>
+            <span><i class="far fa-clock me-1"></i> Tempo restante: 00:45:00</span>
+        </div>
+
+        <div class="mission-path-mj mb-4">
+            <div class="mission-path-line"></div>
+            <div class="mission-step is-done">1</div>
+            <div class="mission-step">2</div>
+            <div class="mission-step">3</div>
+            <div class="mission-step">4</div>
+            <div class="mission-step">5</div>
+            <div class="mission-step">6</div>
+        </div>
+
+        <div class="mission-question-card p-4 p-lg-5">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <span class="mission-question-pill">Questão 01</span>
+                <div class="gm-chip">
+                    <i class="fas fa-coins text-warning"></i>
+                    <span class="gm-chip__value">10 pts</span>
+                </div>
+            </div>
+
+            <div class="mission-reading-box mb-3">
+                Leia: <strong>O aluno aprende com a prática.</strong>
+            </div>
+
+            <h2 class="mission-question-mj mb-4">Qual é a melhor forma de aprender?</h2>
+
+            <div class="d-grid gap-3">
+                <input class="mission-choice-input" type="radio" name="quiz_q1" id="quiz_q1_a" checked>
+                <label class="mission-choice-btn" for="quiz_q1_a">
+                    <span class="marker marker-off"><i class="fas fa-circle"></i></span>
+                    <span class="marker marker-on"><i class="fas fa-check-circle"></i></span>
+                    <span>A) Lendo apenas o texto</span>
+                </label>
+
+                <input class="mission-choice-input" type="radio" name="quiz_q1" id="quiz_q1_b">
+                <label class="mission-choice-btn" for="quiz_q1_b">
+                    <span class="marker marker-off"><i class="fas fa-circle"></i></span>
+                    <span class="marker marker-on"><i class="fas fa-check-circle"></i></span>
+                    <span>B) Praticando e revisando</span>
+                </label>
+
+                <input class="mission-choice-input" type="radio" name="quiz_q1" id="quiz_q1_c">
+                <label class="mission-choice-btn" for="quiz_q1_c">
+                    <span class="marker marker-off"><i class="fas fa-circle"></i></span>
+                    <span class="marker marker-on"><i class="fas fa-check-circle"></i></span>
+                    <span>C) Assistindo sem tentar</span>
+                </label>
+
+                <input class="mission-choice-input" type="radio" name="quiz_q1" id="quiz_q1_d">
+                <label class="mission-choice-btn" for="quiz_q1_d">
+                    <span class="marker marker-off"><i class="fas fa-circle"></i></span>
+                    <span class="marker marker-on"><i class="fas fa-check-circle"></i></span>
+                    <span>D) Decorando sem entender</span>
+                </label>
+            </div>
+
+            <div class="mission-feedback-mj mission-feedback-mj--ok mt-4 mb-2">
+                <div class="mission-avatar"><i class="fas fa-robot"></i></div>
+                <div class="mission-bubble w-100"><strong>Mascote:</strong> Muito bem! Continue assim.</div>
+            </div>
+
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mt-3">
+                <button class="mission-nav-btn mission-nav-btn--prev" disabled>Anterior</button>
+                <button class="mission-nav-btn mission-nav-btn--next" disabled>Próximo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<p class="small text-muted mt-2">Prévia visual: o conteúdo H5P será integrado em seguida.</p>
+{% endblock %}
+

@@ -1,0 +1,187 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Área do Aluno{% endblock %}
+{% block brand_link %}/aluno{% endblock %}
+{% block menu_title %}Menu do Aluno{% endblock %}
+
+{% block header_right %}
+{% set xp = stats.xp_total|default(0) %}
+{% set xp_pct = ((xp|int) / 1000 * 100)|int %}
+<div class="mission-userbox-mj">
+    <span class="mission-user-avatar">{{ (stats.nivel|default('LV5'))[0:4] }}</span>
+    <div>
+        <div class="mission-user-name">{{ aluno_nome }}</div>
+        {% if aluno_ano %}
+        <div class="small text-mj-muted">Ano: {{ aluno_ano }}º ano</div>
+        {% endif %}
+        <div class="mission-xp-track"><span style="width: {{ xp_pct }}%;"></span></div>
+        <div class="mission-user-xp">{{ xp }}/1000 XP</div>
+    </div>
+</div>
+<span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2"><i class="fas fa-star text-warning"></i> <span class="text-warning fw-bold">450</span></span>
+<span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2"><i class="fas fa-fire text-danger"></i> <span class="text-danger fw-bold">7 dias</span></span>
+{% endblock %}
+
+{% block offcanvas_extra %}
+{% set xp = stats.xp_total|default(0) %}
+{% set xp_pct = ((xp|int) / 1000 * 100)|int %}
+<div class="mission-userbox-mj">
+    <span class="mission-user-avatar">{{ (stats.nivel|default('LV5'))[0:4] }}</span>
+    <div>
+        <div class="mission-user-name">{{ aluno_nome }}</div>
+        {% if aluno_ano %}
+        <div class="small text-mj-muted">Ano: {{ aluno_ano }}º ano</div>
+        {% endif %}
+        <div class="mission-xp-track"><span style="width: {{ xp_pct }}%;"></span></div>
+        <div class="mission-user-xp">{{ xp }}/1000 XP</div>
+    </div>
+</div>
+<div class="d-flex gap-2">
+    <span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2"><i class="fas fa-star text-warning"></i> <span class="text-warning fw-bold">450</span></span>
+    <span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2"><i class="fas fa-fire text-danger"></i> <span class="text-danger fw-bold">Mestre SAEB</span></span>
+</div>
+{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/missao1">Mapa de Missões</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="#">Configurações</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 dash-hero bg-mj-gradient text-white overflow-hidden">
+            <div class="card-body p-4 p-lg-5 position-relative">
+                <div class="row align-items-center">
+                    <div class="col-md-8 position-relative z-1">
+                        <h2 class="fw-bold mb-3">Pronto para a próxima aventura? 🚀</h2>
+                        <p class="fs-5 opacity-75 mb-4">Você está quase alcançando o título de <strong>Mestre SAEB</strong>. Complete suas missões de hoje para ganhar mais pontos!</p>
+                        <div class="bg-white bg-opacity-25 p-3 rounded-3">
+                            <div class="d-flex justify-content-between small fw-bold mb-2">
+                                <span>Progresso do Nível Atual</span>
+                                <span>{{ stats.xp_total|default(850) }} / 1000 XP</span>
+                            </div>
+                            <div class="progress" style="height: 12px; background-color: rgba(255,255,255,0.2);">
+                                <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" style="width: {{ ((stats.xp_total|default(850)) / 1000 * 100)|int }}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center d-none d-md-block position-relative z-1">
+                        <i class="fa-solid fa-trophy display-1 text-warning" style="filter: drop-shadow(0 0 20px rgba(255,193,7,0.5));"></i>
+                    </div>
+                </div>
+                <i class="fa-solid fa-star position-absolute text-white opacity-10" style="font-size: 200px; top: -50px; right: -20px; z-index: 0;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-end mb-3">
+            <h2 class="gm-title mb-0"><i class="fas fa-bullseye me-2 text-mj-primary"></i> Suas Missões Ativas</h2>
+            <a href="/aluno/trilhas" class="text-decoration-none fw-bold small text-mj-primary">Ver trilhas</a>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <article class="gm-card h-100 hover-lift border-bottom border-mj-primary border-3">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="gm-circle gm-circle--orange"><i class="fas fa-book-open"></i></span>
+                        <span class="mission-chip-mj">{% if preview_trilha %}Trilha {{ (preview_trilha.ordem or 0) + 1 }}{% else %}Jornada{% endif %}</span>
+                    </div>
+                    <h5 class="gm-card__title">{% if preview_curso_nome %}{{ preview_curso_nome }}{% else %}Suas trilhas{% endif %}</h5>
+                    <p class="gm-card__text mb-3">
+                        {% if preview_trilha %}
+                        {{ preview_trilha.nome }} · {{ preview_atividades_total }} atividade{% if preview_atividades_total != 1 %}s{% endif %}
+                        {% else %}
+                        Abra o mapa da jornada e suas atividades cadastradas.
+                        {% endif %}
+                    </p>
+                    <div class="d-flex justify-content-between small text-mj-muted mb-2">
+                        <span>Atividades na 1ª trilha</span>
+                        <strong>{{ preview_atividades_total }}</strong>
+                    </div>
+                    <div class="gm-progress mb-4">
+                        <span class="gm-progress__fill" style="width: {% if preview_atividades_total %}35{% else %}0{% endif %}%;"></span>
+                    </div>
+                    <a href="/aluno/trilhas" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Ver jornada</a>
+                </article>
+            </div>
+
+            <div class="col-md-6">
+                <article class="gm-card h-100 hover-lift border-bottom border-mj-green border-3">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="gm-circle gm-circle--green"><i class="fas fa-calculator"></i></span>
+                        <span class="mission-chip-mj">Trilha 1</span>
+                    </div>
+                    <h5 class="gm-card__title">Matemática</h5>
+                    <p class="gm-card__text mb-3">Missão 1: Desafio dos Números</p>
+                    <div class="d-flex justify-content-between small text-mj-muted mb-2">
+                        <span>Progresso da Fase</span>
+                        <strong>0/60 pts</strong>
+                    </div>
+                    <div class="gm-progress mb-4">
+                        <span class="gm-progress__fill" style="width: 0%"></span>
+                    </div>
+                    <a href="/aluno/trilhas" class="btn gm-btn gm-btn--green w-100 text-center text-decoration-none">Iniciar Missão</a>
+                </article>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 mb-4 dash-card bg-info bg-opacity-10 border border-info border-opacity-25 hover-lift">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-white p-2 rounded-circle shadow-sm">
+                        <span class="fs-3">🤖</span>
+                    </div>
+                    <h6 class="fw-bold text-info-emphasis mb-0">Dica do seu Tutor Virtual</h6>
+                </div>
+                <p class="small text-dark mb-3">Notei que você teve um pouco de dúvida sobre <strong>Ponto Final</strong> na última missão. Que tal uma microaula rápida e divertida para gabaritar na próxima?</p>
+                <button class="btn btn-sm btn-info text-white fw-bold w-100 rounded-pill shadow-sm">Assistir Microaula (3 min)</button>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 dash-card">
+            <div class="dash-card-header d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">Meu Mural de Medalhas</h6>
+                <a href="#" class="small text-decoration-none text-mj-primary">Ver todas</a>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3 text-center">
+                    <div class="col-4">
+                        <div class="bg-mj-soft rounded-circle p-3 mb-2 mx-auto d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fa-solid fa-book-open-reader fs-4 text-mj-primary"></i>
+                        </div>
+                        <small class="fw-bold d-block lh-sm" style="font-size: 0.75rem;">Leitor Atento</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="bg-light rounded-circle p-3 mb-2 mx-auto d-inline-flex align-items-center justify-content-center position-relative" style="width: 60px; height: 60px;">
+                            <i class="fas fa-lock fs-4 text-muted opacity-50"></i>
+                        </div>
+                        <small class="fw-bold d-block lh-sm text-muted" style="font-size: 0.75rem;">Mestre dos Números</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="bg-warning bg-opacity-25 rounded-circle p-3 mb-2 mx-auto d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fa-solid fa-medal fs-4 text-warning"></i>
+                        </div>
+                        <small class="fw-bold d-block lh-sm" style="font-size: 0.75rem;">1º Simulado</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed bottom-0 end-0 m-4 z-3">
+    <div class="position-relative d-inline-block">
+        <button type="button" class="btn btn-mj rounded-circle shadow-lg p-0 d-flex align-items-center justify-content-center hover-lift border-3 border-white overflow-hidden" style="width: 90px; height: 90px;" aria-label="Mensagens">
+            <img src="/static/img/ChatBot.png" alt="" width="70" height="70" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;" decoding="async">
+        </button>
+        <span class="position-absolute top-0 start-50 ms-4 mt-2 translate-middle badge rounded-pill bg-danger border border-light">1</span>
+    </div>
+</div>
+{% endblock %}

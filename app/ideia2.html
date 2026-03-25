@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AvaMJ - DIPE Sumário Completo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Customizações mínimas para cores e scrollbar não nativos do Bootstrap */
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .text-avamj-blue { color: #4e73df; }
+        .bg-avamj-blue { background-color: #4e73df; }
+        
+        .xp-bar { height: 8px; background: #e9ecef; border-radius: 10px; width: 100px; overflow: hidden; }
+        .xp-fill { background: #2ecc71; width: 70%; height: 100%; }
+        
+        /* Sidebar Fixa e Rolável */
+        .sidebar-mapa { 
+            background-color: #e9ecef; 
+            height: calc(100vh - 65px); 
+            position: sticky; 
+            top: 65px; 
+            overflow-y: auto; 
+            border-right: 1px solid #dee2e6;
+        }
+        
+        /* Estilização da linha da árvore (Mapa) */
+        .tree-line { border-left: 2px solid #cbd5e0; margin-left: 7px; padding-left: 15px; }
+        
+        /* Hover nos cards das trilhas */
+        .trilha-card { transition: border-color 0.2s; border-left: 5px solid transparent; }
+        .trilha-card:hover { border-left-color: #4e73df; }
+        .trilha-math:hover { border-left-color: #ffc107; }
+        
+        /* Scrollbar customizada para a sidebar */
+        .sidebar-mapa::-webkit-scrollbar { width: 6px; }
+        .sidebar-mapa::-webkit-scrollbar-thumb { background-color: #adb5bd; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm sticky-top py-2" style="height: 65px;">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+                <span class="fs-4 text-dark">Ava<span class="text-avamj-blue">MJ</span></span>
+            </a>
+            
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center bg-light rounded-pill px-3 py-1 border shadow-sm">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Weslem" class="rounded-circle border border-warning me-2" width="32" alt="Avatar">
+                    <div class="small">
+                        <div class="fw-bold lh-1">Weslem Rodrigues</div>
+                        <div class="d-flex align-items-center gap-1 mt-1">
+                            <span class="text-success fw-bold" style="font-size: 0.7rem;">Lvl 5</span>
+                            <div class="xp-bar"><div class="xp-fill"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="badge bg-white text-dark border rounded-pill px-3 py-2 shadow-sm"><i class="fa-solid fa-star text-warning me-1"></i> 125</div>
+                <div class="badge bg-white text-dark border rounded-pill px-3 py-2 shadow-sm"><i class="fa-solid fa-fire text-danger me-1"></i> 7 dias</div>
+                <i class="fa-solid fa-gear text-secondary fs-5 ms-2 cursor-pointer" style="cursor: pointer;"></i>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <aside class="col-md-4 col-lg-3 p-4 sidebar-mapa d-none d-md-block">
+                <h6 class="fw-bold text-dark mb-4 border-bottom pb-2">Mapa da Jornada</h6>
+                
+                <div class="mb-2 d-flex align-items-center">
+                    <i class="fa-solid fa-bullseye text-info me-2"></i>
+                    <span class="fw-bold text-dark">Seu objetivo</span>
+                </div>
+                
+                <div class="tree-line mb-4">
+                    <div class="fw-bold text-primary mb-2 mt-3"><i class="fa-solid fa-book-open me-2"></i> Língua Portuguesa</div>
+                    <div class="ms-1 border-start ps-3 border-primary opacity-75">
+                        <div class="small fw-bold text-dark mb-1 py-1">1. Leitura Básica e Fluência</div>
+                        <div class="small fw-bold text-dark mb-1 py-1">2. Localização e Inferência</div>
+                        <div class="small fw-bold text-dark mb-1 py-1">3. Escrita e Ortografia</div>
+                        <div class="small fw-bold text-dark mb-1 py-1">4. Gêneros do Cotidiano</div>
+                    </div>
+
+                    <div class="fw-bold text-warning mb-2 mt-4 text-dark"><i class="fa-solid fa-calculator text-warning me-2"></i> Matemática</div>
+                    <div class="ms-1 border-start ps-3 border-warning opacity-75">
+                        <div class="small fw-bold text-dark mb-1 py-1">1. Números e Operações</div>
+                        <div class="small fw-bold text-dark mb-1 py-1">2. Resolução de Problemas</div>
+                        <div class="small fw-bold text-dark mb-1 py-1">3. Grandezas e Medidas</div>
+                        <div class="small fw-bold text-dark mb-1 py-1">4. Geometria e Localização</div>
+                        <div class="small fw-bold text-dark mb-1 py-1">5. Tratamento da Informação</div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="col-md-8 col-lg-9 p-4 p-lg-5">
+                
+                <div class="d-flex align-items-center mb-4">
+                    <div class="bg-primary text-white rounded p-3 me-3 shadow-sm"><i class="fa-solid fa-book-open fs-3"></i></div>
+                    <div>
+                        <h2 class="fw-bold mb-0">Língua Portuguesa</h2>
+                        <span class="text-muted small">2º Ano do Ensino Fundamental | Duração: 9 meses</span>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-4 mb-5 bg-white">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold text-primary"><i class="fa-solid fa-bullseye me-2"></i> Objetivo Geral</h6>
+                        <p class="text-muted small mb-0">Desenvolver competências leitoras e de escrita dos estudantes do 2º ano, fortalecendo habilidades essenciais avaliadas no SAEB, com foco na compreensão de textos curtos, localização de informações, inferência simples e consolidação do sistema de escrita alfabética.</p>
+                    </div>
+                </div>
+
+                <div class="card trilha-card border-0 shadow-sm rounded-4 mb-4 bg-white">
+                    <div class="card-body p-4">
+                        <span class="badge bg-primary-subtle text-primary border border-primary mb-2">TRILHA 1</span>
+                        <h5 class="fw-bold">Leitura Básica e Fluência</h5>
+                        <p class="text-muted small mb-3"><strong>Objetivo:</strong> Consolidar leitura de palavras, frases e textos curtos.</p>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-4 border-end">
+                                <h6 class="small fw-bold text-uppercase">Habilidades & Objetos</h6>
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    <span class="badge bg-light text-dark border">EF02LP01</span>
+                                    <span class="badge bg-light text-dark border">EF02LP02</span>
+                                </div>
+                                <ul class="small text-muted ps-3 mb-0">
+                                    <li>Relação grafema–fonema</li>
+                                    <li>Segmentação de palavras</li>
+                                    <li>Leitura de narrativas curtas</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4 border-end">
+                                <h6 class="small fw-bold text-uppercase text-primary"><i class="fa-solid fa-laptop-code me-1"></i> Recursos no AVA</h6>
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-circle-play text-primary me-2"></i> Videoaulas (2–5 min)</li>
+                                    <li class="mb-1"><i class="fa-solid fa-puzzle-piece text-success me-2"></i> H5P: Palavra–imagem</li>
+                                    <li class="mb-1"><i class="fa-solid fa-headphones text-info me-2"></i> Áudio-modelo</li>
+                                    <li class="mb-1"><i class="fa-solid fa-list-ol text-secondary me-2"></i> Ordenação de frases</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="small fw-bold text-uppercase text-danger"><i class="fa-solid fa-clipboard-check me-1"></i> Avaliação</h6>
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-check text-danger me-2"></i> Quiz autocorretivo</li>
+                                    <li class="mb-1"><i class="fa-solid fa-microphone text-danger me-2"></i> Registro de fluência</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card trilha-card border-0 shadow-sm rounded-4 mb-4 bg-white">
+                    <div class="card-body p-4">
+                        <span class="badge bg-primary-subtle text-primary border border-primary mb-2">TRILHA 2</span>
+                        <h5 class="fw-bold">Localização de Informações e Inferência</h5>
+                        <p class="text-muted small mb-3"><strong>Objetivo:</strong> Desenvolver compreensão textual inicial.</p>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-4 border-end">
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    <span class="badge bg-light text-dark border">EF02LP08</span>
+                                    <span class="badge bg-light text-dark border">EF02LP09</span>
+                                </div>
+                                <ul class="small text-muted ps-3 mb-0">
+                                    <li>Personagem, tempo e espaço</li>
+                                    <li>Ideia principal</li>
+                                    <li>Causa e consequência</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4 border-end">
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-file-lines text-primary me-2"></i> Textos interativos H5P</li>
+                                    <li class="mb-1"><i class="fa-solid fa-highlighter text-warning me-2"></i> Destaque de trechos</li>
+                                    <li class="mb-1"><i class="fa-solid fa-check-double text-secondary me-2"></i> Questões padrão SAEB</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-file-signature text-danger me-2"></i> Mini-simulado temático</li>
+                                    <li class="mb-1"><i class="fa-solid fa-chart-pie text-danger me-2"></i> Relatório por habilidade</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card trilha-card border-0 shadow-sm rounded-4 mb-4 bg-white">
+                    <div class="card-body p-4">
+                        <span class="badge bg-primary-subtle text-primary border border-primary mb-2">TRILHA 3</span>
+                        <h5 class="fw-bold">Sistema de Escrita e Ortografia</h5>
+                        <p class="text-muted small mb-3"><strong>Objetivo:</strong> Consolidar escrita convencional de palavras e frases.</p>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-4 border-end">
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    <span class="badge bg-light text-dark border">EF02LP03</span>
+                                    <span class="badge bg-light text-dark border">EF02LP04</span>
+                                </div>
+                                <ul class="small text-muted ps-3 mb-0">
+                                    <li>Ortografia de palavras frequentes</li>
+                                    <li>Ponto final e interrogação</li>
+                                    <li>Segmentação de frases</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4 border-end">
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-keyboard text-primary me-2"></i> "Complete a frase"</li>
+                                    <li class="mb-1"><i class="fa-solid fa-bug text-danger me-2"></i> Correção de erro simulado</li>
+                                    <li class="mb-1"><i class="fa-solid fa-robot text-info me-2"></i> Produção guiada (IA)</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-pen-nib text-danger me-2"></i> Produção textual curta</li>
+                                    <li class="mb-1"><i class="fa-solid fa-comments text-danger me-2"></i> Feedback automático + Prof.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card trilha-card border-0 shadow-sm rounded-4 mb-5 bg-white">
+                    <div class="card-body p-4">
+                        <span class="badge bg-primary-subtle text-primary border border-primary mb-2">TRILHA 4</span>
+                        <h5 class="fw-bold">Gêneros Textuais do Cotidiano</h5>
+                        <p class="text-muted small mb-3"><strong>Objetivo:</strong> Reconhecer finalidade e estrutura de gêneros frequentes no SAEB.</p>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6 border-end">
+                                <h6 class="small fw-bold text-uppercase">Gêneros Prioritários</h6>
+                                <div class="d-flex flex-wrap gap-2 mb-0">
+                                    <span class="badge bg-light text-dark border">Bilhete</span>
+                                    <span class="badge bg-light text-dark border">Convite</span>
+                                    <span class="badge bg-light text-dark border">Tirinha</span>
+                                    <span class="badge bg-light text-dark border">Texto informativo</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="small fw-bold text-uppercase text-danger">Avaliação Final do Curso</h6>
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-file-contract text-danger me-2"></i> 4 simulados (9 meses)</li>
+                                    <li class="mb-1"><i class="fa-solid fa-chart-bar text-danger me-2"></i> Relatórios por descritor</li>
+                                    <li class="mb-1"><i class="fa-solid fa-wand-magic-sparkles text-info me-2"></i> Plano de intervenção (IA)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center mb-4 mt-5 pt-4 border-top">
+                    <div class="bg-warning text-dark rounded p-3 me-3 shadow-sm"><i class="fa-solid fa-calculator fs-3"></i></div>
+                    <div>
+                        <h2 class="fw-bold mb-0">Matemática</h2>
+                        <span class="text-muted small">2º Ano do Ensino Fundamental | Duração: 9 meses</span>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-4 mb-5 bg-white border-start border-warning border-5">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold text-warning text-dark"><i class="fa-solid fa-bullseye me-2"></i> Objetivo Geral</h6>
+                        <p class="text-muted small mb-0">Consolidar habilidades matemáticas essenciais do 2º ano, com foco na resolução de problemas contextualizados, domínio das operações básicas, leitura de gráficos simples e reconhecimento de formas geométricas.</p>
+                    </div>
+                </div>
+
+                <div class="card trilha-card trilha-math border-0 shadow-sm rounded-4 mb-4 bg-white">
+                    <div class="card-body p-4">
+                        <span class="badge bg-warning-subtle text-dark border border-warning mb-2">TRILHA 1</span>
+                        <h5 class="fw-bold">Números e Operações</h5>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-4 border-end">
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    <span class="badge bg-light text-dark border">EF02MA01</span>
+                                    <span class="badge bg-light text-dark border">EF02MA05</span>
+                                </div>
+                                <ul class="small text-muted ps-3 mb-0">
+                                    <li>Sistema decimal e valor posicional</li>
+                                    <li>Adição e subtração (+/- reagrupamento)</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4 border-end">
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-gamepad text-primary me-2"></i> Jogos de operações</li>
+                                    <li class="mb-1"><i class="fa-solid fa-video text-primary me-2"></i> Vídeos passo a passo</li>
+                                    <li class="mb-1"><i class="fa-solid fa-hand-pointer text-success me-2"></i> Arrastar e soltar</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-list-check text-danger me-2"></i> Lista interativa graduada</li>
+                                    <li class="mb-1"><i class="fa-solid fa-check text-danger me-2"></i> Quiz automático</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card trilha-card trilha-math border-0 shadow-sm rounded-4 mb-4 bg-white">
+                    <div class="card-body p-4">
+                        <span class="badge bg-warning-subtle text-dark border border-warning mb-2">TRILHA 2</span>
+                        <h5 class="fw-bold">Resolução de Problemas</h5>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-4 border-end">
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    <span class="badge bg-light text-dark border">EF02MA06</span>
+                                </div>
+                                <ul class="small text-muted ps-3 mb-0">
+                                    <li>Identificação de dados</li>
+                                    <li>Escolha da operação</li>
+                                    <li>Verificação da resposta</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4 border-end">
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-lightbulb text-primary me-2"></i> Problemas contextualizados</li>
+                                    <li class="mb-1"><i class="fa-solid fa-chalkboard-user text-primary me-2"></i> Vídeos de resolução</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="fa-solid fa-stopwatch text-danger me-2"></i> Simulados com cronômetro</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card trilha-card trilha-math border-0 shadow-sm rounded-4 mb-4 bg-white">
+                    <div class="card-body p-4">
+                        <span class="badge bg-warning-subtle text-dark border border-warning mb-2">TRILHA 3</span>
+                        <h5 class="fw-bold">Grandezas e Medidas</h5>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6 border-end">
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    <span class="badge bg-light text-dark border">EF02MA18</span>
+                                    <span class="badge bg-light text-dark border">EF02MA19</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="small text-muted ps-3 mb-0">
+                                    <li>Tempo (horas cheias e meia hora)</li>
+                                    <li>Comprimento e Massa</li>
+                                    <li>Capacidade</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card trilha-card trilha-math border-0 shadow-sm rounded-4 mb-4 bg-white">
+                    <div class="card-body p-4">
+                        <span class="badge bg-warning-subtle text-dark border border-warning mb-2">TRILHA 4</span>
+                        <h5 class="fw-bold">Geometria e Localização</h5>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6 border-end">
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    <span class="badge bg-light text-dark border">EF02MA12</span>
+                                    <span class="badge bg-light text-dark border">EF02MA13</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="small text-muted ps-3 mb-0">
+                                    <li>Identificar figuras planas</li>
+                                    <li>Noções espaciais e movimentação</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card trilha-card trilha-math border-0 shadow-sm rounded-4 mb-5 bg-white">
+                    <div class="card-body p-4">
+                        <span class="badge bg-warning-subtle text-dark border border-warning mb-2">TRILHA 5</span>
+                        <h5 class="fw-bold">Tratamento da Informação</h5>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6 border-end">
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    <span class="badge bg-light text-dark border">EF02MA20</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="small text-muted ps-3 mb-0">
+                                    <li>Gráficos de colunas</li>
+                                    <li>Organização de dados</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mt-2">
+                    <div class="col-md-6">
+                        <div class="bg-dark text-white p-4 rounded-4 shadow-sm h-100">
+                            <h6 class="fw-bold mb-3 text-warning"><i class="fa-solid fa-brain me-2"></i> Metodologia</h6>
+                            <ul class="small mb-0 opacity-75 list-unstyled">
+                                <li class="mb-2"><i class="fa-solid fa-angle-right me-2"></i> Microaulas e interatividade (H5P).</li>
+                                <li class="mb-2"><i class="fa-solid fa-angle-right me-2"></i> Feedback imediato e passos guiados.</li>
+                                <li class="mb-2"><i class="fa-solid fa-angle-right me-2"></i> Gamificação (Medalhas "Leitor Fluente", "Mestre").</li>
+                                <li class="mb-2"><i class="fa-solid fa-angle-right me-2"></i> Trilhas adaptativas com reforço por IA.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-dark text-white p-4 rounded-4 shadow-sm h-100">
+                            <h6 class="fw-bold mb-3 text-info"><i class="fa-solid fa-chart-line me-2"></i> Monitoramento</h6>
+                            <ul class="small mb-0 opacity-75 list-unstyled">
+                                <li class="mb-2"><i class="fa-solid fa-angle-right me-2"></i> Avaliações diagnósticas e formativas.</li>
+                                <li class="mb-2"><i class="fa-solid fa-angle-right me-2"></i> 4 Simulados SAEB-like periódicos.</li>
+                                <li class="mb-2"><i class="fa-solid fa-angle-right me-2"></i> Dashboard pedagógico para professores.</li>
+                                <li class="mb-2"><i class="fa-solid fa-angle-right me-2"></i> Identificação automática de alunos em risco.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

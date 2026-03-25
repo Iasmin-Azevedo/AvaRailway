@@ -1,0 +1,105 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ atividade.titulo }}{% endblock %}
+{% block brand_link %}/aluno{% endblock %}
+{% block menu_title %}Atividade - Flashcards{% endblock %}
+
+{% block header_right %}
+<div class="mission-user-name">{{ aluno_nome }}</div>
+{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno/atividade/{{ atividade.id }}">Esta atividade</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-3 d-flex justify-content-between align-items-center">
+    <a href="/aluno/trilhas" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Voltar às trilhas</a>
+    <h5 class="fw-bold text-mj-dark mb-0">{{ atividade.titulo }}</h5>
+</div>
+
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <div class="mission-hero-mj border-0 rounded-4 shadow-sm p-3 mb-4">
+            <span class="mission-chip-mj mb-2">
+                <i class="fas fa-clone me-2"></i> Flashcards
+            </span>
+            <h3 class="h5 fw-bold text-mj-dark mt-3 mb-2">Prévia: memorize com cards</h3>
+            <p class="text-mj-muted mb-0">Vire os flashcards para aprender e fixar o conteúdo.</p>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <div class="mission-question-card p-4 h-100">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <span class="mission-question-pill">Deck (prévia)</span>
+                        <div class="gm-chip">
+                            <i class="fas fa-layer-group text-warning"></i>
+                            <span class="gm-chip__value">4 cards</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-6 col-md-3">
+                            <div class="question-card-mj p-3 text-center">
+                                <div class="fw-bold text-mj-dark">Cartão 1</div>
+                                <div class="text-mj-muted small">Frente</div>
+                                <div class="mt-2 bg-mj-soft rounded-3 p-2 text-mj-primary fw-bold">Virar</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="question-card-mj p-3 text-center">
+                                <div class="fw-bold text-mj-dark">Cartão 2</div>
+                                <div class="text-mj-muted small">Frente</div>
+                                <div class="mt-2 bg-mj-soft rounded-3 p-2 text-mj-primary fw-bold">Virar</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="question-card-mj p-3 text-center">
+                                <div class="fw-bold text-mj-dark">Cartão 3</div>
+                                <div class="text-mj-muted small">Frente</div>
+                                <div class="mt-2 bg-mj-soft rounded-3 p-2 text-mj-primary fw-bold">Virar</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="question-card-mj p-3 text-center">
+                                <div class="fw-bold text-mj-dark">Cartão 4</div>
+                                <div class="text-mj-muted small">Frente</div>
+                                <div class="mt-2 bg-mj-soft rounded-3 p-2 text-mj-primary fw-bold">Virar</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center gap-3 mt-4">
+                        <button class="mission-nav-btn mission-nav-btn--prev" disabled>Anterior</button>
+                        <button class="mission-nav-btn mission-nav-btn--next" disabled>Próximo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="mission-question-card p-4 h-100">
+                    <div class="mission-chip-mj mb-3">
+                        <i class="fas fa-lightbulb me-2"></i> Estratégia
+                    </div>
+                    <h4 class="h6 fw-bold text-mj-dark mb-2">Como aproveitar</h4>
+                    <ul class="mb-0">
+                        <li class="text-mj-muted mb-2">Leia o card e tente lembrar antes de virar.</li>
+                        <li class="text-mj-muted mb-2">Se errar, volte e refaça com calma.</li>
+                        <li class="text-mj-muted">Consistência: 2 minutos por vez.</li>
+                    </ul>
+
+                    <div class="mission-feedback-mj mission-feedback-mj--ok mt-4 mb-0">
+                        <div class="mission-avatar"><i class="fas fa-rocket"></i></div>
+                        <div class="mission-bubble w-100"><strong>Mascote:</strong> Boa! Seu cérebro vai agradecer.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<p class="small text-muted mt-2">Prévia visual: o conteúdo H5P será integrado em seguida.</p>
+{% endblock %}
+

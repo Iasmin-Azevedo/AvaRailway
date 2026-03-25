@@ -1,0 +1,47 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ "Editar Turma" if turma else "Nova Turma" }}{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Admin{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/turmas">Voltar à lista</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-4">
+    <a href="/admin/turmas" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Turmas</a>
+    <h2 class="fw-bold text-mj-dark mt-2">{{ "Editar Turma" if turma else "Nova Turma" }}</h2>
+</div>
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <form method="post" action="{% if turma %}/admin/turmas/{{ turma.id }}/editar{% else %}/admin/turmas/nova{% endif %}">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Nome</label>
+                <input type="text" name="nome" class="form-control rounded-pill" value="{{ turma.nome if turma else '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Ano escolar</label>
+                <select name="ano_escolar" class="form-select rounded-pill" required>
+                    <option value="2" {% if turma and turma.ano_escolar == 2 %}selected{% endif %}>2º ano</option>
+                    <option value="5" {% if turma and turma.ano_escolar == 5 %}selected{% endif %}>5º ano</option>
+                    <option value="9" {% if turma and turma.ano_escolar == 9 %}selected{% endif %}>9º ano</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Escola</label>
+                <select name="escola_id" class="form-select rounded-pill" required>
+                    {% for e in escolas %}
+                    <option value="{{ e.id }}" {% if turma and turma.escola_id == e.id %}selected{% endif %}>{{ e.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold">Ano letivo</label>
+                <input type="text" name="ano_letivo" class="form-control rounded-pill" value="{{ turma.ano_letivo if turma and turma.ano_letivo else '' }}" placeholder="Ex: 2025">
+            </div>
+            <button type="submit" class="btn btn-mj rounded-pill">Salvar</button>
+            <a href="/admin/turmas" class="btn btn-mj-outline rounded-pill ms-2"><i class="fa-solid fa-arrow-left me-1"></i> Voltar à lista</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ "Editar Escola" if escola else "Nova Escola" }}{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Admin{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/escolas">Voltar à lista</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-4">
+    <a href="/admin/escolas" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Escolas</a>
+    <h2 class="fw-bold text-mj-dark mt-2">{{ "Editar Escola" if escola else "Nova Escola" }}</h2>
+</div>
+<div class="card dash-card border-0">
+    <div class="card-body p-4">
+        <form method="post" action="{% if escola %}/admin/escolas/{{ escola.id }}/editar{% else %}/admin/escolas/nova{% endif %}">
+            {% if escola %}
+            <input type="hidden" name="id" value="{{ escola.id }}">
+            {% endif %}
+            <div class="mb-3">
+                <label class="form-label fw-bold">Nome</label>
+                <input type="text" name="nome" class="form-control rounded-pill" value="{{ escola.nome if escola else '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Endereço</label>
+                <input type="text" name="endereco" class="form-control rounded-pill" value="{{ escola.endereco if escola and escola.endereco else '' }}">
+            </div>
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="ativo" value="true" {% if not escola or escola.ativo %}checked{% endif %}>
+                    <label class="form-check-label">Ativo</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-mj rounded-pill">Salvar</button>
+            <a href="/admin/escolas" class="btn btn-mj-outline rounded-pill ms-2"><i class="fa-solid fa-arrow-left me-1"></i> Voltar à lista</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Trilhas{% endblock %}
+{% block brand_link %}/aluno{% endblock %}
+{% block menu_title %}Trilhas{% endblock %}
+
+{% block header_right %}
+<div class="d-none d-lg-flex align-items-center gap-3">
+    <div class="mission-userbox-mj">
+        <span class="mission-user-avatar">LV5</span>
+        <div>
+            <div class="mission-user-name">{{ aluno_nome }}</div>
+            <div class="mission-xp-track"><span style="width: 70%"></span></div>
+            <div class="mission-user-xp">350/500 XP</div>
+        </div>
+    </div>
+    <span class="bg-secondary bg-opacity-10 border-muted border rounded-pill px-3 py-2"><i class="fas fa-star text-warning"></i> <span class="text-warning fw-bold">125</span></span>
+    <span class="bg-secondary bg-opacity-10 border-muted border rounded-pill px-3 py-2"><i class="fas fa-fire text-danger"></i> <span class="text-danger fw-bold">7 dias</span></span>
+</div>
+{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/missao1">Mapa de Missões</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="#">Configurações</a>
+{% endblock %}
+
+{% set tipo_labels = {
+    'quiz': 'Quiz',
+    'drag-drop': 'Arrastar e soltar',
+    'video': 'Vídeo interativo',
+    'flashcards': 'Flashcards',
+    'presentation': 'Apresentação',
+    'outro': 'Outro'
+} %}
+{% set tipo_icons = {
+    'quiz': 'fa-graduation-cap',
+    'drag-drop': 'fa-arrows-alt',
+    'video': 'fa-play-circle',
+    'flashcards': 'fa-clone',
+    'presentation': 'fa-chalkboard',
+    'outro': 'fa-puzzle-piece'
+} %}
+{% set tipo_css = {
+    'quiz': 'quiz',
+    'drag-drop': 'drag-drop',
+    'video': 'video',
+    'flashcards': 'flashcards',
+    'presentation': 'presentation',
+    'outro': 'outro'
+} %}
+
+{% block main_content %}
+<div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1"><i class="fas fa-route me-2 text-mj-primary"></i> Jornada de aprendizagem</h2>
+        <p class="text-mj-muted small mb-0">Use o mapa ao lado para saltar entre trilhas e atividades.</p>
+    </div>
+    <a href="/aluno" class="text-mj-primary text-decoration-none small fw-bold"><i class="fas fa-arrow-left me-1"></i> Início</a>
+</div>
+
+{% if trilhas %}
+{% set primeira_trilha = trilhas[0] %}
+{% set hero_curso = primeira_trilha.curso.nome if primeira_trilha.curso else primeira_trilha.nome %}
+{% set hero_ano = aluno_ano if aluno_ano else primeira_trilha.ano_escolar %}
+
+<div class="accordion d-lg-none mb-3 border-0 shadow-sm rounded-4 overflow-hidden" id="jornadaAccordionMobile">
+    <div class="accordion-item border-0">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed fw-bold text-mj-dark bg-mj-light" type="button" data-bs-toggle="collapse" data-bs-target="#jornadaMobileSumario" aria-expanded="false">
+                <i class="fas fa-map me-2 text-mj-primary"></i> Mapa da jornada
+            </button>
+        </h2>
+        <div id="jornadaMobileSumario" class="accordion-collapse collapse" data-bs-parent="#jornadaAccordionMobile">
+            <div class="accordion-body pt-0 jornada-sidebar-nav">
+                <a href="#jornada-objetivo" class="jornada-nav-link d-block py-2 small">Objetivo</a>
+                {% for t in trilhas %}
+                <div class="jornada-nav-trilha">
+                    <a href="#jornada-t-{{ t.id }}" class="jornada-nav-link d-block py-2 small fw-bold">{{ loop.index }}. {{ t.nome }}</a>
+                    <ul class="list-unstyled ps-3 mb-2 small">
+                        {% for a in atividades_por_trilha.get(t.id, []) %}
+                        <li><a href="#atividade-{{ t.id }}-{{ a.id }}" class="jornada-nav-sublink text-mj-muted text-decoration-none">{{ a.titulo }}</a></li>
+                        {% else %}
+                        <li class="text-mj-muted">Sem atividades</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 align-items-start">
+    <aside class="col-lg-3 d-none d-lg-block">
+        <div class="jornada-sidebar card dash-card border-0 sticky-lg-top">
+            <div class="card-body p-3">
+                <h6 class="fw-bold text-mj-dark mb-3 border-1 pb-2 border-bottom border-mj-primary border-opacity-25">
+                    <i class="fas fa-map me-2 text-mj-primary"></i> Mapa da jornada
+                </h6>
+                <nav class="jornada-sidebar-nav">
+                    <a href="#jornada-objetivo" class="jornada-nav-link d-block py-2 small">Objetivo</a>
+                    {% for t in trilhas %}
+                    <div class="jornada-nav-trilha position-relative ps-3">
+                        <span class="jornada-timeline-line"></span>
+                        <a href="#jornada-t-{{ t.id }}" class="jornada-nav-link d-block py-2 small fw-bold">{{ loop.index }}. {{ t.nome }}</a>
+                        <ul class="list-unstyled ps-2 mb-3 small">
+                            {% for a in atividades_por_trilha.get(t.id, []) %}
+                            <li class="mb-1">
+                                <a href="#atividade-{{ t.id }}-{{ a.id }}" class="jornada-nav-sublink text-mj-muted text-decoration-none">{{ a.titulo }}</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                </nav>
+            </div>
+        </div>
+    </aside>
+
+    <div class="col-lg-9">
+        <article class="gm-card hover-lift border-bottom border-mj-primary border-1 mb-4" id="jornada-top">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+                <div class="d-flex gap-3 align-items-start">
+                    <span class="gm-circle gm-circle--orange flex-shrink-0"><i class="fas fa-book-open"></i></span>
+                    <div>
+                        <h3 class="gm-card__title mb-1">{{ hero_curso }}</h3>
+                        <p class="gm-card__text mb-0 small">
+                            {% if hero_ano %}
+                            {{ hero_ano }}º ano · trilhas e atividades cadastradas pelo sistema
+                            {% else %}
+                            Trilhas e atividades cadastradas pelo sistema
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <a href="#jornada-t-{{ primeira_trilha.id }}" class="btn gm-btn gm-btn--orange text-decoration-none text-center px-4 flex-shrink-0">
+                    Começar jornada
+                </a>
+            </div>
+        </article>
+
+        <article class="card dash-card border-0 mb-4" id="jornada-objetivo">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-start gap-3">
+                    <span class="rounded-3 bg-mj-light text-mj-primary d-inline-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width:2.5rem;height:2.5rem;"><i class="fas fa-bullseye"></i></span>
+                    <div>
+                        <h4 class="h6 fw-bold text-mj-dark mb-2">Seu objetivo</h4>
+                        <p class="text-mj-muted small mb-0">
+                            Avançar pelas trilhas, completar as atividades interativas (H5P) e consolidar habilidades alinhadas ao SAEB.
+                            A partir da <strong>segunda trilha</strong>, o conteúdo permanece bloqueado até liberarmos as próximas etapas.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        {% for t in trilhas %}
+        {% set bloqueada = loop.index > 1 %}
+        {% set acts = atividades_por_trilha.get(t.id, []) %}
+        {% set curso_nome = t.curso.nome if t.curso else 'Trilha' %}
+
+        <article id="jornada-t-{{ t.id }}" class="jornada-trilha-card gm-card hover-lift border-bottom {% if bloqueada %}border-secondary border-1 jornada-trilha-card--locked{% else %}border-mj-primary border-1{% endif %} mb-4 scroll-margin-top">
+            <div class="p-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
+                    <div>
+                        <span class="mission-chip-mj mb-2 d-inline-block">Trilha {{ loop.index }}</span>
+                        <h4 class="gm-card__title mb-1">{{ t.nome }}</h4>
+                        <p class="gm-card__text small mb-0">{{ curso_nome }}{% if t.ano_escolar %} · {{ t.ano_escolar }}º ano{% endif %}</p>
+                    </div>
+                    {% if bloqueada %}
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill px-3 py-2"><i class="fas fa-lock me-1"></i> Bloqueada</span>
+                    {% endif %}
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <h5 class="small fw-bold text-mj-dark text-uppercase mb-3">Habilidades e objetos</h5>
+                        {% set descs = descritores_por_trilha.get(t.id, []) %}
+                        {% if descs %}
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            {% for d in descs %}
+                            <span class="badge bg-mj-light text-mj-primary border border-mj-primary border-opacity-25 rounded-pill px-2 py-1">{{ d.codigo }}</span>
+                            {% endfor %}
+                        </div>
+                        <ul class="small text-mj-muted ps-3 mb-0">
+                            {% for d in descs %}
+                            <li class="mb-2">{{ d.descricao }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="small text-mj-muted mb-0">Os descritores aparecem aqui quando as atividades estiverem vinculadas a códigos SAEB no cadastro.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5 class="small fw-bold text-mj-dark text-uppercase mb-3">Atividades</h5>
+                        {% if acts %}
+                        <ul class="list-unstyled mb-0 jornada-atividades-list">
+                            {% for a in acts %}
+                            <li id="atividade-{{ t.id }}-{{ a.id }}" class="card p-3 mb-3 border-0 shadow-sm rounded-4 d-flex flex-row align-items-center gap-3 transition-hover">
+                                
+                                <div class="jornada-atividade-icon--{{ tipo_css.get(a.tipo, 'outro') }} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 50px; height: 50px;">
+                                    <i class="fas {{ tipo_icons.get(a.tipo, 'fa-puzzle-piece') }} fs-5"></i>
+                                </div>
+                        
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="mb-1">
+                                        <span class="badge rounded-pill fw-medium px-2 py-1 small jornada-atividade-tipo-badge--{{ tipo_css.get(a.tipo, 'outro') }}" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                            {{ tipo_labels.get(a.tipo, a.tipo) }}
+                                        </span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-0 text-truncate" title="{{ a.titulo }}">
+                                        {{ a.titulo }}
+                                    </h6>
+                                </div>
+                        
+                                <div class="ms-auto flex-shrink-0">
+                                    {% if bloqueada %}
+                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-muted shadow-sm" style="width: 40px; height: 40px;" data-bs-toggle="tooltip" title="Disponível após liberar esta trilha">
+                                            <i class="fas fa-lock"></i>
+                                        </div>
+                                    {% else %}
+                                        <a href="/aluno/atividade/{{ a.id }}" class="btn btn-mj px-4 rounded-pill fw-bold shadow-sm">
+                                            Iniciar
+                                        </a>
+                                    {% endif %}
+                                </div>
+                        
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="small text-mj-muted mb-0">Nenhuma atividade cadastrada nesta trilha.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</div>
+
+{% else %}
+<div class="card dash-card border-0 rounded-4">
+    <div class="card-body text-center py-5 text-muted">
+        <i class="fa-solid fa-route fa-3x mb-3 opacity-50"></i>
+        <p class="mb-3">Nenhuma trilha disponível no momento.</p>
+        <a href="/aluno" class="btn btn-mj rounded-pill">Voltar ao início</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

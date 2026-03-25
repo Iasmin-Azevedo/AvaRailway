@@ -16,6 +16,8 @@ def _role_redirect_path(role) -> str:
         return "/aluno"
     if role_value == "professor":
         return "/professor"
+    if role_value == "coordenador":
+        return "/coordenador"
     if role_value == "gestor":
         return "/gestor"
     if role_value == "admin":

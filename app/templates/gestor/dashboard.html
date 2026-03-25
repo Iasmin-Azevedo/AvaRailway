@@ -1,0 +1,242 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Painel Estratégico SAEB{% endblock %}
+{% block brand_link %}/gestor{% endblock %}
+{% block menu_title %}Menu do Gestor{% endblock %}
+
+{% block header_right %}
+<span class="badge bg-white text-mj-primary border border-mj-primary">Ciclo 2025/2026</span>
+<div class="vr text-muted"></div>
+<span class="text-mj-muted small">Última atualização: Hoje, 10:45</span>
+<div class="d-flex align-items-center gap-2 ms-2">
+    <div class="text-end d-none d-md-block">
+        <div class="mission-user-name mb-0">Gestor</div>
+        <small class="text-mj-muted">Painel Estratégico</small>
+    </div>
+    <span class="mission-user-avatar bg-mj-primary text-white" style="font-size: 0.65rem;">G</span>
+</div>
+{% endblock %}
+
+{% block offcanvas_extra %}{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/gestor">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Proficiência</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Alertas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="#">Relatórios</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="row g-3 mb-4 text-center">
+    <div class="col-md-3">
+        <div class="card dash-stat-card dash-stat-card--primary h-100">
+            <span class="dash-stat-label">Projeção IDEB Atual</span>
+            <div class="dash-stat-value text-mj-primary mb-1">{{ stats.projecao_ideb|default(5.4) }}</div>
+            <small class="text-success fw-bold">↑ 0.3 vs Meta 2024</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card dash-stat-card dash-stat-card--danger h-100">
+            <span class="dash-stat-label">Alunos em Zona de Risco</span>
+            <div class="dash-stat-value text-danger mb-1">{{ stats.alunos_risco_pct|default(0) }}%</div>
+            <small class="text-muted">{{ stats.alunos_risco_total|default(0) }} estudantes críticos</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card dash-stat-card dash-stat-card--success h-100">
+            <span class="dash-stat-label">Uso da IA Tutor</span>
+            <div class="dash-stat-value text-success mb-1">{{ stats.uso_ia_pct|default(89) }}%</div>
+            <small class="text-muted">Interações pedagógicas ativas</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card dash-stat-card dash-stat-card--info h-100">
+            <span class="dash-stat-label">Formação Docente</span>
+            <div class="dash-stat-value text-info mb-1">{{ stats.n_professores|default(0) }}/50</div>
+            <small class="text-muted">Professores certificados</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-mj-dark">Mapa de Proficiência por Unidade Escolar</h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-mj-outline dropdown-toggle" data-bs-toggle="dropdown">Filtrar: Língua Portuguesa</button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Língua Portuguesa</a></li>
+                        <li><a class="dropdown-item" href="#">Matemática</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr class="small text-muted">
+                                <th>Escola / Unidade</th>
+                                <th>Engajamento</th>
+                                <th>Proficiência (0-400)</th>
+                                <th>Status Meta</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold">Escola Municipal Boa Viagem Central</td>
+                                <td>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-mj-primary" style="width: 92%"></div>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-success">215.4 (Adequado)</span></td>
+                                <td class="text-success fw-bold">DENTRO</td>
+                                <td><button class="btn btn-sm btn-light border">Ver Detalhes</button></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Unidade Escolar Ponte Nova</td>
+                                <td>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-warning" style="width: 45%"></div>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-danger text-white">160.2 (Insatisfatório)</span></td>
+                                <td class="text-danger fw-bold">ABAIXO</td>
+                                <td><button class="btn btn-sm btn-light border">Ver Detalhes</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card dash-card mb-4 bg-mj-dark text-white border-0">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <span class="fs-4 me-2">🤖</span>
+                    <h6 class="mb-0">Agente de IA: Análise de Rede</h6>
+                </div>
+                <p class="small text-light opacity-75">
+                    Detectamos que o <strong>Descritor D12 (Matemática)</strong> é a maior lacuna da rede no momento. Isso pode reduzir o IDEB em até 0.2 pontos.
+                </p>
+                <hr class="bg-secondary">
+                <div class="d-grid">
+                    <button class="btn btn-mj btn-sm">Liberar Material de Apoio p/ Coordenadores</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card dash-card border-start border-warning border-5">
+            <div class="dash-card-header">Alertas de Inatividade</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center small">
+                        <div>
+                            <strong>Turma 5º C - Escola Central</strong><br>
+                            <span class="text-muted">7 dias sem acesso à plataforma</span>
+                        </div>
+                        <span class="badge bg-warning rounded-pill">!</span>
+                    </li>
+                    <li class="list-group-item small text-muted">Sem novos alertas pendentes.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card dash-card">
+            <div class="dash-card-header">
+                <h6 class="mb-0 fw-bold">Descritores com Menor Proficiência</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center small">
+                    <div class="col">
+                        <p class="mb-1 text-muted">D3 - Inferência</p>
+                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
+                            <div class="progress-bar bg-danger" style="height: 35%"></div>
+                        </div>
+                        <span class="fw-bold">35%</span>
+                    </div>
+                    <div class="col">
+                        <p class="mb-1 text-muted">D12 - Geometria</p>
+                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
+                            <div class="progress-bar bg-danger" style="height: 42%"></div>
+                        </div>
+                        <span class="fw-bold">42%</span>
+                    </div>
+                    <div class="col">
+                        <p class="mb-1 text-muted">D1 - Loc. Info</p>
+                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
+                            <div class="progress-bar bg-warning" style="height: 58%"></div>
+                        </div>
+                        <span class="fw-bold">58%</span>
+                    </div>
+                    <div class="col">
+                        <p class="mb-1 text-muted">D9 - Operações</p>
+                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
+                            <div class="progress-bar bg-success" style="height: 75%"></div>
+                        </div>
+                        <span class="fw-bold">75%</span>
+                    </div>
+                    <div class="col">
+                        <p class="mb-1 text-muted">D21 - Tabelas</p>
+                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
+                            <div class="progress-bar bg-success" style="height: 88%"></div>
+                        </div>
+                        <span class="fw-bold">88%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-4">
+    <div class="col-md-6">
+        <div class="card dash-card p-3">
+            <h6 class="fw-bold text-muted small text-uppercase">Distribuição por Complexidade</h6>
+            <div class="d-flex align-items-end justify-content-between mt-3 text-center" style="height: 150px;">
+                <div class="w-100 h-100 d-flex flex-column justify-content-end">
+                    <div class="bg-success opacity-50 mx-2 rounded-top" style="height: 15%;"></div>
+                    <small class="d-block mt-2 fw-bold text-muted">Nível C (Alta)</small>
+                </div>
+                <div class="w-100 h-100 d-flex flex-column justify-content-end">
+                    <div class="bg-mj-primary opacity-75 mx-2 rounded-top" style="height: 20%;"></div>
+                    <small class="d-block mt-2 fw-bold text-muted">Nível B (Média)</small>
+                </div>
+                <div class="w-100 h-100 d-flex flex-column justify-content-end">
+                    <div class="bg-warning mx-2 rounded-top" style="height: 60%;"></div>
+                    <small class="d-block mt-2 fw-bold text-muted">Nível A (Baixa)</small>
+                </div>
+            </div>
+            <p class="small text-muted mt-3 mb-0">⚠️ <strong>Atenção:</strong> 60% da rede ainda se concentra no Nível A de complexidade.</p>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Status de Recursos Digitais (Matriz vs Uso)</div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Videoaulas SAEB assistidas</span>
+                        <span class="badge bg-info">12.450 visualizações</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Simulados Adaptativos concluídos</span>
+                        <span class="badge bg-mj-primary">3.200 realizados</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Interações com Tutor IA</span>
+                        <span class="badge bg-mj-dark">8.900 dúvidas sanadas</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

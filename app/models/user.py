@@ -7,7 +7,9 @@ import enum
 class UserRole(str, enum.Enum):
     ALUNO = "aluno"
     PROFESSOR = "professor"
+    COORDENADOR = "coordenador"
     GESTOR = "gestor"
+    ADMIN = "admin"
 
 class Usuario(Base):
     __tablename__ = "usuarios"
@@ -15,11 +17,30 @@ class Usuario(Base):
     nome = Column(String(100))
     email = Column(String(100), unique=True, index=True)
     senha_hash = Column(String(200))
-    role = Column(Enum(UserRole), default=UserRole.ALUNO)
+    role = Column(
+        Enum(UserRole, values_callable=lambda obj: [e.value for e in obj]),
+        default=UserRole.ALUNO,
+    )
     ativo = Column(Boolean, default=True)
-    
+
     aluno_perfil = relationship("Aluno", back_populates="usuario", uselist=False)
     logs = relationship("AuditLog", back_populates="usuario")
+    professor_turmas = relationship(
+        "ProfessorTurma",
+        back_populates="professor",
+        cascade="all, delete-orphan",
+    )
+    gestor_escolas = relationship(
+        "GestorEscola",
+        back_populates="gestor",
+        cascade="all, delete-orphan",
+    )
+    coordenador_escola = relationship(
+        "CoordenadorEscola",
+        back_populates="coordenador",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
 class AuditLog(Base):
     __tablename__ = "auditoria_logs"

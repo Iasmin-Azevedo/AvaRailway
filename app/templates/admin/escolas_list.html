@@ -1,0 +1,61 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Escolas{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Admin - Escolas{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin">Início</a>
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/admin/escolas">Escolas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/turmas">Turmas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/cursos">Cursos</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/trilhas">Trilhas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/usuarios">Usuários</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/descritores">Descritores</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/atividades-h5p">H5P</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="fw-bold text-mj-dark mb-0"><i class="fa-solid fa-school me-2 text-mj-primary"></i> Escolas</h2>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="/admin/escolas/nova" class="btn btn-mj rounded-pill"><i class="fa-solid fa-plus me-1"></i> Nova Escola</a>
+        <a href="/admin" class="btn btn-mj-outline rounded-pill"><i class="fa-solid fa-arrow-left me-1"></i> Voltar</a>
+    </div>
+</div>
+<div class="card dash-card border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Nome</th>
+                        <th>Endereço</th>
+                        <th>Status</th>
+                        <th class="pe-4 text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in escolas %}
+                    <tr>
+                        <td class="ps-4 fw-bold">{{ e.nome }}</td>
+                        <td class="text-muted small">{{ e.endereco or "—" }}</td>
+                        <td>
+                            {% if e.ativo %}
+                            <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4 text-end">
+                            <a href="/admin/escolas/{{ e.id }}/editar" class="btn btn-sm btn-mj-outline">Editar</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma escola cadastrada.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
