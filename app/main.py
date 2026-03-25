@@ -158,6 +158,7 @@ app.include_router(h5p_router.router, prefix="/api/h5p", tags=["H5P"])
 @app.get("/login")
 def login_page(request: Request):
     return templates.TemplateResponse(
+        request,
         "auth/login.html",
         {"request": request},
     )
@@ -172,6 +173,7 @@ def cadastro_page(request: Request, db: Session = Depends(get_db)):
         turmas = []
         escolas = []
     return templates.TemplateResponse(
+        request,
         "auth/cadastro.html",
         {"request": request, "turmas": turmas or [], "escolas": escolas or []},
     )
@@ -207,6 +209,7 @@ def professor_dashboard(
         avatar_iniciais = "PR"
 
     return templates.TemplateResponse(
+        request,
         "professor/dashboard.html",
         {
             "request": request,
@@ -227,6 +230,7 @@ def gestor_dashboard(
 ):
     stats = DashboardService().get_gestor_stats(db)
     return templates.TemplateResponse(
+        request,
         "gestor/dashboard.html",
         {"request": request, "stats": stats},
     )
@@ -237,6 +241,7 @@ def admin_dashboard(
     current_user: Usuario = Depends(require_admin_redirect),
 ):
     return templates.TemplateResponse(
+        request,
         "admin/dashboard.html",
         {"request": request},
     )
@@ -272,6 +277,7 @@ def coordenador_dashboard(
         avatar_iniciais = "CO"
 
     return templates.TemplateResponse(
+        request,
         "coordenador/dashboard.html",
         {
             "request": request,
@@ -291,6 +297,7 @@ def home(request: Request):
         "optimizations": ["GZip Compression", "Rate Limiting", "DB Error Handling"]
     }
     return templates.TemplateResponse(
+        request,
         "auth/index.html",
         {"request": request, **dados},
     )
