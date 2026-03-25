@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import SQLAlchemyError
+from pathlib import Path
 import logging
 
 from app.core.security import limiter
@@ -42,14 +43,16 @@ from app.models import (
     relacoes,
 )
 
-# Cria todas as tabelas no banco de dados
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="AVA MJ Enterprise")
 
 
-templates = Jinja2Templates(directory="app/templates")
-app.mount("/static", StaticFiles(directory="app/templates/static"), name="static")
+BASE_DIR = Path(__file__).resolve().parent  # pasta "app/"
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+app.mount(
+    "/static",
+    StaticFiles(directory=str(BASE_DIR / "templates" / "static")),
+    name="static",
+)
 
 
 # Configuração de Log para o servidor
@@ -131,12 +134,14 @@ def seed_default_users() -> None:
 
 
 @app.on_event("startup")
-def on_startup_seed_users() -> None:
+def on_startup():
     try:
+        # Cria as tabelas apenas quando o app inicia
+        Base.metadata.create_all(bind=engine)
         seed_default_users()
-        logger.info("Seed de usuários padrão executado com sucesso.")
+        logger.info("Banco sincronizado e Seed executado.")
     except Exception as exc:
-        logger.error(f"Falha ao criar usuários padrão: {exc}")
+        logger.error(f"Erro no startup: {exc}")
 
 
 app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
