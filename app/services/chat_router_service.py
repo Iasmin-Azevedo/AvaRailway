@@ -46,3 +46,25 @@ class ChatRouterService:
                 return "hybrid"
             return "pedagogical"
         return "general"
+
+    def is_greeting_only(self, text: str) -> bool:
+        value = self._normalize(text)
+        return value in {"oi", "ola", "opa", "bom dia", "boa tarde", "boa noite", "e ai"}
+
+    def is_question(self, text: str) -> bool:
+        value = self._normalize(text)
+        if "?" in text:
+            return True
+        starters = (
+            "o que",
+            "como",
+            "qual",
+            "quais",
+            "quando",
+            "onde",
+            "por que",
+            "porque",
+            "me explique",
+            "me ajuda",
+        )
+        return value.startswith(starters)

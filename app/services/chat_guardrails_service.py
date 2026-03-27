@@ -75,14 +75,15 @@ class ChatGuardrailsService:
         normalized = self._normalize(text)
         return any(re.search(pattern, normalized) for pattern in self.mutation_patterns)
 
-    def ensure_user_message_allowed(self, text: str) -> None:
+    def get_violation_response(self, text: str) -> tuple[str, str] | None:
         if self.has_blocked_content(text):
-            raise ValueError(
-                "Nao posso processar mensagens com palavroes, ofensas, discriminacao "
-                "ou conteudo que viole direitos humanos."
+            return (
+                "blocked_offense",
+                "Essa mensagem foi bloqueada. Aqui o chat precisa manter respeito, sem xingamentos, ofensas, discriminacao ou conteudo que fira direitos humanos. Se quiser, reformule sua pergunta de forma respeitosa que eu continuo te ajudando.",
             )
         if self.requests_system_mutation(text):
-            raise ValueError(self.mutation_reply)
+            return ("blocked_system_mutation", self.mutation_reply)
+        return None
 
     def sanitize_assistant_message(self, text: str) -> str:
         if self.has_blocked_content(text):

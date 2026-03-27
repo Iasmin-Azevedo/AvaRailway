@@ -66,24 +66,76 @@ class ChatService:
             raise HTTPException(status_code=404, detail="Sessao de chat nao encontrada")
         return self.chat_repository.get_history(session_id)
 
-    async def process_message(self, user: Usuario, payload: ChatMessageRequest) -> ChatMessageResponse:
-        message = payload.message.strip()
-        if len(message) > settings.CHAT_MAX_USER_MESSAGE_LENGTH:
-            raise HTTPException(status_code=400, detail="Mensagem excede o limite permitido")
-        try:
-            self.guardrails_service.ensure_user_message_allowed(message)
-        except ValueError as exc:
-            self._register_audit(user, "chat_bloqueado", str(exc))
-            raise HTTPException(status_code=400, detail=str(exc))
-
+    def _ensure_session(self, user: Usuario, payload: ChatMessageRequest, message: str):
         if payload.session_id:
             session = self.chat_repository.get_user_session(payload.session_id, user.id)
             if not session:
                 raise HTTPException(status_code=404, detail="Sessao de chat nao encontrada")
             if session.status != "ativa":
                 raise HTTPException(status_code=409, detail="Sessao de chat encerrada")
-        else:
-            session = self.create_session(user, self._build_session_title(message))
+            return session
+        return self.create_session(user, self._build_session_title(message))
+
+    def _store_simple_response(
+        self,
+        session,
+        user_message_text: str,
+        assistant_text: str,
+        message_type: str,
+        moderation_action: str | None = None,
+    ) -> ChatMessageResponse:
+        user_message = self.chat_repository.add_message(
+            session_id=session.id,
+            sender="user",
+            message_text=user_message_text,
+            message_type=message_type,
+            context_json={},
+        )
+        assistant_message = self.chat_repository.add_message(
+            session_id=session.id,
+            sender="assistant",
+            message_text=assistant_text,
+            message_type=message_type,
+            context_json={"moderation_action": moderation_action} if moderation_action else {},
+        )
+        self.chat_repository.touch_session(session)
+        return ChatMessageResponse(
+            session_id=session.id,
+            user_message=user_message.message_text,
+            assistant_message=assistant_message.message_text,
+            assistant_message_id=assistant_message.id,
+            message_type=message_type,
+            created_at=assistant_message.created_at,
+            used_context=[],
+            used_sources=[],
+            retrieval_count=0,
+            moderation_action=moderation_action,
+        )
+
+    async def process_message(self, user: Usuario, payload: ChatMessageRequest) -> ChatMessageResponse:
+        message = payload.message.strip()
+        if len(message) > settings.CHAT_MAX_USER_MESSAGE_LENGTH:
+            raise HTTPException(status_code=400, detail="Mensagem excede o limite permitido")
+        session = self._ensure_session(user, payload, message)
+
+        violation = self.guardrails_service.get_violation_response(message)
+        if violation:
+            action, response_text = violation
+            self._register_audit(user, "chat_bloqueado", response_text)
+            return self._store_simple_response(
+                session,
+                message,
+                response_text,
+                "moderation",
+                moderation_action=action,
+            )
+
+        if self.router_service.is_greeting_only(message):
+            greeting = (
+                "Oi! Eu sou o assistente do AVA MJ. "
+                "Se quiser, posso te ajudar com estudos, atividades, trilhas, desempenho ou uso da plataforma."
+            )
+            return self._store_simple_response(session, message, greeting, "greeting")
 
         message_type = self.router_service.classify(message)
         context = self.context_service.build_context(user, message_type)
@@ -163,6 +215,7 @@ class ChatService:
                 for chunk in retrieved_chunks
             ],
             retrieval_count=len(retrieved_chunks),
+            moderation_action=None,
         )
 
     def add_feedback(

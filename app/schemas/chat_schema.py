@@ -34,6 +34,7 @@ class ChatMessageResponse(BaseModel):
     used_context: list[str] = Field(default_factory=list)
     used_sources: list[dict[str, Any]] = Field(default_factory=list)
     retrieval_count: int = 0
+    moderation_action: str | None = None
 
 
 class ChatHistoryItem(BaseModel):
