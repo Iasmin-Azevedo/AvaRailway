@@ -2,6 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.models.interacao_ia import InteracaoIA
+from app.models.user import AuditLog
 from app.models.user import Usuario
 from app.repositories.chat_repository import ChatRepository
 from app.schemas.chat_schema import ChatMessageRequest, ChatMessageResponse
@@ -36,6 +38,25 @@ class ChatService:
             return "Nova conversa"
         return cleaned[:60]
 
+    def _register_audit(self, user: Usuario, action: str, details: str) -> None:
+        self.db.add(AuditLog(usuario_id=user.id, acao=action, detalhes=details, ip=None))
+        self.db.commit()
+
+    def _register_interaction(self, user: Usuario, message: str, answer: str, context: dict) -> None:
+        aluno = getattr(user, "aluno_perfil", None)
+        aluno_id = getattr(aluno, "id", None)
+        if not aluno_id:
+            return
+        self.db.add(
+            InteracaoIA(
+                aluno_id=aluno_id,
+                pergunta=message,
+                resposta_ia=answer,
+                contexto=str(context)[:2000],
+            )
+        )
+        self.db.commit()
+
     def list_sessions(self, user: Usuario) -> list:
         return self.chat_repository.list_user_sessions(user.id)
 
@@ -52,6 +73,7 @@ class ChatService:
         try:
             self.guardrails_service.ensure_user_message_allowed(message)
         except ValueError as exc:
+            self._register_audit(user, "chat_bloqueado", str(exc))
             raise HTTPException(status_code=400, detail=str(exc))
 
         if payload.session_id:
@@ -110,9 +132,11 @@ class ChatService:
             message_type=message_type,
             context_json={
                 "used_context": ia_result.used_context,
+                "used_sources": [chunk.model_dump() for chunk in retrieved_chunks],
                 "retrieval_count": len(retrieved_chunks),
             },
         )
+        self._register_interaction(user, message, assistant_message.message_text, context)
 
         full_history = self.chat_repository.get_history(session.id)
         self.memory_service.maybe_update_memory(
@@ -130,6 +154,14 @@ class ChatService:
             message_type=message_type,
             created_at=assistant_message.created_at,
             used_context=ia_result.used_context,
+            used_sources=[
+                {
+                    "source": chunk.source,
+                    "title": chunk.title,
+                    "metadata": chunk.metadata,
+                }
+                for chunk in retrieved_chunks
+            ],
             retrieval_count=len(retrieved_chunks),
         )
 

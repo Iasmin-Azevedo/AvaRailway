@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.chat_settings import RetrievedChunk
 from app.core.config import settings
+from app.integrations.moodle_client import MoodleClient
 from app.models.avaliacao import Avaliacao
 from app.models.gestao import Curso, Trilha
 from app.models.h5p import AtividadeH5P
@@ -21,6 +22,7 @@ except Exception:
 class RetrievalService:
     def __init__(self, db: Session | None = None):
         self.db = db
+        self.moodle_client = MoodleClient()
         self.enabled = settings.CHAT_ENABLE_SEMANTIC_SEARCH and SentenceTransformer is not None
         self.model = None
         self.base_corpus = [
@@ -123,6 +125,24 @@ class RetrievalService:
                         f"Trilhas sugeridas: {', '.join(pedagogical.get('trilhas_sugeridas', [])) or 'nenhuma informada'}."
                     ),
                     "metadata": {"tipo": "contexto"},
+                }
+            )
+
+        for content in self.moodle_client.fetch_learning_content()[:20]:
+            corpus.append(
+                {
+                    "source": "moodle",
+                    "title": content.get("title") or "Conteudo do Moodle",
+                    "content": (
+                        f"Curso: {content.get('course', 'Nao informado')}. "
+                        f"Secao: {content.get('section', 'Nao informada')}. "
+                        f"Descricao: {content.get('description', '')}"
+                    ).strip(),
+                    "metadata": {
+                        "tipo": content.get("modname", "recurso"),
+                        "course": content.get("course"),
+                        "url": content.get("url"),
+                    },
                 }
             )
 

@@ -154,6 +154,24 @@ class BackendFlowTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("alteracoes operacionais", response.json()["mensagem_amigavel"])
 
+    def test_chat_returns_used_sources_details(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        token = login.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = self.client.post(
+            "/api/v1/chat/message",
+            json={"message": "Como estudar melhor matematica?"},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn("used_sources", body)
+        self.assertIsInstance(body["used_sources"], list)
+
 
 if __name__ == "__main__":
     unittest.main()

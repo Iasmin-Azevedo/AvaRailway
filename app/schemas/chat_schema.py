@@ -32,6 +32,7 @@ class ChatMessageResponse(BaseModel):
     message_type: str
     created_at: datetime
     used_context: list[str] = Field(default_factory=list)
+    used_sources: list[dict[str, Any]] = Field(default_factory=list)
     retrieval_count: int = 0
 
 

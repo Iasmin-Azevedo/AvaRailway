@@ -23,6 +23,15 @@ class ChatGuardrailsService:
             r"\bexterminar\b",
             r"\bmatar\b.*\b(gay|negro|preto|mulher|judeu|trans)\b",
             r"\bodio\b.*\b(gay|negro|preto|mulher|judeu|trans)\b",
+            r"\bme matar\b",
+            r"\bquero morrer\b",
+            r"\bcomo me matar\b",
+            r"\bcomo suicidar\b",
+            r"\bsexo com menor\b",
+            r"\bpornografia infantil\b",
+            r"\bexplorar menor\b",
+            r"\broubar senha\b",
+            r"\binvadir\b.*\b(conta|sistema|servidor)\b",
         ]
         self.mutation_patterns = [
             r"\balter(ar|e)\b.*\b(senha|usuario|perfil|permiss[aã]o|nota|dados|configurac[aã]o)\b",
@@ -42,6 +51,11 @@ class ChatGuardrailsService:
             "Nao posso ajudar com ofensas, palavroes, discriminacao ou qualquer conteudo que fira "
             "a dignidade humana. Se voce quiser, posso reformular sua pergunta de forma respeitosa "
             "e ajudar no tema permitido."
+        )
+        self.protected_reply = (
+            "Nao posso ajudar com pedido de violencia, autoagressao, exploracao sexual, invasao, "
+            "roubo de acesso ou qualquer conteudo perigoso. Se a situacao for academica ou preventiva, "
+            "posso explicar o tema de forma segura e educativa."
         )
         self.mutation_reply = (
             "Nao posso executar, orientar ou autorizar alteracoes operacionais no sistema por conversa, "
@@ -72,6 +86,9 @@ class ChatGuardrailsService:
 
     def sanitize_assistant_message(self, text: str) -> str:
         if self.has_blocked_content(text):
+            normalized = self._normalize(text)
+            if any(keyword in normalized for keyword in ["matar", "morrer", "invadir", "menor", "senha"]):
+                return self.protected_reply
             return self.safe_reply
         if self.requests_system_mutation(text):
             return self.mutation_reply
