@@ -3,6 +3,7 @@ class PromptBuilderService:
         self,
         app_name: str,
         profile: str,
+        message_type: str,
         memory_summary: str,
         context: dict,
         retrieved_chunks: list[dict],
@@ -41,9 +42,14 @@ Trechos recuperados:
 {retrieved_text}
 
 Instrucoes finais:
+tipo da mensagem: {message_type};
 seja objetivo, mas sem parecer seco;
 quando explicar um assunto, use linguagem simples;
 quando a pergunta estiver ligada ao sistema, use apenas o contexto fornecido;
 nao afirme acesso a dados que nao foram enviados;
 nao invente links, materiais ou resultados.
+se houver base suficiente, responda primeiro a pergunta e depois complemente;
+se a pergunta for pedagogica, explique em passos curtos e claros;
+se a resposta depender de dado ausente, diga isso explicitamente;
+se houver incerteza, nao improvise.
 """.strip()

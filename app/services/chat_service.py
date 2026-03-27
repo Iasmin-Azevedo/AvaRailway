@@ -20,13 +20,19 @@ class ChatService:
         self.router_service = ChatRouterService()
         self.memory_service = ChatMemoryService(self.chat_repository)
         self.context_service = ChatContextService(db)
-        self.retrieval_service = RetrievalService()
+        self.retrieval_service = RetrievalService(db)
         self.prompt_builder = PromptBuilderService()
         self.ia_service = IAService()
 
     def create_session(self, user: Usuario, titulo: str) -> object:
         role = getattr(user.role, "value", user.role)
         return self.chat_repository.create_session(user_id=user.id, perfil=role, titulo=titulo)
+
+    def _build_session_title(self, message: str) -> str:
+        cleaned = " ".join(message.strip().split())
+        if not cleaned:
+            return "Nova conversa"
+        return cleaned[:60]
 
     def list_sessions(self, user: Usuario) -> list:
         return self.chat_repository.list_user_sessions(user.id)
@@ -49,11 +55,11 @@ class ChatService:
             if session.status != "ativa":
                 raise HTTPException(status_code=409, detail="Sessao de chat encerrada")
         else:
-            session = self.create_session(user, "Nova conversa")
+            session = self.create_session(user, self._build_session_title(message))
 
         message_type = self.router_service.classify(message)
         context = self.context_service.build_context(user, message_type)
-        retrieved_chunks = self.retrieval_service.search(message)
+        retrieved_chunks = self.retrieval_service.search(message, context=context)
         recent_history = self.chat_repository.get_recent_history(
             session.id,
             limit=settings.CHAT_MAX_HISTORY_MESSAGES,
@@ -62,6 +68,7 @@ class ChatService:
         system_prompt = self.prompt_builder.build_system_prompt(
             app_name=settings.CHAT_SYSTEM_NAME,
             profile=getattr(user.role, "value", user.role),
+            message_type=message_type,
             memory_summary=memory_summary,
             context=context,
             retrieved_chunks=[chunk.model_dump() for chunk in retrieved_chunks],

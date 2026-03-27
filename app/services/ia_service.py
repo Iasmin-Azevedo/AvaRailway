@@ -53,7 +53,14 @@ class IAService:
     def _fallback_answer(self, payload: IAChatPayload) -> str:
         if payload.retrieved_chunks:
             top = payload.retrieved_chunks[0]
-            return f"{top['content']} Se quiser, posso explicar isso em passos mais simples ou relacionar com seus estudos."
+            response = f"{top['content']}"
+            if payload.context.get("pedagogical", {}).get("aproveitamento_pct") is not None:
+                response += (
+                    f" No seu contexto atual, o sistema registra aproveitamento de "
+                    f"{payload.context['pedagogical'].get('aproveitamento_pct', 0)}%."
+                )
+            response += " Se quiser, posso explicar isso em etapas mais simples ou relacionar com uma atividade do sistema."
+            return response
 
         pedagogical = payload.context.get("pedagogical", {})
         if pedagogical.get("aproveitamento_pct") is not None:
@@ -65,5 +72,5 @@ class IAService:
 
         return (
             "Estou pronto para ajudar com duvidas de estudo, uso da plataforma e orientacoes gerais. "
-            "Se voce quiser, mande a pergunta em uma frase e eu respondo de forma direta."
+            "Se voce quiser, mande a pergunta em uma frase e eu respondo de forma objetiva e sem inventar informacoes."
         )

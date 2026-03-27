@@ -99,6 +99,29 @@ class BackendFlowTestCase(unittest.TestCase):
         self.assertEqual(close_response.status_code, 200)
         self.assertEqual(close_response.json()["status"], "encerrada")
 
+    def test_chat_creates_session_title_and_uses_retrieval(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        token = login.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        question = "O que e fracao e como estudar melhor esse conteudo?"
+        message_response = self.client.post(
+            "/api/v1/chat/message",
+            json={"message": question},
+            headers=headers,
+        )
+        self.assertEqual(message_response.status_code, 200)
+        body = message_response.json()
+        self.assertGreater(body["retrieval_count"], 0)
+        self.assertTrue(body["used_context"])
+
+        list_response = self.client.get("/api/v1/chat/sessions", headers=headers)
+        self.assertEqual(list_response.status_code, 200)
+        self.assertTrue(any(item["titulo"].startswith("O que e fracao") for item in list_response.json()))
+
 
 if __name__ == "__main__":
     unittest.main()

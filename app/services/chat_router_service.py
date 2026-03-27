@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 
 class ChatRouterService:
@@ -32,8 +33,12 @@ class ChatRouterService:
         r"\bescola\b",
     ]
 
+    def _normalize(self, text: str) -> str:
+        value = unicodedata.normalize("NFKD", text.lower().strip())
+        return "".join(ch for ch in value if not unicodedata.combining(ch))
+
     def classify(self, text: str) -> str:
-        value = text.lower().strip()
+        value = self._normalize(text)
         if any(re.search(pattern, value) for pattern in self.INSTITUTIONAL_PATTERNS):
             return "institutional"
         if any(re.search(pattern, value) for pattern in self.SYSTEM_PATTERNS):
