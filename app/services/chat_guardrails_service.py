@@ -24,10 +24,29 @@ class ChatGuardrailsService:
             r"\bmatar\b.*\b(gay|negro|preto|mulher|judeu|trans)\b",
             r"\bodio\b.*\b(gay|negro|preto|mulher|judeu|trans)\b",
         ]
+        self.mutation_patterns = [
+            r"\balter(ar|e)\b.*\b(senha|usuario|perfil|permiss[aã]o|nota|dados|configurac[aã]o)\b",
+            r"\bmud(ar|e)\b.*\b(senha|usuario|perfil|permiss[aã]o|nota|dados|configurac[aã]o)\b",
+            r"\bpromov(a|er)\b.*\b(admin|administrador|gestor|coordenador|professor)\b",
+            r"\bd[eê] permiss[aã]o\b",
+            r"\bliber(ar|e)\b.*\b(acesso|permiss[aã]o)\b",
+            r"\bapagu(e|ar)\b.*\b(dados|usuario|prova|historico|registro)\b",
+            r"\bexclu(a|ir)\b.*\b(dados|usuario|prova|historico|registro)\b",
+            r"\breset(ar|e)\b.*\b(senha|usuario|sistema)\b",
+            r"\bdesativ(ar|e)\b.*\b(seguranca|log|auditoria)\b",
+            r"\binativ(ar|e)\b.*\b(usuario|auditoria|seguranca)\b",
+            r"\badicion(ar|e)\b.*\b(permiss[aã]o|acesso)\b",
+            r"\bremov(a|er)\b.*\b(permiss[aã]o|acesso|restric[aã]o)\b",
+        ]
         self.safe_reply = (
             "Nao posso ajudar com ofensas, palavroes, discriminacao ou qualquer conteudo que fira "
             "a dignidade humana. Se voce quiser, posso reformular sua pergunta de forma respeitosa "
             "e ajudar no tema permitido."
+        )
+        self.mutation_reply = (
+            "Nao posso executar, orientar ou autorizar alteracoes operacionais no sistema por conversa, "
+            "como mudanca de permissao, senha, perfil, configuracao, nota ou exclusao de dados. "
+            "Se houver necessidade real, isso deve ser feito pelos fluxos administrativos e tecnicos apropriados."
         )
 
     def _normalize(self, text: str) -> str:
@@ -38,14 +57,22 @@ class ChatGuardrailsService:
         normalized = self._normalize(text)
         return any(re.search(pattern, normalized) for pattern in self.blocked_patterns)
 
+    def requests_system_mutation(self, text: str) -> bool:
+        normalized = self._normalize(text)
+        return any(re.search(pattern, normalized) for pattern in self.mutation_patterns)
+
     def ensure_user_message_allowed(self, text: str) -> None:
         if self.has_blocked_content(text):
             raise ValueError(
                 "Nao posso processar mensagens com palavroes, ofensas, discriminacao "
                 "ou conteudo que viole direitos humanos."
             )
+        if self.requests_system_mutation(text):
+            raise ValueError(self.mutation_reply)
 
     def sanitize_assistant_message(self, text: str) -> str:
         if self.has_blocked_content(text):
             return self.safe_reply
+        if self.requests_system_mutation(text):
+            return self.mutation_reply
         return text
