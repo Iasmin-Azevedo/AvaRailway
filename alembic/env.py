@@ -11,7 +11,20 @@ sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), ".."
 from app.core.config import settings
 from app.core.database import Base
 # Importar todos os models para o metadata estar completo
-from app.models import user, gestao, aluno, saeb, avaliacao, resposta, interacao_ia, h5p
+from app.models import (
+    user,
+    gestao,
+    aluno,
+    saeb,
+    avaliacao,
+    resposta,
+    interacao_ia,
+    h5p,
+    chat_session,
+    chat_message,
+    chat_feedback,
+    chat_memory,
+)
 
 config = context.config
 if config.config_file_name is not None:

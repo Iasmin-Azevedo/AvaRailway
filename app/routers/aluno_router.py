@@ -19,7 +19,7 @@ aluno_repo = AlunoRepository()
 
 def _get_aluno_nome(request: Request, db: Session) -> str:
     aluno_nome = "Aluno"
-    token = request.cookies.get("access_token")
+    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
     if token:
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -41,7 +41,7 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
     aluno_nome = _get_aluno_nome(request, db)
     aluno_id = None
     aluno_ano = None
-    token = request.cookies.get("access_token")
+    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
     if token:
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
@@ -112,7 +112,7 @@ def aluno_trilhas(request: Request, db: Session = Depends(get_db)):
 
     aluno_nome = _get_aluno_nome(request, db)
     aluno_ano = None
-    token = request.cookies.get("access_token")
+    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
     if token:
         try:
             payload = jwt.decode(

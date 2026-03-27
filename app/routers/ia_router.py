@@ -1,10 +1,18 @@
 from fastapi import APIRouter
-from app.services.ia_service import IAService
+from pydantic import BaseModel, Field
 
 router = APIRouter()
-ia_service = IAService()
+
+
+class TutorChatRequest(BaseModel):
+    pergunta: str = Field(min_length=1, max_length=500)
+
 
 @router.post("/chat")
-def conversar_com_tutor(pergunta: str):
-    # Endpoint simples para chat
-    return {"resposta": "Eu sou o Tutor IA. Ainda estou aprendendo, mas sua pergunta foi: " + pergunta}
+def conversar_com_tutor(payload: TutorChatRequest):
+    return {
+        "resposta": (
+            "Eu sou o Tutor IA do AVA MJ. "
+            f"Recebi sua pergunta: {payload.pergunta}"
+        )
+    }
