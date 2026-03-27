@@ -6,6 +6,7 @@ from app.models.user import Usuario
 from app.repositories.chat_repository import ChatRepository
 from app.schemas.chat_schema import ChatMessageRequest, ChatMessageResponse
 from app.services.chat_context_service import ChatContextService
+from app.services.chat_guardrails_service import ChatGuardrailsService
 from app.services.chat_memory_service import ChatMemoryService
 from app.services.chat_router_service import ChatRouterService
 from app.services.ia_service import IAService
@@ -18,6 +19,7 @@ class ChatService:
         self.db = db
         self.chat_repository = ChatRepository(db)
         self.router_service = ChatRouterService()
+        self.guardrails_service = ChatGuardrailsService()
         self.memory_service = ChatMemoryService(self.chat_repository)
         self.context_service = ChatContextService(db)
         self.retrieval_service = RetrievalService(db)
@@ -47,6 +49,10 @@ class ChatService:
         message = payload.message.strip()
         if len(message) > settings.CHAT_MAX_USER_MESSAGE_LENGTH:
             raise HTTPException(status_code=400, detail="Mensagem excede o limite permitido")
+        try:
+            self.guardrails_service.ensure_user_message_allowed(message)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
         if payload.session_id:
             session = self.chat_repository.get_user_session(payload.session_id, user.id)
@@ -95,6 +101,7 @@ class ChatService:
                 "retrieved_chunks": [chunk.model_dump() for chunk in retrieved_chunks],
             }
         )
+        ia_result.answer = self.guardrails_service.sanitize_assistant_message(ia_result.answer)
 
         assistant_message = self.chat_repository.add_message(
             session_id=session.id,

@@ -122,6 +122,22 @@ class BackendFlowTestCase(unittest.TestCase):
         self.assertEqual(list_response.status_code, 200)
         self.assertTrue(any(item["titulo"].startswith("O que e fracao") for item in list_response.json()))
 
+    def test_chat_blocks_offensive_user_message(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        token = login.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = self.client.post(
+            "/api/v1/chat/message",
+            json={"message": "Seu idiota do caralho"},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("direitos humanos", response.json()["mensagem_amigavel"])
+
 
 if __name__ == "__main__":
     unittest.main()
