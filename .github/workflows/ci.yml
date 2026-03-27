@@ -1,0 +1,42 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: sqlite:///./ci.db
+          SECRET_KEY: ci-secret-key
+          MOODLE_URL: https://moodle.local
+          MOODLE_TOKEN: ci-token
+        run: python -m alembic upgrade head
+
+      - name: Run tests
+        env:
+          DATABASE_URL: sqlite:///./ci.db
+          SECRET_KEY: ci-secret-key
+          MOODLE_URL: https://moodle.local
+          MOODLE_TOKEN: ci-token
+        run: python -m unittest discover -s tests -p "test_*.py" -v

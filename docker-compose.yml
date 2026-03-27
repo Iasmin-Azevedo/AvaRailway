@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: avamj-backend
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+    restart: unless-stopped
+    volumes:
+      - ./:/app
+
+  mysql:
+    image: mysql:8.0
+    container_name: avamj-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: avamj
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: avamj
+      MYSQL_PASSWORD: avamj
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: avamj-redis
+    restart: unless-stopped
+    profiles:
+      - cache
+    ports:
+      - "6379:6379"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: avamj-ollama
+    restart: unless-stopped
+    profiles:
+      - ai
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: avamj-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  mysql_data:
+  ollama_data:
