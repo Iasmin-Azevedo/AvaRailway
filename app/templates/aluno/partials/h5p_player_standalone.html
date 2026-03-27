@@ -1,0 +1,265 @@
+<div class="card dash-card border-0 mt-3 border-bottom border-mj-primary border-1">
+    <div class="card-body p-4">
+        <div class="mission-hero-mj border-0 rounded-4 shadow-sm p-3 mb-4">
+            <span class="mission-chip-mj mb-2">
+                <i class="fas fa-puzzle-piece me-2"></i> Atividade H5P
+            </span>
+            <h3 class="h5 fw-bold text-mj-dark mt-3 mb-2">Conteúdo interativo</h3>
+            <p class="text-mj-muted mb-0">Agora você está vendo a atividade real carregada do pacote H5P.</p>
+        </div>
+        <div id="h5p-container" class="min-vh-50"></div>
+    </div>
+</div>
+<p class="small text-muted mt-2">Ao concluir a atividade, seu progresso será registrado automaticamente.</p>
+
+<link rel="stylesheet" href="/static/vendor/h5p-standalone/styles/h5p.css">
+<script>
+(function() {
+  var previews = document.querySelectorAll('.h5p-preview-card');
+  previews.forEach(function(el){ el.style.display = 'none'; });
+
+  var container = document.getElementById('h5p-container');
+  if (!container) return;
+  var contentUrl = "{{ content_base_url }}";
+  if (!contentUrl) {
+    container.innerHTML = '<div class="alert alert-warning">{{ content_missing_reason|default("Conteúdo H5P ainda não está disponível para esta atividade.") }}</div>';
+    return;
+  }
+
+  function startPlayer() {
+    if (typeof H5PStandalone === 'undefined' || !H5PStandalone.H5P) {
+      container.innerHTML = '<div class="alert alert-warning">Biblioteca H5P standalone indisponível. Verifique conexão com a internet/CDN.</div>';
+      return;
+    }
+    var options = {
+      h5pJsonPath: contentUrl,
+      frameJs: '/static/vendor/h5p-standalone/frame.bundle.js',
+      frameCss: '/static/css/h5p_mj_theme.css',
+      postUserStatistics: true,
+      ajax: {
+        setFinished: '/api/h5p/atividades/{{ atividade.id }}/concluir'
+      }
+    };
+    fetch(contentUrl + '/h5p.json', { method: 'GET', credentials: 'same-origin', cache: 'no-store' })
+      .then(function(resp) {
+        if (!resp.ok) {
+          container.innerHTML = '<div class="alert alert-warning">Pacote H5P não encontrado (h5p.json). Peça ao admin para reenviar o arquivo .h5p desta atividade.</div>';
+          return;
+        }
+        try {
+          new H5PStandalone.H5P(container, options);
+          setupCompletionFallback();
+        } catch (e) {
+          container.innerHTML = '<div class="alert alert-warning">Não foi possível carregar a atividade. Verifique se o conteúdo está disponível.</div>';
+          console.error('H5P init error:', e);
+        }
+      })
+      .catch(function() {
+        container.innerHTML = '<div class="alert alert-warning">Não foi possível acessar o conteúdo H5P no servidor.</div>';
+      });
+  }
+
+  function loadScript(src, onLoad, onError) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.charset = 'UTF-8';
+    s.onload = onLoad;
+    s.onerror = onError;
+    document.body.appendChild(s);
+  }
+
+  if (typeof H5PStandalone !== 'undefined' && H5PStandalone.H5P) {
+    startPlayer();
+    return;
+  }
+
+  loadScript(
+    '/static/vendor/h5p-standalone/main.bundle.js',
+    startPlayer,
+    function () {
+      loadScript(
+        'https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/main.bundle.js',
+        startPlayer,
+        function () {
+          loadScript(
+            'https://unpkg.com/h5p-standalone@3.9.0/dist/main.bundle.js',
+            startPlayer,
+            function () {
+              container.innerHTML = '<div class="alert alert-warning">Não foi possível carregar a biblioteca H5P standalone (local/CDN indisponível).</div>';
+            }
+          );
+        }
+      );
+    }
+  );
+
+  function setupCompletionFallback() {
+    var sent = false;
+    var completionToken = "{{ completion_token|default('') }}";
+
+    function getScoreFromText(txt) {
+      if (!txt) return null;
+      var m = txt.match(/(\d+)\s*\/\s*(\d+)/);
+      if (!m) return null;
+      var hit = parseFloat(m[1]);
+      var total = parseFloat(m[2]);
+      if (!total) return null;
+      return Math.max(0, Math.min(100, (hit / total) * 100));
+    }
+
+    function getScoreFromResult(doc) {
+      var baseDoc = doc || document;
+      var scoreEl = baseDoc.querySelector('.h5p-question-set-results .h5p-joubelui-score-numeric, .h5p-results .h5p-joubelui-score-numeric');
+      if (!scoreEl) return null;
+      var txt = (scoreEl.textContent || '').trim();
+      return getScoreFromText(txt);
+    }
+
+    function sendConcluded(score) {
+      if (sent) return;
+      if (!completionToken) {
+        console.warn('Token de conclusão ausente. Faça login novamente e recarregue a atividade.');
+        return;
+      }
+      sent = true;
+      fetch('/api/h5p/atividades/{{ atividade.id }}/concluir', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-H5P-Completion-Token': completionToken
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ score: score, completion_token: completionToken })
+      }).then(function(resp) {
+        if (!resp.ok) {
+          sent = false;
+          console.warn('Conclusão não registrada. Status:', resp.status);
+        }
+      }).catch(function(err){
+        sent = false;
+        console.warn('Falha ao registrar conclusão (fallback):', err);
+      });
+    }
+
+    function getScoreFromXapi(event) {
+      try {
+        var statement = event && event.data && event.data.statement;
+        if (!statement || !statement.result) return null;
+        if (typeof statement.result.score === 'object') {
+          var raw = statement.result.score.raw;
+          var max = statement.result.score.max;
+          if (typeof raw === 'number' && typeof max === 'number' && max > 0) {
+            return Math.max(0, Math.min(100, (raw / max) * 100));
+          }
+        }
+        if (typeof statement.result.score === 'number') return statement.result.score;
+      } catch (e) {}
+      return null;
+    }
+
+    function shouldSendByXapi(event) {
+      try {
+        var verbId = (((event || {}).data || {}).statement || {}).verb || {};
+        var id = (verbId.id || '').toLowerCase();
+        return (
+          id.indexOf('completed') !== -1 ||
+          id.indexOf('passed') !== -1 ||
+          id.indexOf('answered') !== -1
+        );
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function attachH5PXapiListener() {
+      if (!(window.H5P && H5P.externalDispatcher && typeof H5P.externalDispatcher.on === 'function')) {
+        return false;
+      }
+      H5P.externalDispatcher.on('xAPI', function(event) {
+        if (!shouldSendByXapi(event)) return;
+        var score = getScoreFromXapi(event);
+        if (score === null) score = getScoreFromResult();
+        sendConcluded(score);
+      });
+      return true;
+    }
+
+    function shouldSendNow() {
+      var resultRoot = document.querySelector('.h5p-question-set-results, .h5p-results, .h5p-question-feedback-content');
+      return !!(resultRoot && resultRoot.offsetParent !== null);
+    }
+
+    function trySendFromUI() {
+      if (shouldSendNow()) {
+        sendConcluded(getScoreFromResult());
+      }
+    }
+
+    function attachIframeListeners() {
+      var iframes = container.querySelectorAll('iframe');
+      iframes.forEach(function(frame) {
+        try {
+          var bindFrameDoc = function() {
+            try {
+              var frameDoc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
+              if (!frameDoc) return;
+              frameDoc.addEventListener('submit', function(ev) {
+                ev.preventDefault();
+                setTimeout(function(){ sendConcluded(getScoreFromResult(frameDoc)); }, 200);
+              }, true);
+              frameDoc.addEventListener('click', function() {
+                setTimeout(function(){ sendConcluded(getScoreFromResult(frameDoc)); }, 300);
+                setTimeout(function(){ sendConcluded(getScoreFromResult(frameDoc)); }, 900);
+              }, true);
+            } catch (e) {}
+          };
+          frame.addEventListener('load', bindFrameDoc);
+          bindFrameDoc();
+        } catch (e) {}
+      });
+    }
+
+    // Evita POST indesejado para /aluno/atividade/{id} no documento atual
+    document.addEventListener('submit', function(ev) {
+      if (!container.contains(ev.target)) return;
+      ev.preventDefault();
+      setTimeout(trySendFromUI, 250);
+    }, true);
+
+    // Cobre cliques no documento atual
+    document.addEventListener('click', function(ev) {
+      if (!container.contains(ev.target)) return;
+      setTimeout(trySendFromUI, 250);
+      setTimeout(trySendFromUI, 800);
+    }, true);
+
+    var xapiBound = attachH5PXapiListener();
+    attachIframeListeners();
+
+    // Garantia extra: quando o resultado final da atividade aparece no documento atual.
+    var observer = new MutationObserver(function() {
+      trySendFromUI();
+      attachIframeListeners();
+      if (!xapiBound) {
+        xapiBound = attachH5PXapiListener();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Segurança adicional por polling curto após carregar o conteúdo
+    // (inclui leitura dentro do iframe quando possível).
+    var checks = 0;
+    var poll = setInterval(function() {
+      checks += 1;
+      trySendFromUI();
+      try {
+        var frame = container.querySelector('iframe');
+        if (frame && frame.contentDocument) {
+          sendConcluded(getScoreFromResult(frame.contentDocument));
+        }
+      } catch (e) {}
+      if (sent || checks > 40) clearInterval(poll);
+    }, 1000);
+  }
+})();
+</script>

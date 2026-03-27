@@ -25,29 +25,74 @@
 </div>
 <p class="small text-muted mt-2">Ao concluir a atividade, seu progresso será registrado automaticamente.</p>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/styles/h5p.css">
-<script src="https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/main.bundle.js" charset="UTF-8"></script>
+<link rel="stylesheet" href="/static/vendor/h5p-standalone/styles/h5p.css">
 <script>
 (function() {
   var container = document.getElementById('h5p-container');
-  if (!container || typeof H5PStandalone === 'undefined') return;
-  var contentUrl = "{{ content_url }}";
-  var options = {
-    h5pJsonPath: contentUrl,
-    frameJs: 'https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/frame.bundle.js',
-    frameCss: 'https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/styles/h5p.css',
-    postUserStatistics: false,
-    ajax: {
-      setFinishedUrl: '/api/h5p/atividades/{{ atividade.id }}/concluir',
-      contentUserDataUrl: null
-    }
-  };
-  try {
-    new H5PStandalone.H5P(container, options);
-  } catch (e) {
-    container.innerHTML = '<div class="alert alert-warning">Não foi possível carregar a atividade. Verifique se o conteúdo está disponível.</div>';
-    console.error('H5P init error:', e);
+  if (!container) return;
+  var contentUrl = "{{ content_base_url }}";
+  if (!contentUrl) {
+    container.innerHTML = '<div class="alert alert-warning">Conteúdo H5P ainda não está disponível para esta atividade.</div>';
+    return;
   }
+
+  function startPlayer() {
+    if (typeof H5PStandalone === 'undefined' || !H5PStandalone.H5P) {
+      container.innerHTML = '<div class="alert alert-warning">Biblioteca H5P standalone indisponível. Verifique conexão com a internet/CDN.</div>';
+      return;
+    }
+    var options = {
+      h5pJsonPath: contentUrl,
+      frameJs: '/static/vendor/h5p-standalone/frame.bundle.js',
+      frameCss: '/static/vendor/h5p-standalone/styles/h5p.css',
+      postUserStatistics: false,
+      ajax: {
+        setFinishedUrl: '/api/h5p/atividades/{{ atividade.id }}/concluir',
+        contentUserDataUrl: null
+      }
+    };
+    try {
+      new H5PStandalone.H5P(container, options);
+    } catch (e) {
+      container.innerHTML = '<div class="alert alert-warning">Não foi possível carregar a atividade. Verifique se o conteúdo está disponível.</div>';
+      console.error('H5P init error:', e);
+    }
+  }
+
+  function loadScript(src, onLoad, onError) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.charset = 'UTF-8';
+    s.onload = onLoad;
+    s.onerror = onError;
+    document.body.appendChild(s);
+  }
+
+  if (typeof H5PStandalone !== 'undefined' && H5PStandalone.H5P) {
+    startPlayer();
+    return;
+  }
+
+  // Tenta local primeiro e só depois CDNs
+  loadScript(
+    '/static/vendor/h5p-standalone/main.bundle.js',
+    startPlayer,
+    function () {
+      loadScript(
+        'https://cdn.jsdelivr.net/npm/h5p-standalone@3.9.0/dist/main.bundle.js',
+        startPlayer,
+        function () {
+          loadScript(
+            'https://unpkg.com/h5p-standalone@3.9.0/dist/main.bundle.js',
+            startPlayer,
+            function () {
+              container.innerHTML = '<div class="alert alert-warning">Não foi possível carregar a biblioteca H5P standalone (local/CDN indisponível).</div>';
+            }
+          );
+        }
+      );
+    }
+  );
 })();
 </script>
 <script>

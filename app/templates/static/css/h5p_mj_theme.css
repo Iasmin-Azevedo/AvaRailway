@@ -1,0 +1,236 @@
+@import url('/static/vendor/h5p-standalone/styles/h5p.css');
+
+/* Tema MJ aplicado dentro do iframe do H5P standalone */
+:root {
+  --mj-primary: #326f88;
+  --mj-primary-light: #55a4bb;
+  --mj-dark: #1a1d29;
+  --mj-muted: #6c757d;
+  --mj-soft: #f1f9fa;
+  --mj-green: #96B52D;
+  --mj-radius: 12px;
+}
+
+body,
+.h5p-content {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+  color: var(--mj-dark) !important;
+}
+
+/* Alternativas (radio/checkbox) */
+.h5p-alternative-container,
+.h5p-multichoice .h5p-alternative {
+  border-radius: 10px !important;
+  border: 1px solid rgba(50, 111, 136, 0.25) !important;
+  background: #fff !important;
+  transition: all 0.15s ease !important;
+  margin-bottom: 0.55rem !important;
+}
+
+.h5p-multichoice .h5p-alternative:hover,
+.h5p-alternative-container:hover {
+  border-color: var(--mj-primary-light) !important;
+  box-shadow: 0 4px 12px rgba(50, 111, 136, 0.12) !important;
+}
+
+.h5p-multichoice .h5p-alternative.h5p-alternative-selected,
+.h5p-alternative-container.h5p-user-selected {
+  border-color: var(--mj-primary) !important;
+  background: rgba(50, 111, 136, 0.08) !important;
+}
+
+/* Botões */
+.h5p-joubelui-button,
+button.h5p-question-check-answer,
+button.h5p-question-try-again,
+button.h5p-question-show-solution,
+button.h5p-question-next {
+  border-radius: 999px !important;
+  border: 0 !important;
+  background: linear-gradient(135deg, var(--mj-primary) 0%, var(--mj-primary-light) 100%) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  padding: 0.5rem 1rem !important;
+  box-shadow: 0 6px 14px rgba(50, 111, 136, 0.2) !important;
+}
+
+.h5p-joubelui-button:hover,
+button.h5p-question-check-answer:hover,
+button.h5p-question-try-again:hover,
+button.h5p-question-show-solution:hover,
+button.h5p-question-next:hover {
+  filter: brightness(1.04) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Barra/progresso */
+.h5p-question-progress,
+.h5p-progressbar,
+.h5p-joubelui-score-bar {
+  border-radius: 999px !important;
+}
+
+.h5p-progressbar .h5p-progressbar-part,
+.h5p-joubelui-progressbar-part {
+  background: rgba(50, 111, 136, 0.2) !important;
+}
+
+.h5p-progressbar .h5p-progressbar-part.h5p-progressbar-part-filled,
+.h5p-joubelui-progressbar-part.h5p-joubelui-progressbar-part-filled {
+  background: linear-gradient(90deg, var(--mj-green) 0%, #7ea02b 100%) !important;
+}
+
+.h5p-joubelui-progressbar-inner {
+  background: linear-gradient(90deg, var(--mj-green) 0%, #7ea02b 100%) !important;
+}
+
+/* Cards/caixas internas */
+.h5p-question,
+.h5p-dialogcards,
+.h5p-true-false,
+.h5p-dragquestion {
+  border-radius: var(--mj-radius) !important;
+}
+
+.h5p-feedback {
+  border-radius: 10px !important;
+}
+
+.h5p-feedback.h5p-question-feedback,
+.h5p-question-feedback-content {
+  border-color: rgba(227, 178, 32, 0.5) !important;
+}
+
+/* =========================
+   MultiChoice (alternativas)
+   ========================= */
+.h5p-multichoice .h5p-answer {
+  margin: 0.6rem 0 !important;
+  overflow: visible !important;
+}
+
+.h5p-multichoice .h5p-alternative-container {
+  padding: 0.72rem 1rem 0.72rem 2.8rem !important;
+  line-height: 1.35 !important;
+  text-indent: 0 !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(50, 111, 136, 0.26) !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+
+.h5p-alternative-inner {
+  margin: 0 !important;
+  color: var(--mj-dark) !important;
+}
+
+/* Ícone radio/checkbox estilo MJ */
+.h5p-multichoice .h5p-radio-or-checkbox {
+  display: none !important; /* evita duplicidade de marcador */
+}
+
+.h5p-multichoice .h5p-answer .h5p-alternative-container:before {
+  left: 0.95rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  color: var(--mj-primary) !important;
+}
+
+.h5p-multichoice .h5p-answer[aria-checked="true"] .h5p-alternative-container:before {
+  color: var(--mj-primary) !important;
+}
+
+.h5p-multichoice .h5p-answer[aria-checked="true"] .h5p-alternative-container {
+  border: 2px solid var(--mj-primary) !important;
+  background: rgba(50, 111, 136, 0.08) !important;
+  color: #17384b !important;
+}
+
+/* Corrige posição sem alterar a fonte interna do H5P */
+.h5p-multichoice .h5p-answer-icon {
+  left: 0.95rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Focus sem "corte" */
+.h5p-multichoice .h5p-answer:focus .h5p-alternative-container,
+.h5p-multichoice .h5p-answer:focus-visible .h5p-alternative-container {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(85, 164, 187, 0.45) !important;
+  border-color: var(--mj-primary-light) !important;
+}
+
+/* =========================
+   Progress dots (QuestionSet)
+   ========================= */
+.questionset .dots-container,
+.questionset .qs-progress {
+  margin-top: 0.55rem !important;
+}
+
+.questionset .progress-dot {
+  width: 0.9rem !important;
+  height: 0.9rem !important;
+  border: 2px solid rgba(50, 111, 136, 0.45) !important;
+  background: #fff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+  margin: 0 0.18rem !important;
+}
+
+.questionset .progress-dot.current {
+  border-color: var(--mj-green) !important;
+  background: rgba(150, 181, 45, 0.28) !important;
+  transform: scale(1.1) !important;
+}
+
+.questionset .progress-dot.answered {
+  border-color: var(--mj-primary) !important;
+  background: rgba(50, 111, 136, 0.18) !important;
+}
+
+/* =========================
+   Feedback após "Verificar"
+   ========================= */
+/* Texto principal (ex.: "Leia novamente com atenção...") */
+.h5p-multichoice .feedback-text,
+.h5p-question .h5p-question-feedback {
+  color: #1f67c6 !important;
+  font-weight: 800 !important;
+  font-size: 1.02rem !important;
+  line-height: 1.35 !important;
+}
+
+/* Caixa de feedback no estilo "mascote" */
+.h5p-question .h5p-question-feedback-content {
+  display: block !important;
+  margin-top: 0.45rem !important;
+  padding: 0.55rem 0.8rem 0.55rem 2.55rem !important;
+  border: 1px solid rgba(227, 178, 32, 0.5) !important;
+  border-radius: 12px !important;
+  background: linear-gradient(180deg, rgba(227, 178, 32, 0.24) 0%, rgba(227, 178, 32, 0.16) 100%) !important;
+  color: #6a4d00 !important;
+  font-weight: 600 !important;
+  position: relative !important;
+}
+
+.h5p-question .h5p-question-feedback-content::before {
+  content: "";
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: #f2f2f2 url("/static/img/ChatBot.png") center/cover no-repeat;
+  border: 1px solid rgba(227, 178, 32, 0.6);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.16);
+}
+
+.h5p-question .h5p-question-feedback-content-text {
+  display: inline !important;
+  color: #6a4d00 !important;
+}

@@ -3,23 +3,67 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
+import logging
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_user_optional
 from app.models.user import Usuario
-from app.models.aluno import Aluno
+from app.models.aluno import Aluno, PontuacaoGamificacao
 from app.models.h5p import AtividadeH5P
 from app.repositories.h5p_repository import AtividadeH5PRepository, ProgressoH5PRepository
 from app.repositories.gestao_repository import TrilhaRepository
-from app.schemas.h5p_schema import AtividadeH5PResponse, ConcluirH5PRequest, ProgressoH5PResponse
+from app.schemas.h5p_schema import AtividadeH5PResponse, ProgressoH5PResponse
 from app.core.config import settings
+from app.services.dashboard_service import DashboardService
+from jose import jwt, JWTError
 
 router = APIRouter()
+logger = logging.getLogger("ava_mj_backend.h5p")
 
 
 def _get_aluno_id(db: Session, user: Usuario) -> Optional[int]:
     aluno = db.query(Aluno).filter(Aluno.usuario_id == user.id).first()
     return aluno.id if aluno else None
+
+
+def _ensure_aluno_can_access_atividade(db: Session, user: Usuario, atividade: AtividadeH5P) -> None:
+    """Garante que aluno só acesse atividade do próprio ano escolar."""
+    aluno = db.query(Aluno).filter(Aluno.usuario_id == user.id).first()
+    if not aluno:
+        return
+    trilha = TrilhaRepository().get(db, atividade.trilha_id) if atividade.trilha_id else None
+    if trilha and trilha.ano_escolar and trilha.ano_escolar != aluno.ano_escolar:
+        raise HTTPException(403, "Você não pode acessar atividade de outro ano escolar")
+
+
+def _resolve_aluno_id_for_conclusao(
+    request: Request,
+    db: Session,
+    atividade_id: int,
+    current_user: Usuario | None,
+) -> int:
+    if current_user:
+        aluno_id = _get_aluno_id(db, current_user)
+        if aluno_id:
+            return aluno_id
+
+    token = request.headers.get("X-H5P-Completion-Token")
+    if not token:
+        raise HTTPException(401, "Não autenticado para concluir atividade")
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("scope") != "h5p_complete":
+            raise HTTPException(401, "Token de conclusão inválido")
+        if int(payload.get("atividade_id", -1)) != int(atividade_id):
+            raise HTTPException(401, "Token de conclusão não corresponde à atividade")
+        aluno_id = int(payload.get("aluno_id"))
+    except (JWTError, ValueError, TypeError):
+        raise HTTPException(401, "Token de conclusão inválido ou expirado")
+
+    aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+    if not aluno:
+        raise HTTPException(401, "Aluno inválido para conclusão")
+    return aluno_id
 
 
 @router.get("/atividades", response_model=List[AtividadeH5PResponse])
@@ -29,7 +73,15 @@ def listar_atividades(
     current_user: Usuario = Depends(get_current_user),
 ):
     """Lista atividades H5P (opcionalmente filtradas por trilha)."""
-    return AtividadeH5PRepository().listar(db, trilha_id=trilha_id, ativo_only=True)
+    atividades = AtividadeH5PRepository().listar(db, trilha_id=trilha_id, ativo_only=True)
+    aluno = db.query(Aluno).filter(Aluno.usuario_id == current_user.id).first()
+    if not aluno:
+        return atividades
+    trilhas_ano = {
+        t.id
+        for t in TrilhaRepository().listar(db, ano_escolar=aluno.ano_escolar)
+    }
+    return [a for a in atividades if a.trilha_id in trilhas_ano]
 
 
 @router.get("/atividades/{id}", response_model=AtividadeH5PResponse)
@@ -42,6 +94,7 @@ def obter_atividade(
     obj = AtividadeH5PRepository().get(db, id)
     if not obj or not obj.ativo:
         raise HTTPException(404, "Atividade não encontrada")
+    _ensure_aluno_can_access_atividade(db, current_user, obj)
     return obj
 
 
@@ -55,33 +108,117 @@ def servir_conteudo_h5p(
     obj = AtividadeH5PRepository().get(db, id)
     if not obj or not obj.ativo:
         raise HTTPException(404, "Atividade não encontrada")
+    _ensure_aluno_can_access_atividade(db, current_user, obj)
     path = obj.path_ou_json
     if not path:
         raise HTTPException(404, "Arquivo de conteúdo não configurado")
     if not os.path.isabs(path):
         path = os.path.join(settings.H5P_CONTENT_DIR, path)
+    if os.path.isdir(path):
+        path = os.path.join(path, "content", "content.json")
     if not os.path.isfile(path):
         raise HTTPException(404, "Arquivo de conteúdo não encontrado")
     return FileResponse(path, media_type="application/json")
 
 
 @router.post("/atividades/{id}/concluir", response_model=ProgressoH5PResponse)
-def concluir_atividade(
+async def concluir_atividade(
     id: int,
-    body: ConcluirH5PRequest,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario | None = Depends(get_current_user_optional),
 ):
     """Registra conclusão e score da atividade para o aluno logado."""
-    aluno_id = _get_aluno_id(db, current_user)
-    if not aluno_id:
-        raise HTTPException(403, "Apenas alunos podem registrar conclusão de atividades")
     obj = AtividadeH5PRepository().get(db, id)
     if not obj:
         raise HTTPException(404, "Atividade não encontrada")
-    progresso = ProgressoH5PRepository().marcar_concluido(
-        db, aluno_id, id, score=body.score
+    aluno_id = _resolve_aluno_id_for_conclusao(request, db, id, current_user)
+
+    # Quando houver usuário autenticado por sessão/header, mantém validação de acesso por ano
+    if current_user:
+        _ensure_aluno_can_access_atividade(db, current_user, obj)
+    else:
+        aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+        trilha = TrilhaRepository().get(db, obj.trilha_id) if obj.trilha_id else None
+        if aluno and trilha and trilha.ano_escolar and trilha.ano_escolar != aluno.ano_escolar:
+            raise HTTPException(403, "Você não pode acessar atividade de outro ano escolar")
+
+    score = None
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = None
+        try:
+            form = await request.form()
+            payload = dict(form)
+        except Exception:
+            payload = None
+
+    if isinstance(payload, dict):
+        raw_score = payload.get("score")
+        if raw_score is None and isinstance(payload.get("result"), dict):
+            raw_score = payload["result"].get("score")
+        if raw_score is None and isinstance(payload.get("result"), dict):
+            # Alguns players enviam scaled de 0-1.
+            scaled = payload["result"].get("score_scaled")
+            if scaled is not None:
+                try:
+                    raw_score = float(scaled) * 100
+                except Exception:
+                    raw_score = None
+        try:
+            score = float(raw_score) if raw_score is not None else None
+        except Exception:
+            score = None
+
+    logger.info(
+        "H5P concluir recebido: atividade_id=%s aluno_id=%s score=%s payload_keys=%s",
+        id,
+        aluno_id,
+        score,
+        list(payload.keys()) if isinstance(payload, dict) else None,
     )
+
+    repo = ProgressoH5PRepository()
+    progresso_atual = repo.get(db, aluno_id, id)
+    primeira_conclusao = not (progresso_atual and progresso_atual.concluido)
+    progresso = repo.marcar_concluido(db, aluno_id, id, score=score)
+
+    # Dá XP somente na primeira conclusão da atividade.
+    if primeira_conclusao:
+        gamificacao = (
+            db.query(PontuacaoGamificacao)
+            .filter(PontuacaoGamificacao.aluno_id == aluno_id)
+            .first()
+        )
+        if not gamificacao:
+            gamificacao = PontuacaoGamificacao(aluno_id=aluno_id, xp_total=0, nivel="Novato")
+            db.add(gamificacao)
+            db.commit()
+            db.refresh(gamificacao)
+
+        ganho_xp = 50
+        if score is not None:
+            ganho_xp += min(50, max(0, int(score // 2)))
+        gamificacao.xp_total = int((gamificacao.xp_total or 0) + ganho_xp)
+        nivel_info = DashboardService.get_level_progress(gamificacao.xp_total)
+        gamificacao.nivel = nivel_info["nivel"]
+        db.commit()
+        logger.info(
+            "XP adicionado: atividade_id=%s aluno_id=%s ganho_xp=%s xp_total=%s nivel=%s",
+            id,
+            aluno_id,
+            ganho_xp,
+            gamificacao.xp_total,
+            gamificacao.nivel,
+        )
+    else:
+        logger.info(
+            "Conclusão repetida sem XP: atividade_id=%s aluno_id=%s",
+            id,
+            aluno_id,
+        )
+
     return progresso
 
 
@@ -95,6 +232,10 @@ def obter_progresso(
     aluno_id = _get_aluno_id(db, current_user)
     if not aluno_id:
         raise HTTPException(403, "Apenas alunos possuem progresso")
+    obj = AtividadeH5PRepository().get(db, id)
+    if not obj or not obj.ativo:
+        raise HTTPException(404, "Atividade não encontrada")
+    _ensure_aluno_can_access_atividade(db, current_user, obj)
     progresso = ProgressoH5PRepository().get_or_create(db, aluno_id, id)
     return {
         "concluido": progresso.concluido,

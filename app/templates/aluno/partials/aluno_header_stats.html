@@ -1,0 +1,23 @@
+{% set xp = stats.xp_total|default(0) %}
+{% set xp_pct = stats.xp_pct_nivel|default(0) %}
+{% set xp_atual_nivel = stats.xp_atual_nivel|default(0) %}
+{% set xp_meta_nivel = stats.xp_meta_nivel|default(600) %}
+<div class="d-none d-lg-flex align-items-center gap-3">
+    <div class="mission-userbox-mj">
+        <span class="mission-user-avatar">{{ (stats.nivel|default('LV1'))[0:4] }}</span>
+        <div>
+            <div class="mission-user-name">{{ aluno_nome }}</div>
+            {% if aluno_ano %}
+            <div class="small text-mj-muted">Ano: {{ aluno_ano }}º ano</div>
+            {% endif %}
+            <div class="mission-xp-track"><span style="width: {{ xp_pct }}%"></span></div>
+            <div class="mission-user-xp">{{ xp_atual_nivel }}/{{ xp_meta_nivel }} XP</div>
+        </div>
+    </div>
+    <span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2">
+        <i class="fas fa-star text-warning"></i> <span class="text-warning fw-bold">{{ stats.concluidos_h5p|default(0) * 25 }}</span>
+    </span>
+    <!-- <span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2">
+        <i class="fas fa-fire text-danger"></i> <span class="text-danger fw-bold">7 dias</span>
+    </span> -->
+</div>

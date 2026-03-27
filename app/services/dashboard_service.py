@@ -10,6 +10,37 @@ from app.models.resposta import RespostaAluno
 
 
 class DashboardService:
+    @staticmethod
+    def get_level_progress(xp_total: int) -> dict:
+        xp = int(xp_total or 0)
+        faixas = [
+            {"nivel": "Novato", "min": 0, "max": 600, "proximo": "Intermediário"},
+            {"nivel": "Intermediário", "min": 600, "max": 1200, "proximo": "Especialista"},
+            {"nivel": "Especialista", "min": 1200, "max": 2000, "proximo": "Mestre SAEB"},
+            {"nivel": "Mestre SAEB", "min": 2000, "max": 2600, "proximo": "Lenda SAEB"},
+            {"nivel": "Lenda SAEB", "min": 2600, "max": 3200, "proximo": None},
+        ]
+
+        faixa = faixas[-1]
+        for f in faixas:
+            if xp < f["max"]:
+                faixa = f
+                break
+
+        base = faixa["min"]
+        meta = faixa["max"]
+        atual_no_nivel = max(0, xp - base)
+        meta_no_nivel = max(1, meta - base)
+        pct = max(0, min(100, int((atual_no_nivel / meta_no_nivel) * 100)))
+
+        return {
+            "nivel": faixa["nivel"],
+            "proximo_nivel": faixa["proximo"],
+            "xp_atual_nivel": atual_no_nivel,
+            "xp_meta_nivel": meta_no_nivel,
+            "xp_pct_nivel": pct,
+        }
+
     def get_gestor_stats(self, db: Session) -> dict:
         n_escolas = db.query(Escola).filter(Escola.ativo == True).count()
         n_turmas = db.query(Turma).count()
@@ -70,17 +101,18 @@ class DashboardService:
     def get_aluno_stats(self, db: Session, aluno_id: int) -> dict:
         aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
         if not aluno:
-            return {"xp_total": 0, "nivel": "Novato", "progresso_pct": 0}
+            base = self.get_level_progress(0)
+            return {"xp_total": 0, "progresso_pct": 0, "concluidos_h5p": 0, **base}
         gamificacao = db.query(PontuacaoGamificacao).filter(PontuacaoGamificacao.aluno_id == aluno_id).first()
         xp = gamificacao.xp_total if gamificacao else 0
-        nivel = gamificacao.nivel if gamificacao else "Novato"
+        level_data = self.get_level_progress(xp)
         concluidos = db.query(ProgressoH5P).filter(
             ProgressoH5P.aluno_id == aluno_id,
             ProgressoH5P.concluido == True,
         ).count()
         return {
             "xp_total": xp,
-            "nivel": nivel,
             "progresso_pct": min(85, concluidos * 10),
             "concluidos_h5p": concluidos,
+            **level_data,
         }

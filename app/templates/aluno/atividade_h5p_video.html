@@ -4,13 +4,16 @@
 {% block menu_title %}Atividade - Vídeo interativo{% endblock %}
 
 {% block header_right %}
-<div class="mission-user-name">{{ aluno_nome }}</div>
+{% include "aluno/partials/aluno_header_stats.html" %}
 {% endblock %}
 
 {% block offcanvas_links %}
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno">Início</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
 <a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno/atividade/{{ atividade.id }}">Esta atividade</a>
+{% endblock %}
+{% block offcanvas_extra %}
+{% include "aluno/partials/aluno_offcanvas_info.html" %}
 {% endblock %}
 
 {% block main_content %}
@@ -19,7 +22,7 @@
     <h5 class="fw-bold text-mj-dark mb-0">{{ atividade.titulo }}</h5>
 </div>
 
-<div class="card dash-card border-0">
+<div class="card dash-card border-0 h5p-preview-card">
     <div class="card-body p-4">
         <div class="mission-hero-mj border-0 rounded-4 shadow-sm p-3 mb-4">
             <span class="mission-chip-mj mb-2">
@@ -74,6 +77,6 @@
     </div>
 </div>
 
-<p class="small text-muted mt-2">Prévia visual: o conteúdo H5P será integrado em seguida.</p>
+{% include "aluno/partials/h5p_player_standalone.html" %}
 {% endblock %}
 

@@ -1,0 +1,11 @@
+{% set xp = stats.xp_total|default(0) %}
+{% set xp_atual_nivel = stats.xp_atual_nivel|default(0) %}
+{% set xp_meta_nivel = stats.xp_meta_nivel|default(600) %}
+<div class="p-3 rounded-4 bg-mj-soft border border-mj-light">
+    <div class="fw-bold text-mj-dark">{{ aluno_nome }}</div>
+    {% if aluno_ano %}
+    <div class="small text-mj-muted">Ano: {{ aluno_ano }}º ano</div>
+    {% endif %}
+    <div class="small text-mj-muted mt-1">XP total: {{ xp }}</div>
+    <div class="small text-mj-muted">Nível: {{ xp_atual_nivel }}/{{ xp_meta_nivel }}</div>
+</div>

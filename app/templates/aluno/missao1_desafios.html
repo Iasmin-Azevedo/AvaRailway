@@ -73,6 +73,9 @@
                     <span class="mission-user-avatar">LV5</span>
                     <div>
                         <div class="mission-user-name">{{ aluno_nome }}</div>
+                        {% if aluno_ano %}
+                        <div class="small text-mj-muted">Ano: {{ aluno_ano }}º ano</div>
+                        {% endif %}
                         <div class="mission-xp-track"><span style="width: 70%"></span></div>
                         <div class="mission-user-xp">350/500 XP</div>
                     </div>
@@ -97,6 +100,9 @@
                 <span class="mission-user-avatar">LV5</span>
                 <div>
                     <div class="mission-user-name">{{ aluno_nome }}</div>
+                    {% if aluno_ano %}
+                    <div class="small text-mj-muted">Ano: {{ aluno_ano }}º ano</div>
+                    {% endif %}
                     <div class="mission-xp-track"><span style="width: 70%"></span></div>
                     <div class="mission-user-xp">350/500 XP</div>
                 </div>

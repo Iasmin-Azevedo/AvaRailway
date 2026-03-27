@@ -28,6 +28,18 @@
                 </a>
                 <h2 class="fw-bold text-mj-dark mb-1" style="font-size: 1.75rem;">Criar conta</h2>
                 <p class="text-muted small mb-4">Escolha o tipo de cadastro</p>
+                {% set erro = request.query_params.get("erro") %}
+                {% if erro == "campos_obrigatorios" %}
+                <div class="alert alert-warning py-2">Preencha nome, e-mail e senha.</div>
+                {% elif erro == "senha_curta" %}
+                <div class="alert alert-warning py-2">A senha deve ter ao menos 6 caracteres.</div>
+                {% elif erro == "turma_ano_obrigatorios" %}
+                <div class="alert alert-warning py-2">Selecione escola e turma para preencher o ano automaticamente.</div>
+                {% elif erro == "email_duplicado" %}
+                <div class="alert alert-danger py-2">Este e-mail já está cadastrado. Tente outro.</div>
+                {% elif erro == "falha_cadastro" %}
+                <div class="alert alert-danger py-2">Não foi possível concluir o cadastro. Tente novamente.</div>
+                {% endif %}
 
                 <!-- Etapa 1: escolher tipo de cadastro -->
                 <div id="cadastro-etapa-cards">
@@ -92,7 +104,7 @@
                         <input type="hidden" name="ano" id="cadastro-ano" value="">
                         <div id="cadastro-escola-wrap" class="mb-3 d-none">
                             <label class="form-label fw-bold">Escola</label>
-                            <select class="form-select form-control-mj rounded-pill" id="cadastro-escola-select">
+                            <select class="form-select form-control-mj rounded-pill" id="cadastro-escola-select" name="escola_id">
                                 <option value="">Selecione a escola</option>
                                 {% for e in escolas %}
                                 <option value="{{ e.id }}">{{ e.nome }}</option>

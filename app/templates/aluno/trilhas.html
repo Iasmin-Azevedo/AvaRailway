@@ -1,21 +1,10 @@
 {% extends "base_dashboard.html" %}
-{% block page_title %}Trilhas{% endblock %}
+{% block page_title %}Trilhas - {{ materia_nome|default('Língua Portuguesa') }}{% endblock %}
 {% block brand_link %}/aluno{% endblock %}
 {% block menu_title %}Trilhas{% endblock %}
 
 {% block header_right %}
-<div class="d-none d-lg-flex align-items-center gap-3">
-    <div class="mission-userbox-mj">
-        <span class="mission-user-avatar">LV5</span>
-        <div>
-            <div class="mission-user-name">{{ aluno_nome }}</div>
-            <div class="mission-xp-track"><span style="width: 70%"></span></div>
-            <div class="mission-user-xp">350/500 XP</div>
-        </div>
-    </div>
-    <span class="bg-secondary bg-opacity-10 border-muted border rounded-pill px-3 py-2"><i class="fas fa-star text-warning"></i> <span class="text-warning fw-bold">125</span></span>
-    <span class="bg-secondary bg-opacity-10 border-muted border rounded-pill px-3 py-2"><i class="fas fa-fire text-danger"></i> <span class="text-danger fw-bold">7 dias</span></span>
-</div>
+{% include "aluno/partials/aluno_header_stats.html" %}
 {% endblock %}
 
 {% block offcanvas_links %}
@@ -23,6 +12,9 @@
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/missao1">Mapa de Missões</a>
 <a class="btn btn-mj-outline w-100 rounded-pill" href="#">Configurações</a>
+{% endblock %}
+{% block offcanvas_extra %}
+{% include "aluno/partials/aluno_offcanvas_info.html" %}
 {% endblock %}
 
 {% set tipo_labels = {
@@ -51,9 +43,19 @@
 } %}
 
 {% block main_content %}
+{% if request.query_params.get("ja_concluida") %}
+<div class="alert alert-success border-0 rounded-4 shadow-sm mb-3">
+    <i class="fas fa-check-circle me-2"></i> Essa atividade já foi concluída e seu XP já foi contabilizado.
+</div>
+{% endif %}
+{% if request.query_params.get("acesso_negado_ano") %}
+<div class="alert alert-warning border-0 rounded-4 shadow-sm mb-3">
+    <i class="fas fa-lock me-2"></i> Essa atividade pertence a outro ano escolar e não está disponível para você.
+</div>
+{% endif %}
 <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <h2 class="fw-bold text-mj-dark mb-1"><i class="fas fa-route me-2 text-mj-primary"></i> Jornada de aprendizagem</h2>
+        <h2 class="fw-bold text-mj-dark mb-1"><i class="fas fa-route me-2 text-mj-primary"></i> Jornada de {{ materia_nome|default('Língua Portuguesa') }}</h2>
         <p class="text-mj-muted small mb-0">Use o mapa ao lado para saltar entre trilhas e atividades.</p>
     </div>
     <a href="/aluno" class="text-mj-primary text-decoration-none small fw-bold"><i class="fas fa-arrow-left me-1"></i> Início</a>
@@ -152,11 +154,25 @@
                         </p>
                     </div>
                 </div>
+                <div class="mt-4 pt-2 border-top">
+                    <div class="d-flex justify-content-between small fw-bold mb-2">
+                        <span>Progresso geral da matéria</span>
+                        <span>{{ progresso_geral.concluidas|default(0) }} / {{ progresso_geral.total|default(0) }} atividades</span>
+                    </div>
+                    <div class="progress" style="height: 10px; background-color: rgba(50, 111, 136, 0.12);">
+                        <div
+                            class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
+                            data-progress-width="{{ progresso_geral.pct|default(0) }}"
+                        ></div>
+                    </div>
+                </div>
             </div>
         </article>
 
+        {% set unlock = namespace(previous_completed=true) %}
         {% for t in trilhas %}
-        {% set bloqueada = loop.index > 1 %}
+        {% set p = progresso_por_trilha.get(t.id, {"total": 0, "concluidas": 0, "pct": 0}) %}
+        {% set bloqueada = (not unlock.previous_completed) and loop.index > 1 %}
         {% set acts = atividades_por_trilha.get(t.id, []) %}
         {% set curso_nome = t.curso.nome if t.curso else 'Trilha' %}
 
@@ -221,6 +237,10 @@
                                         <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-muted shadow-sm" style="width: 40px; height: 40px;" data-bs-toggle="tooltip" title="Disponível após liberar esta trilha">
                                             <i class="fas fa-lock"></i>
                                         </div>
+                                    {% elif a.id in atividades_concluidas %}
+                                        <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-2">
+                                            <i class="fas fa-check-circle me-1"></i> Concluída
+                                        </span>
                                     {% else %}
                                         <a href="/aluno/atividade/{{ a.id }}" class="btn btn-mj px-4 rounded-pill fw-bold shadow-sm">
                                             Iniciar
@@ -238,6 +258,7 @@
                 </div>
             </div>
         </article>
+        {% set unlock.previous_completed = (p.total == 0) or (p.concluidas >= p.total) %}
         {% endfor %}
     </div>
 </div>
@@ -251,4 +272,11 @@
     </div>
 </div>
 {% endif %}
+<script>
+document.querySelectorAll('[data-progress-width]').forEach(function(el) {
+    var raw = Number(el.getAttribute('data-progress-width') || 0);
+    var clamped = Math.max(0, Math.min(100, raw));
+    el.style.width = clamped + '%';
+});
+</script>
 {% endblock %}

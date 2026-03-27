@@ -1,10 +1,17 @@
-from fastapi import APIRouter, Depends, Request, Form
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, Request, Form, UploadFile, File, HTTPException
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, List, Sequence
+from pathlib import Path
+import re
+import shutil
+import zipfile
+import uuid
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.dependencies import require_admin_redirect
 from app.models.user import Usuario, UserRole
 from app.models.relacoes import ProfessorTurma, GestorEscola, CoordenadorEscola
@@ -22,6 +29,176 @@ from app.models.aluno import Aluno
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+
+
+def _slugify(value: str, default: str = "atividade") -> str:
+    raw = (value or "").strip().lower()
+    raw = re.sub(r"[^a-z0-9]+", "-", raw)
+    raw = raw.strip("-")
+    return raw or default
+
+
+def _get_materia_ano_from_trilha(db: Session, trilha_id: Optional[int]) -> tuple[str, str]:
+    # fallback padrão quando trilha não foi selecionada
+    materia = "geral"
+    ano = "ano-geral"
+    if not trilha_id:
+        return materia, ano
+
+    trilha = TrilhaRepository().get(db, trilha_id)
+    if not trilha:
+        return materia, ano
+
+    curso_nome = (trilha.curso.nome if getattr(trilha, "curso", None) else "").lower()
+    if "mat" in curso_nome:
+        materia = "matematica"
+    elif "port" in curso_nome:
+        materia = "portugues"
+
+    if trilha.ano_escolar:
+        ano = f"ano-{trilha.ano_escolar}"
+    return materia, ano
+
+
+def _save_h5p_upload(
+    db: Session,
+    arquivo_h5p: UploadFile,
+    titulo: str,
+    trilha_id: Optional[int],
+) -> str:
+    if not arquivo_h5p or not arquivo_h5p.filename:
+        raise HTTPException(status_code=400, detail="Arquivo .h5p é obrigatório")
+
+    if not arquivo_h5p.filename.lower().endswith(".h5p"):
+        raise HTTPException(status_code=400, detail="Apenas arquivos .h5p são aceitos")
+
+    materia, ano = _get_materia_ano_from_trilha(db, trilha_id)
+    base_dir = Path(settings.H5P_CONTENT_DIR).resolve()
+    target_dir = base_dir / materia / ano / f"{_slugify(titulo)}-{uuid.uuid4().hex[:8]}"
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    pacote_path = target_dir / "upload.h5p"
+    with pacote_path.open("wb") as out:
+        shutil.copyfileobj(arquivo_h5p.file, out)
+
+    try:
+        with zipfile.ZipFile(pacote_path, "r") as zf:
+            zf.extractall(target_dir)
+    except zipfile.BadZipFile as exc:
+        raise HTTPException(status_code=400, detail="Arquivo .h5p inválido/corrompido") from exc
+    finally:
+        if pacote_path.exists():
+            pacote_path.unlink()
+
+    if not (target_dir / "h5p.json").is_file() or not (target_dir / "content" / "content.json").is_file():
+        raise HTTPException(
+            status_code=400,
+            detail="Pacote H5P inválido: h5p.json ou content/content.json não encontrado",
+        )
+
+    return target_dir.relative_to(base_dir).as_posix()
+
+
+def _validate_h5p_archive_file(arquivo_h5p: UploadFile) -> tuple[bool, str]:
+    if not arquivo_h5p or not arquivo_h5p.filename:
+        return False, "Selecione um arquivo .h5p para validar"
+    if not arquivo_h5p.filename.lower().endswith(".h5p"):
+        return False, "Apenas arquivos .h5p são aceitos"
+
+    arquivo_h5p.file.seek(0)
+    try:
+        with zipfile.ZipFile(arquivo_h5p.file, "r") as zf:
+            names = set(zf.namelist())
+    except zipfile.BadZipFile:
+        return False, "Arquivo .h5p inválido ou corrompido"
+    finally:
+        arquivo_h5p.file.seek(0)
+
+    if "h5p.json" not in names:
+        return False, "Pacote inválido: h5p.json ausente"
+    if "content/content.json" not in names:
+        return False, "Pacote inválido: content/content.json ausente"
+    return True, "Arquivo H5P válido para uso no player standalone"
+
+
+def _resolve_h5p_storage_target(path_ou_json: str) -> Optional[Path]:
+    """
+    Resolve o caminho físico que deve ser removido para conteúdos H5P locais.
+    Remove apenas arquivos/pastas dentro de settings.H5P_CONTENT_DIR.
+    """
+    raw = (path_ou_json or "").strip().replace("\\", "/").strip("/")
+    if not raw:
+        return None
+    base_dir = Path(settings.H5P_CONTENT_DIR).resolve()
+    candidate = (base_dir / raw).resolve()
+    try:
+        candidate.relative_to(base_dir)
+    except ValueError:
+        return None
+
+    def _is_safe_package_dir(dir_path: Path) -> bool:
+        """
+        Só permite apagar diretório de pacote específico, nunca pastas amplas.
+        Requisitos:
+        - dentro de H5P_CONTENT_DIR
+        - estrutura mínima: materia/ano-*/pacote
+        - contém h5p.json e content/content.json
+        """
+        try:
+            rel = dir_path.relative_to(base_dir)
+        except ValueError:
+            return False
+        parts = rel.parts
+        if len(parts) < 3:
+            return False
+        if not parts[1].startswith("ano-"):
+            return False
+        if not (dir_path / "h5p.json").is_file():
+            return False
+        if not (dir_path / "content" / "content.json").is_file():
+            return False
+        return True
+
+    # Novo formato: path aponta para a pasta do pacote extraído
+    if candidate.exists() and candidate.is_dir():
+        return candidate if _is_safe_package_dir(candidate) else None
+
+    # Compatibilidade antiga: path termina em content/content.json
+    if candidate.suffix.lower() == ".json":
+        parts = candidate.parts
+        if len(parts) >= 2 and parts[-2].lower() == "content":
+            pkg_dir = candidate.parent.parent
+            try:
+                pkg_dir.relative_to(base_dir)
+            except ValueError:
+                return None
+            if pkg_dir.exists() and _is_safe_package_dir(pkg_dir):
+                return pkg_dir
+            return None
+        # Não remove arquivos soltos para evitar exclusão indevida.
+        return None
+    return None
+
+
+def _remove_atividade_h5p_com_arquivos(db: Session, atividade_id: int) -> bool:
+    atividade = AtividadeH5PRepository().get(db, atividade_id)
+    if not atividade:
+        return False
+    from app.models.h5p import ProgressoH5P
+    db.query(ProgressoH5P).filter(ProgressoH5P.atividade_id == atividade_id).delete()
+    db.commit()
+    if not AtividadeH5PRepository().delete(db, atividade_id):
+        return False
+    target = _resolve_h5p_storage_target(atividade.path_ou_json or "")
+    if target:
+        try:
+            if target.is_dir():
+                shutil.rmtree(target, ignore_errors=True)
+            elif target.is_file():
+                target.unlink(missing_ok=True)
+        except Exception:
+            pass
+    return True
 
 
 # --- Escolas ---
@@ -99,6 +276,24 @@ def escolas_atualizar(
     if not EscolaRepository().update(db, id, data):
         return RedirectResponse(url="/admin/escolas", status_code=302)
     return RedirectResponse(url="/admin/escolas", status_code=303)
+
+
+@router.post("/escolas/{id}/deletar")
+def escolas_deletar(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    # Evita remover escola com turmas vinculadas.
+    if TurmaRepository().listar(db, escola_id=id):
+        return RedirectResponse(url="/admin/escolas?erro=vinculos", status_code=303)
+    try:
+        if not EscolaRepository().delete(db, id):
+            return RedirectResponse(url="/admin/escolas", status_code=302)
+    except IntegrityError:
+        db.rollback()
+        return RedirectResponse(url="/admin/escolas?erro=vinculos", status_code=303)
+    return RedirectResponse(url="/admin/escolas?ok=deletado", status_code=303)
 
 
 # --- Turmas ---
@@ -184,6 +379,24 @@ def turmas_atualizar(
     return RedirectResponse(url="/admin/turmas", status_code=303)
 
 
+@router.post("/turmas/{id}/deletar")
+def turmas_deletar(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    # Desvincula alunos desta turma para permitir deleção.
+    db.query(Aluno).filter(Aluno.turma_id == id).update({"turma_id": None})
+    db.commit()
+    try:
+        if not TurmaRepository().delete(db, id):
+            return RedirectResponse(url="/admin/turmas", status_code=302)
+    except IntegrityError:
+        db.rollback()
+        return RedirectResponse(url="/admin/turmas?erro=vinculos", status_code=303)
+    return RedirectResponse(url="/admin/turmas?ok=deletado", status_code=303)
+
+
 # --- Cursos ---
 @router.get("/cursos")
 def cursos_list(
@@ -253,6 +466,23 @@ def cursos_atualizar(
     if not CursoRepository().update(db, id, CursoUpdate(nome=nome)):
         return RedirectResponse(url="/admin/cursos", status_code=302)
     return RedirectResponse(url="/admin/cursos", status_code=303)
+
+
+@router.post("/cursos/{id}/deletar")
+def cursos_deletar(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    if TrilhaRepository().listar(db, curso_id=id):
+        return RedirectResponse(url="/admin/cursos?erro=vinculos", status_code=303)
+    try:
+        if not CursoRepository().delete(db, id):
+            return RedirectResponse(url="/admin/cursos", status_code=302)
+    except IntegrityError:
+        db.rollback()
+        return RedirectResponse(url="/admin/cursos?erro=vinculos", status_code=303)
+    return RedirectResponse(url="/admin/cursos?ok=deletado", status_code=303)
 
 
 # --- Trilhas ---
@@ -340,6 +570,24 @@ def trilhas_atualizar(
     return RedirectResponse(url="/admin/trilhas", status_code=303)
 
 
+@router.post("/trilhas/{id}/deletar")
+def trilhas_deletar(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    atividades = AtividadeH5PRepository().listar(db, trilha_id=id, ativo_only=False)
+    for a in atividades:
+        _remove_atividade_h5p_com_arquivos(db, a.id)
+    try:
+        if not TrilhaRepository().delete(db, id):
+            return RedirectResponse(url="/admin/trilhas", status_code=302)
+    except IntegrityError:
+        db.rollback()
+        return RedirectResponse(url="/admin/trilhas?erro=vinculos", status_code=303)
+    return RedirectResponse(url="/admin/trilhas?ok=deletado", status_code=303)
+
+
 # --- Descritores ---
 @router.get("/descritores")
 def descritores_list(
@@ -414,6 +662,25 @@ def descritores_atualizar(
     if not DescritorRepository().update(db, id, data.codigo, data.descricao, data.disciplina):
         return RedirectResponse(url="/admin/descritores", status_code=302)
     return RedirectResponse(url="/admin/descritores", status_code=303)
+
+
+@router.post("/descritores/{id}/deletar")
+def descritores_deletar(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    # Remove vínculo de atividades antes de deletar descritor.
+    from app.models.h5p import AtividadeH5P
+    db.query(AtividadeH5P).filter(AtividadeH5P.descritor_id == id).update({"descritor_id": None})
+    db.commit()
+    try:
+        if not DescritorRepository().delete(db, id):
+            return RedirectResponse(url="/admin/descritores", status_code=302)
+    except IntegrityError:
+        db.rollback()
+        return RedirectResponse(url="/admin/descritores?erro=vinculos", status_code=303)
+    return RedirectResponse(url="/admin/descritores?ok=deletado", status_code=303)
 
 
 # --- Usuários ---
@@ -687,6 +954,44 @@ async def usuarios_atualizar(
     return RedirectResponse(url="/admin/usuarios", status_code=303)
 
 
+@router.post("/usuarios/{id}/deletar")
+def usuarios_deletar(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    # Evita autoexclusão da sessão admin atual.
+    if current_user and current_user.id == id:
+        return RedirectResponse(url="/admin/usuarios?erro=auto_delete", status_code=303)
+
+    user = UserRepository().get_by_id(db, id)
+    if not user:
+        return RedirectResponse(url="/admin/usuarios", status_code=302)
+
+    try:
+        from app.models.h5p import ProgressoH5P
+        from app.models.aluno import PontuacaoGamificacao
+        from app.models.relacoes import ProfessorTurma, GestorEscola, CoordenadorEscola
+
+        db.query(ProfessorTurma).filter(ProfessorTurma.professor_id == id).delete()
+        db.query(GestorEscola).filter(GestorEscola.gestor_id == id).delete()
+        db.query(CoordenadorEscola).filter(CoordenadorEscola.coordenador_id == id).delete()
+        aluno = db.query(Aluno).filter(Aluno.usuario_id == id).first()
+        if aluno:
+            db.query(ProgressoH5P).filter(ProgressoH5P.aluno_id == aluno.id).delete()
+            db.query(PontuacaoGamificacao).filter(PontuacaoGamificacao.aluno_id == aluno.id).delete()
+            db.delete(aluno)
+        db.commit()
+
+        if not UserRepository().delete(db, id):
+            return RedirectResponse(url="/admin/usuarios", status_code=302)
+    except IntegrityError:
+        db.rollback()
+        return RedirectResponse(url="/admin/usuarios?erro=vinculos", status_code=303)
+
+    return RedirectResponse(url="/admin/usuarios?ok=deletado", status_code=303)
+
+
 # --- Atividades H5P ---
 @router.get("/atividades-h5p")
 def atividades_h5p_list(
@@ -739,6 +1044,17 @@ def atividades_h5p_editar(
     )
 
 
+@router.post("/atividades-h5p/validar-upload")
+async def atividades_h5p_validar_upload(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+    arquivo_h5p: UploadFile | None = File(None),
+):
+    ok, msg = _validate_h5p_archive_file(arquivo_h5p)
+    return JSONResponse({"ok": ok, "message": msg})
+
+
 @router.post("/atividades-h5p/nova")
 def atividades_h5p_criar(
     request: Request,
@@ -746,7 +1062,8 @@ def atividades_h5p_criar(
     current_user: Usuario = Depends(require_admin_redirect),
     titulo: str = Form(...),
     tipo: str = Form("quiz"),
-    path_ou_json: str = Form(...),
+    path_ou_json: str = Form(""),
+    arquivo_h5p: UploadFile | None = File(None),
     trilha_id: Optional[str] = Form(None),
     descritor_id: Optional[str] = Form(None),
     ordem: int = Form(0),
@@ -755,10 +1072,18 @@ def atividades_h5p_criar(
     from app.schemas.h5p_schema import AtividadeH5PCreate
     tri_id = int(trilha_id) if trilha_id and str(trilha_id).strip() else None
     desc_id = int(descritor_id) if descritor_id and str(descritor_id).strip() else None
+    conteudo_path = path_ou_json.strip() if path_ou_json else ""
+    if arquivo_h5p and arquivo_h5p.filename:
+        conteudo_path = _save_h5p_upload(db, arquivo_h5p, titulo=titulo, trilha_id=tri_id)
+    if not conteudo_path:
+        raise HTTPException(
+            status_code=400,
+            detail="Informe um caminho de conteúdo ou envie um arquivo .h5p",
+        )
     data = AtividadeH5PCreate(
         titulo=titulo,
         tipo=tipo,
-        path_ou_json=path_ou_json,
+        path_ou_json=conteudo_path,
         trilha_id=tri_id,
         descritor_id=desc_id,
         ordem=ordem,
@@ -776,7 +1101,8 @@ def atividades_h5p_atualizar(
     current_user: Usuario = Depends(require_admin_redirect),
     titulo: str = Form(...),
     tipo: str = Form("quiz"),
-    path_ou_json: str = Form(...),
+    path_ou_json: str = Form(""),
+    arquivo_h5p: UploadFile | None = File(None),
     trilha_id: Optional[str] = Form(None),
     descritor_id: Optional[str] = Form(None),
     ordem: int = Form(0),
@@ -785,10 +1111,18 @@ def atividades_h5p_atualizar(
     from app.schemas.h5p_schema import AtividadeH5PUpdate
     tri_id = int(trilha_id) if trilha_id and str(trilha_id).strip() else None
     desc_id = int(descritor_id) if descritor_id and str(descritor_id).strip() else None
+    atual = AtividadeH5PRepository().get(db, id)
+    if not atual:
+        return RedirectResponse(url="/admin/atividades-h5p", status_code=302)
+
+    conteudo_path = path_ou_json.strip() if path_ou_json else (atual.path_ou_json or "")
+    if arquivo_h5p and arquivo_h5p.filename:
+        conteudo_path = _save_h5p_upload(db, arquivo_h5p, titulo=titulo, trilha_id=tri_id)
+
     data = AtividadeH5PUpdate(
         titulo=titulo,
         tipo=tipo,
-        path_ou_json=path_ou_json,
+        path_ou_json=conteudo_path,
         trilha_id=tri_id,
         descritor_id=desc_id,
         ordem=ordem,
@@ -797,3 +1131,15 @@ def atividades_h5p_atualizar(
     if not AtividadeH5PRepository().update(db, id, data):
         return RedirectResponse(url="/admin/atividades-h5p", status_code=302)
     return RedirectResponse(url="/admin/atividades-h5p", status_code=303)
+
+
+@router.post("/atividades-h5p/{id}/deletar")
+def atividades_h5p_deletar(
+    request: Request,
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    if not _remove_atividade_h5p_com_arquivos(db, id):
+        return RedirectResponse(url="/admin/atividades-h5p", status_code=302)
+    return RedirectResponse(url="/admin/atividades-h5p?ok=deletado", status_code=303)

@@ -14,7 +14,7 @@
 </div>
 <div class="card dash-card border-0">
     <div class="card-body p-4">
-        <form method="post" action="{% if atividade %}/admin/atividades-h5p/{{ atividade.id }}/editar{% else %}/admin/atividades-h5p/nova{% endif %}">
+        <form method="post" enctype="multipart/form-data" action="{% if atividade %}/admin/atividades-h5p/{{ atividade.id }}/editar{% else %}/admin/atividades-h5p/nova{% endif %}">
             <div class="mb-3">
                 <label class="form-label fw-bold">Título</label>
                 <input type="text" name="titulo" class="form-control rounded-pill" value="{{ atividade.titulo if atividade else '' }}" required>
@@ -31,8 +31,17 @@
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label fw-bold">Caminho do conteúdo (pasta ou arquivo JSON)</label>
-                <input type="text" name="path_ou_json" class="form-control rounded-pill" value="{{ atividade.path_ou_json if atividade else '' }}" required placeholder="Ex: 1/content.json ou pasta/">
+                <label class="form-label fw-bold">Arquivo H5P (.h5p)</label>
+                <input type="file" id="arquivo_h5p" name="arquivo_h5p" class="form-control" accept=".h5p">
+                <div class="form-text">Envie o pacote exportado do Moodle. O sistema extrai e publica automaticamente no player standalone.</div>
+                <div class="mt-2 d-flex align-items-center gap-2">
+                    <button type="button" id="btn-validar-h5p" class="btn btn-sm btn-mj-outline rounded-pill">Validar .h5p</button>
+                    <small id="validacao-h5p-msg" class="text-muted"></small>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Caminho do conteúdo (opcional)</label>
+                <input type="text" name="path_ou_json" class="form-control rounded-pill" value="{{ atividade.path_ou_json if atividade else '' }}" placeholder="Opcional quando enviar .h5p">
             </div>
             <div class="mb-3">
                 <label class="form-label fw-bold">Trilha (opcional)</label>
@@ -67,4 +76,40 @@
         </form>
     </div>
 </div>
+<script>
+(function () {
+    var btn = document.getElementById('btn-validar-h5p');
+    var input = document.getElementById('arquivo_h5p');
+    var msg = document.getElementById('validacao-h5p-msg');
+    if (!btn || !input || !msg) return;
+
+    btn.addEventListener('click', function () {
+        if (!input.files || !input.files.length) {
+            msg.textContent = 'Selecione um arquivo .h5p primeiro.';
+            msg.className = 'text-danger';
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('arquivo_h5p', input.files[0]);
+        msg.textContent = 'Validando...';
+        msg.className = 'text-muted';
+
+        fetch('/admin/atividades-h5p/validar-upload', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            msg.textContent = data.message || 'Validação concluída.';
+            msg.className = data.ok ? 'text-success' : 'text-danger';
+        })
+        .catch(function () {
+            msg.textContent = 'Não foi possível validar agora.';
+            msg.className = 'text-danger';
+        });
+    });
+})();
+</script>
 {% endblock %}

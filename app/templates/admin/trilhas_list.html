@@ -22,6 +22,11 @@
         <a href="/admin" class="btn btn-mj-outline rounded-pill"><i class="fa-solid fa-arrow-left me-1"></i> Voltar</a>
     </div>
 </div>
+{% if request.query_params.get("ok") == "deletado" %}
+<div class="alert alert-success py-2">Trilha removida com sucesso.</div>
+{% elif request.query_params.get("erro") == "vinculos" %}
+<div class="alert alert-warning py-2">Não foi possível remover esta trilha por vínculos existentes.</div>
+{% endif %}
 <div class="card dash-card border-0">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -44,6 +49,9 @@
                         <td>{{ t.ordem }}</td>
                         <td class="pe-4 text-end">
                             <a href="/admin/trilhas/{{ t.id }}/editar" class="btn btn-sm btn-mj-outline">Editar</a>
+                            <form method="post" action="/admin/trilhas/{{ t.id }}/deletar" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Deseja excluir esta trilha? As atividades H5P vinculadas também serão removidas.');">Excluir</button>
+                            </form>
                         </td>
                     </tr>
                     {% else %}

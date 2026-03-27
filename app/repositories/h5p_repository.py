@@ -70,10 +70,10 @@ class AtividadeH5PRepository:
 
 
 class ProgressoH5PRepository:
-    def get_or_create(
+    def get(
         self, db: Session, aluno_id: int, atividade_id: int
-    ) -> ProgressoH5P:
-        p = (
+    ) -> Optional[ProgressoH5P]:
+        return (
             db.query(ProgressoH5P)
             .filter(
                 ProgressoH5P.aluno_id == aluno_id,
@@ -81,6 +81,11 @@ class ProgressoH5PRepository:
             )
             .first()
         )
+
+    def get_or_create(
+        self, db: Session, aluno_id: int, atividade_id: int
+    ) -> ProgressoH5P:
+        p = self.get(db, aluno_id, atividade_id)
         if p:
             return p
         p = ProgressoH5P(aluno_id=aluno_id, atividade_id=atividade_id)
