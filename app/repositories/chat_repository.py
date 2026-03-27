@@ -27,7 +27,11 @@ class ChatRepository:
         return self.db.scalar(stmt)
 
     def list_user_sessions(self, user_id: int) -> list[ChatSession]:
-        stmt = select(ChatSession).where(ChatSession.user_id == user_id).order_by(desc(ChatSession.updated_at))
+        stmt = (
+            select(ChatSession)
+            .where(ChatSession.user_id == user_id, ChatSession.status == "ativa")
+            .order_by(desc(ChatSession.updated_at))
+        )
         return list(self.db.scalars(stmt).all())
 
     def add_message(

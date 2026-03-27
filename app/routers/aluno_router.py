@@ -9,10 +9,12 @@ from typing import Optional
 from datetime import datetime, timedelta, timezone
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.security import criar_token_acesso, criar_refresh_token
 from app.models.user import UserRole
 from app.schemas.user_schema import UserCreate, UserResponse
 from app.repositories.user_repository import UserRepository
 from app.repositories.aluno_repository import AlunoRepository
+import re
 
 router = APIRouter()
 page_router = APIRouter()
@@ -70,6 +72,46 @@ def _as_int(value) -> Optional[int]:
 
 def _sanitize_signup_fields(nome, email, senha) -> tuple[str, str, str]:
     return (str(nome or "").strip(), str(email or "").strip().lower(), str(senha or "").strip())
+
+
+def _extract_score_from_payload(payload: dict | None) -> Optional[float]:
+    """Extrai score de payloads variados do H5P e normaliza para 0..100."""
+    if not isinstance(payload, dict):
+        return None
+
+    def _to_float(value) -> Optional[float]:
+        try:
+            return float(value)
+        except Exception:
+            return None
+
+    raw_score = payload.get("score")
+    result = payload.get("result") if isinstance(payload.get("result"), dict) else {}
+
+    if raw_score is None:
+        score_obj = result.get("score") if isinstance(result.get("score"), dict) else {}
+        raw = _to_float(score_obj.get("raw"))
+        max_score = _to_float(score_obj.get("max"))
+        if raw is not None and max_score and max_score > 0:
+            return max(0.0, min(100.0, (raw / max_score) * 100.0))
+        raw_score = result.get("score")
+        if raw_score is None:
+            raw_score = result.get("score_scaled")
+
+    score = _to_float(raw_score)
+    if score is not None:
+        if 0.0 <= score <= 1.0:
+            score *= 100.0
+        return max(0.0, min(100.0, score))
+
+    merged = " ".join(str(v) for v in payload.values() if v is not None)
+    m = re.search(r"(\d+)\s*/\s*(\d+)", merged)
+    if m:
+        hit = float(m.group(1))
+        total = float(m.group(2))
+        if total > 0:
+            return max(0.0, min(100.0, (hit / total) * 100.0))
+    return None
 
 
 @page_router.get("/aluno")
@@ -371,16 +413,11 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
             destino_ano = "/aluno/trilhas/matematica" if "mat" in ((trilha.curso.nome or "").lower() if getattr(trilha, "curso", None) else "") else "/aluno/trilhas"
             return RedirectResponse(url=f"{destino_ano}?acesso_negado_ano=1", status_code=302)
 
+    atividade_concluida = False
     if aluno_id:
         from app.repositories.h5p_repository import ProgressoH5PRepository
         progresso = ProgressoH5PRepository().get(db, aluno_id, id)
-        if progresso and progresso.concluido:
-            destino = (
-                "/aluno/trilhas/matematica?ja_concluida=1"
-                if "mat" in (atividade.trilha.curso.nome.lower() if getattr(getattr(atividade, "trilha", None), "curso", None) else "")
-                else "/aluno/trilhas?ja_concluida=1"
-            )
-            return RedirectResponse(url=destino, status_code=302)
+        atividade_concluida = bool(progresso and progresso.concluido)
 
     from app.services.dashboard_service import DashboardService
     stats = DashboardService().get_aluno_stats(db, aluno_id) if aluno_id else {}
@@ -450,6 +487,22 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
                 "Peça ao admin para reenviar o arquivo .h5p desta atividade."
             )
 
+    trilhas_url = "/aluno/trilhas/matematica" if "mat" in (
+        atividade.trilha.curso.nome.lower()
+        if getattr(getattr(atividade, "trilha", None), "curso", None)
+        else ""
+    ) else "/aluno/trilhas"
+    next_atividade_url = None
+    if atividade.trilha_id:
+        from app.repositories.h5p_repository import AtividadeH5PRepository
+        atividades_trilha = AtividadeH5PRepository().listar(
+            db, trilha_id=atividade.trilha_id, ativo_only=True
+        )
+        for idx, item in enumerate(atividades_trilha):
+            if item.id == atividade.id and idx + 1 < len(atividades_trilha):
+                next_atividade_url = f"/aluno/atividade/{atividades_trilha[idx + 1].id}"
+                break
+
     tipo_para_template = {
         "quiz": "aluno/atividade_h5p_quiz.html",
         "drag-drop": "aluno/atividade_h5p_drag_drop.html",
@@ -469,18 +522,67 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
             "atividade": atividade,
             "content_base_url": content_base_url,
             "content_missing_reason": content_missing_reason,
+            "trilhas_url": trilhas_url,
+            "next_atividade_url": next_atividade_url,
             "completion_token": completion_token,
+            "atividade_concluida": atividade_concluida,
         },
     )
 
 
 @page_router.post("/aluno/atividade/{id}")
-def aluno_atividade_post(id: int):
+async def aluno_atividade_post(id: int, request: Request, db: Session = Depends(get_db)):
     """
     Fallback defensivo:
     alguns conteúdos H5P disparam submit HTML para a rota da página.
-    Redireciona de volta para GET e evita erro 405.
+    Registra conclusão/XP quando possível e redireciona para GET.
     """
+    from app.repositories.h5p_repository import AtividadeH5PRepository, ProgressoH5PRepository
+    from app.models.aluno import PontuacaoGamificacao
+    from app.core.gamification_rules import calculate_xp_gain, get_level_progress
+
+    atividade = AtividadeH5PRepository().get(db, id)
+    aluno_id = _get_aluno_id_from_request(request, db)
+
+    if atividade and aluno_id:
+        payload = None
+        try:
+            payload = await request.json()
+        except Exception:
+            try:
+                form = await request.form()
+                payload = dict(form)
+            except Exception:
+                payload = None
+
+        score = _extract_score_from_payload(payload)
+        progresso_repo = ProgressoH5PRepository()
+        progresso_atual = progresso_repo.get(db, aluno_id, id)
+        primeira_conclusao = not (progresso_atual and progresso_atual.concluido)
+        progresso_repo.marcar_concluido(db, aluno_id, id, score=score)
+
+        if primeira_conclusao:
+            gamificacao = (
+                db.query(PontuacaoGamificacao)
+                .filter(PontuacaoGamificacao.aluno_id == aluno_id)
+                .first()
+            )
+            if not gamificacao:
+                gamificacao = PontuacaoGamificacao(aluno_id=aluno_id, xp_total=0, nivel="Novato")
+                db.add(gamificacao)
+                db.commit()
+                db.refresh(gamificacao)
+
+            ganho_xp = calculate_xp_gain(
+                activity_type=getattr(atividade, "tipo", "outro"),
+                score=score,
+                is_first_completion=True,
+            )
+            gamificacao.xp_total = int((gamificacao.xp_total or 0) + ganho_xp)
+            nivel_info = get_level_progress(gamificacao.xp_total)
+            gamificacao.nivel = nivel_info["nivel"]
+            db.commit()
+
     return RedirectResponse(url=f"/aluno/atividade/{id}", status_code=303)
 
 
@@ -510,7 +612,26 @@ async def criar_aluno_web(request: Request, db: Session = Depends(get_db)):
     try:
         novo_user = user_repo.create(db, user)
         aluno_repo.create(db, novo_user.id, turma_id, ano)
-        return RedirectResponse(url="/aluno", status_code=303)
+        access_token = criar_token_acesso({"sub": novo_user.email})
+        refresh_token = criar_refresh_token({"sub": novo_user.email})
+        response = RedirectResponse(url="/aluno", status_code=303)
+        response.set_cookie(
+            key=settings.ACCESS_COOKIE_NAME,
+            value=access_token,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite="lax",
+            domain=settings.COOKIE_DOMAIN,
+        )
+        response.set_cookie(
+            key=settings.REFRESH_COOKIE_NAME,
+            value=refresh_token,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite="lax",
+            domain=settings.COOKIE_DOMAIN,
+        )
+        return response
     except IntegrityError:
         db.rollback()
         return RedirectResponse(url="/cadastro?erro=email_duplicado", status_code=303)

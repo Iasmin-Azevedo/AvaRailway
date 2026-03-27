@@ -32,7 +32,25 @@ build/
 # Logs e cache
 *.log
 .cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage/
+htmlcov/
+
+# Node / front-end
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Uploads/artefatos locais (não versionar conteúdo enviado em runtime)
+app/templates/static/h5p/**
+!app/templates/static/h5p/.gitkeep
 
 # Sistema
 .DS_Store
 Thumbs.db
+

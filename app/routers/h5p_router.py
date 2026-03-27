@@ -14,8 +14,8 @@ from app.repositories.h5p_repository import AtividadeH5PRepository, ProgressoH5P
 from app.repositories.gestao_repository import TrilhaRepository
 from app.schemas.h5p_schema import AtividadeH5PResponse, ProgressoH5PResponse
 from app.core.config import settings
-from app.services.dashboard_service import DashboardService
 from jose import jwt, JWTError
+from app.core.gamification_rules import calculate_xp_gain, get_level_progress
 
 router = APIRouter()
 logger = logging.getLogger("ava_mj_backend.h5p")
@@ -64,6 +64,55 @@ def _resolve_aluno_id_for_conclusao(
     if not aluno:
         raise HTTPException(401, "Aluno inválido para conclusão")
     return aluno_id
+
+
+def _parse_score_from_payload(payload: dict) -> Optional[float]:
+    """Aceita formatos variados de score vindos do H5P e normaliza para 0..100."""
+    raw_score = payload.get("score")
+    if raw_score is None and isinstance(payload.get("result"), dict):
+        result = payload["result"]
+        if isinstance(result.get("score"), dict):
+            raw = result["score"].get("raw")
+            max_score = result["score"].get("max")
+            if raw is not None and max_score not in (None, 0):
+                try:
+                    return max(0.0, min(100.0, (float(raw) / float(max_score)) * 100.0))
+                except Exception:
+                    pass
+        raw_score = result.get("score")
+        if raw_score is None:
+            scaled = result.get("score_scaled")
+            if scaled is not None:
+                raw_score = scaled
+
+    if raw_score is None and isinstance(payload.get("statement"), dict):
+        statement = payload["statement"]
+        result = statement.get("result") if isinstance(statement.get("result"), dict) else {}
+        score_obj = result.get("score") if isinstance(result.get("score"), dict) else {}
+        raw = score_obj.get("raw")
+        max_score = score_obj.get("max")
+        scaled = score_obj.get("scaled")
+        if raw is not None and max_score not in (None, 0):
+            try:
+                return max(0.0, min(100.0, (float(raw) / float(max_score)) * 100.0))
+            except Exception:
+                pass
+        if scaled is not None:
+            raw_score = scaled
+
+    if raw_score is None:
+        return None
+
+    try:
+        score = float(raw_score)
+    except Exception:
+        return None
+
+    # Alguns players mandam score em escala 0..1.
+    if 0.0 <= score <= 1.0:
+        score = score * 100.0
+
+    return max(0.0, min(100.0, score))
 
 
 @router.get("/atividades", response_model=List[AtividadeH5PResponse])
@@ -155,21 +204,7 @@ async def concluir_atividade(
             payload = None
 
     if isinstance(payload, dict):
-        raw_score = payload.get("score")
-        if raw_score is None and isinstance(payload.get("result"), dict):
-            raw_score = payload["result"].get("score")
-        if raw_score is None and isinstance(payload.get("result"), dict):
-            # Alguns players enviam scaled de 0-1.
-            scaled = payload["result"].get("score_scaled")
-            if scaled is not None:
-                try:
-                    raw_score = float(scaled) * 100
-                except Exception:
-                    raw_score = None
-        try:
-            score = float(raw_score) if raw_score is not None else None
-        except Exception:
-            score = None
+        score = _parse_score_from_payload(payload)
 
     logger.info(
         "H5P concluir recebido: atividade_id=%s aluno_id=%s score=%s payload_keys=%s",
@@ -197,11 +232,13 @@ async def concluir_atividade(
             db.commit()
             db.refresh(gamificacao)
 
-        ganho_xp = 50
-        if score is not None:
-            ganho_xp += min(50, max(0, int(score // 2)))
+        ganho_xp = calculate_xp_gain(
+            activity_type=getattr(obj, "tipo", "outro"),
+            score=score,
+            is_first_completion=primeira_conclusao,
+        )
         gamificacao.xp_total = int((gamificacao.xp_total or 0) + ganho_xp)
-        nivel_info = DashboardService.get_level_progress(gamificacao.xp_total)
+        nivel_info = get_level_progress(gamificacao.xp_total)
         gamificacao.nivel = nivel_info["nivel"]
         db.commit()
         logger.info(

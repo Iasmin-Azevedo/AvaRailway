@@ -7,39 +7,13 @@ from app.models.h5p import ProgressoH5P
 from app.models.user import Usuario, UserRole
 from app.models.avaliacao import Avaliacao
 from app.models.resposta import RespostaAluno
+from app.core.gamification_rules import get_level_progress as get_level_progress_by_rules
 
 
 class DashboardService:
     @staticmethod
     def get_level_progress(xp_total: int) -> dict:
-        xp = int(xp_total or 0)
-        faixas = [
-            {"nivel": "Novato", "min": 0, "max": 600, "proximo": "Intermediário"},
-            {"nivel": "Intermediário", "min": 600, "max": 1200, "proximo": "Especialista"},
-            {"nivel": "Especialista", "min": 1200, "max": 2000, "proximo": "Mestre SAEB"},
-            {"nivel": "Mestre SAEB", "min": 2000, "max": 2600, "proximo": "Lenda SAEB"},
-            {"nivel": "Lenda SAEB", "min": 2600, "max": 3200, "proximo": None},
-        ]
-
-        faixa = faixas[-1]
-        for f in faixas:
-            if xp < f["max"]:
-                faixa = f
-                break
-
-        base = faixa["min"]
-        meta = faixa["max"]
-        atual_no_nivel = max(0, xp - base)
-        meta_no_nivel = max(1, meta - base)
-        pct = max(0, min(100, int((atual_no_nivel / meta_no_nivel) * 100)))
-
-        return {
-            "nivel": faixa["nivel"],
-            "proximo_nivel": faixa["proximo"],
-            "xp_atual_nivel": atual_no_nivel,
-            "xp_meta_nivel": meta_no_nivel,
-            "xp_pct_nivel": pct,
-        }
+        return get_level_progress_by_rules(xp_total)
 
     def get_gestor_stats(self, db: Session) -> dict:
         n_escolas = db.query(Escola).filter(Escola.ativo == True).count()
