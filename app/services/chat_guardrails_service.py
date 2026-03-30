@@ -3,6 +3,8 @@ import unicodedata
 
 
 class ChatGuardrailsService:
+    """Aplica regras de segurança e moderação sobre mensagens do chat."""
+
     def __init__(self):
         self.blocked_patterns = [
             r"\bporra\b",
@@ -68,14 +70,17 @@ class ChatGuardrailsService:
         return "".join(ch for ch in value if not unicodedata.combining(ch))
 
     def has_blocked_content(self, text: str) -> bool:
+        """Detecta conteúdo ofensivo, discriminatório ou perigoso."""
         normalized = self._normalize(text)
         return any(re.search(pattern, normalized) for pattern in self.blocked_patterns)
 
     def requests_system_mutation(self, text: str) -> bool:
+        """Detecta tentativas de alterar dados, permissões ou configurações do sistema."""
         normalized = self._normalize(text)
         return any(re.search(pattern, normalized) for pattern in self.mutation_patterns)
 
     def get_violation_response(self, text: str) -> tuple[str, str] | None:
+        """Retorna a ação e a resposta de bloqueio quando houver violação."""
         if self.has_blocked_content(text):
             return (
                 "blocked_offense",
@@ -86,6 +91,7 @@ class ChatGuardrailsService:
         return None
 
     def sanitize_assistant_message(self, text: str) -> str:
+        """Garante que a resposta do assistente siga as mesmas regras de segurança."""
         if self.has_blocked_content(text):
             normalized = self._normalize(text)
             if any(keyword in normalized for keyword in ["matar", "morrer", "invadir", "menor", "senha"]):

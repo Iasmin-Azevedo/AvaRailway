@@ -17,6 +17,8 @@ from app.services.retrieval_service import RetrievalService
 
 
 class ChatService:
+    """Orquestra o fluxo principal de conversas do chatbot."""
+
     def __init__(self, db: Session):
         self.db = db
         self.chat_repository = ChatRepository(db)
@@ -29,6 +31,7 @@ class ChatService:
         self.ia_service = IAService()
 
     def create_session(self, user: Usuario, titulo: str) -> object:
+        """Cria uma nova sessão de conversa para o usuário autenticado."""
         role = getattr(user.role, "value", user.role)
         return self.chat_repository.create_session(user_id=user.id, perfil=role, titulo=titulo)
 
@@ -58,9 +61,11 @@ class ChatService:
         self.db.commit()
 
     def list_sessions(self, user: Usuario) -> list:
+        """Lista as sessões visíveis para o usuário autenticado."""
         return self.chat_repository.list_user_sessions(user.id)
 
     def get_history(self, user: Usuario, session_id: str) -> list:
+        """Recupera o histórico completo da sessão informada."""
         session = self.chat_repository.get_user_session(session_id, user.id)
         if not session:
             raise HTTPException(status_code=404, detail="Sessao de chat nao encontrada")
@@ -113,6 +118,7 @@ class ChatService:
         )
 
     async def process_message(self, user: Usuario, payload: ChatMessageRequest) -> ChatMessageResponse:
+        """Processa a mensagem do usuário, aplica proteções e gera a resposta final."""
         message = payload.message.strip()
         if len(message) > settings.CHAT_MAX_USER_MESSAGE_LENGTH:
             raise HTTPException(status_code=400, detail="Mensagem excede o limite permitido")
@@ -226,6 +232,7 @@ class ChatService:
         rating: str,
         comment: str | None = None,
     ) -> None:
+        """Registra feedback do usuário para uma resposta do assistente."""
         session = self.chat_repository.get_user_session(session_id, user.id)
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessao de chat nao encontrada")
@@ -238,6 +245,7 @@ class ChatService:
         )
 
     def close_session(self, user: Usuario, session_id: str):
+        """Encerra a sessão de conversa do usuário."""
         session = self.chat_repository.get_user_session(session_id, user.id)
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessao de chat nao encontrada")

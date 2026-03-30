@@ -91,3 +91,30 @@ Alguns itens do documento tecnico sao mais amplos e normalmente entram numa fase
 - consolidacao total dos relatorios pedagogicos previstos no documento.
 
 Nada disso impede a entrega atual do backend, mas vale manter essa diferenca clara: parte do que foi pedido no documento ja esta refletida no codigo, e parte ja ficou preparada para a proxima fase.
+
+## Fundamentacao tecnica
+
+Para sustentar a organizacao do backend com base tecnica mais explicita, o projeto pode ser relacionado a referencias consolidadas de arquitetura, modelagem e persistencia:
+
+- `Clean Architecture`, de Robert C. Martin, como base para separacao entre rotas, servicos, repositorios e regras de negocio;
+- `Architecture Patterns with Python`, de Harry Percival e Bob Gregory, como base pratica para organizacao do codigo em Python;
+- `Designing Data-Intensive Applications`, de Martin Kleppmann, como apoio para persistencia, integracao e confiabilidade do sistema;
+- `Domain-Driven Design`, de Eric Evans, como referencia para modelagem do dominio pedagogico.
+
+## Diretrizes de codigo
+
+- o backend deve manter padrao profissional e objetivo;
+- nao devem ser utilizados emojis em codigo, comentarios ou mensagens tecnicas internas;
+- comentarios devem ser curtos e usados apenas quando ajudarem a esclarecer a intencao da logica;
+- ajustes de organizacao devem preservar o comportamento ja validado do sistema.
+
+## Fundamentacao para o chatbot
+
+Para orientar a evolucao do chatbot com base mais solida, o projeto pode adotar o uso de modelos de linguagem combinados com recuperacao de contexto e fontes rastreaveis.
+
+Como referencias tecnicas para essa linha, destacam-se:
+
+- `Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks` (NeurIPS 2020), como base para respostas apoiadas por conteudo recuperado;
+- estudos sobre LLMs em contexto educacional publicados em periodicos como `npj Science of Learning`, `Nature Machine Intelligence` e `npj Artificial Intelligence`.
+
+O detalhamento dessas referencias foi reunido em `docs/FUNDAMENTACAO_TECNICA_E_CHATBOT.md`.

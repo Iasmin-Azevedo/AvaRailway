@@ -3,6 +3,8 @@ import unicodedata
 
 
 class ChatRouterService:
+    """Classifica a intenção principal da mensagem enviada ao chatbot."""
+
     GENERAL_PATTERNS = [
         r"\boi\b",
         r"\bola\b",
@@ -38,6 +40,7 @@ class ChatRouterService:
         return "".join(ch for ch in value if not unicodedata.combining(ch))
 
     def classify(self, text: str) -> str:
+        """Classifica a mensagem em contexto geral, pedagógico ou institucional."""
         value = self._normalize(text)
         if any(re.search(pattern, value) for pattern in self.INSTITUTIONAL_PATTERNS):
             return "institutional"
@@ -48,10 +51,12 @@ class ChatRouterService:
         return "general"
 
     def is_greeting_only(self, text: str) -> bool:
+        """Identifica saudações curtas que não exigem fluxo completo de resposta."""
         value = self._normalize(text)
         return value in {"oi", "ola", "opa", "bom dia", "boa tarde", "boa noite", "e ai"}
 
     def is_question(self, text: str) -> bool:
+        """Identifica perguntas explícitas por pontuação ou padrão de abertura."""
         value = self._normalize(text)
         if "?" in text:
             return True
