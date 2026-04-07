@@ -7,6 +7,8 @@ from app.services.chat_router_service import ChatRouterService
 class ChatNLUService:
     """Faz entendimento inicial da mensagem com provedor externo opcional e fallback local."""
 
+    MIN_EXTERNAL_CONFIDENCE = 0.35
+
     def __init__(self, router_service: ChatRouterService):
         self.router_service = router_service
 
@@ -18,6 +20,11 @@ class ChatNLUService:
 
         try:
             external = await self._analyze_with_wit(text)
+            if float(external.get("confidence") or 0.0) < self.MIN_EXTERNAL_CONFIDENCE:
+                local["provider"] = "local_fallback"
+                local["external_provider"] = "wit_ai"
+                local["external_confidence"] = float(external.get("confidence") or 0.0)
+                return local
             merged = {**local, **{k: v for k, v in external.items() if v not in (None, "", [])}}
             if not merged.get("subject"):
                 merged["subject"] = local.get("subject")
