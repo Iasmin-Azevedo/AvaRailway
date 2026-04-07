@@ -185,6 +185,31 @@
                 {% endif %}
             </div>
         </div>
+
+        <div class="card dash-card mt-4">
+            <div class="dash-card-header">
+                <h6 class="mb-0 fw-bold">Descritores com Menor Proficiência</h6>
+            </div>
+            <div class="card-body">
+                {% set descritores_chart = descritores_rows[:5] if descritores_rows else [] %}
+                {% if descritores_chart %}
+                <div class="row text-center small">
+                    {% for d in descritores_chart %}
+                    {% set pct = d.taxa_pct|default(0)|int %}
+                    <div class="col">
+                        <p class="mb-1 text-muted text-truncate" title="{{ d.codigo }} - {{ d.descricao }}">{{ d.codigo }}</p>
+                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
+                            <div class="progress-bar {% if pct < 45 %}bg-danger{% elif pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="height: {{ pct }}%"></div>
+                        </div>
+                        <span class="fw-bold">{{ pct }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="small text-muted mb-0">Sem dados suficientes para gerar o gráfico de descritores.</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <div class="col-lg-4 d-flex flex-column gap-4">
@@ -265,41 +290,11 @@
                 <option value="Língua Portuguesa">Língua Portuguesa</option>
             </select>
             <input name="titulo" class="form-control" placeholder="Título da aula ao vivo" maxlength="150" required>
-            <input name="meeting_url" class="form-control" placeholder="Link externo da videoconferência (opcional)" maxlength="500">
             <input name="scheduled_at" type="datetime-local" class="form-control" required>
             <textarea name="descricao" class="form-control" rows="2" maxlength="1000" placeholder="Descrição opcional"></textarea>
             <button type="submit" class="btn btn-mj fw-bold">Salvar agendamento</button>
         </form>
         <div id="live-class-feedback" class="small mt-2"></div>
-    </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card dash-card">
-            <div class="dash-card-header">
-                <h6 class="mb-0 fw-bold">Descritores com Menor Proficiência</h6>
-            </div>
-            <div class="card-body">
-                {% set descritores_chart = descritores_rows[:5] if descritores_rows else [] %}
-                {% if descritores_chart %}
-                <div class="row text-center small">
-                    {% for d in descritores_chart %}
-                    {% set pct = d.taxa_pct|default(0)|int %}
-                    <div class="col">
-                        <p class="mb-1 text-muted text-truncate" title="{{ d.codigo }} - {{ d.descricao }}">{{ d.codigo }}</p>
-                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
-                            <div class="progress-bar {% if pct < 45 %}bg-danger{% elif pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="height: {{ pct }}%"></div>
-                        </div>
-                        <span class="fw-bold">{{ pct }}%</span>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="small text-muted mb-0">Sem dados suficientes para gerar o gráfico de descritores.</p>
-                {% endif %}
-            </div>
-        </div>
     </div>
 </div>
 
@@ -324,7 +319,6 @@
             turma_id: Number(formData.get('turma_id')),
             disciplina: String(formData.get('disciplina') || '').trim(),
             titulo: String(formData.get('titulo') || '').trim(),
-            meeting_url: String(formData.get('meeting_url') || '').trim(),
             scheduled_at: new Date(String(formData.get('scheduled_at') || '')).toISOString(),
             descricao: String(formData.get('descricao') || '').trim(),
             duration_minutes: 50

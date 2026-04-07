@@ -94,6 +94,8 @@ class DescriptorPerformanceService:
                     "alunos_com_conclusao": int(alunos_com_conclusao),
                     "alunos_elegiveis": n_alunos,
                     "score_medio": round(float(avg_score), 1) if avg_score is not None else None,
+                    "score_maximo": 10.0,
+                    "score_medio_10": round(float(avg_score) / 10.0, 1) if avg_score is not None else None,
                 }
             )
 

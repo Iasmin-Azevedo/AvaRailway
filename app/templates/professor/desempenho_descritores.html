@@ -22,6 +22,25 @@
 {% if not descritores_rows %}
 <div class="alert alert-light border rounded-4">Sem dados de descritores para esta turma (nenhuma atividade vinculada ou sem conclusões).</div>
 {% else %}
+<div class="card dash-card border-0 mb-3">
+    <div class="dash-card-header">
+        <h6 class="mb-0 fw-bold">Gráfico de desempenho por descritor</h6>
+    </div>
+    <div class="card-body">
+        <div class="row text-center small">
+            {% for r in descritores_rows[:8] %}
+            {% set pct = r.taxa_pct|default(0)|int %}
+            <div class="col">
+                <p class="mb-1 text-muted text-truncate" title="{{ r.codigo }} - {{ r.descricao }}">{{ r.codigo }}</p>
+                <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
+                    <div class="progress-bar {% if pct < 45 %}bg-danger{% elif pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="height: {{ pct }}%"></div>
+                </div>
+                <span class="fw-bold">{{ pct }}%</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
 <div class="table-responsive rounded-4 border bg-white shadow-sm">
     <table class="table table-hover align-middle mb-0 small">
         <thead class="table-light">
@@ -30,7 +49,7 @@
                 <th>Descrição</th>
                 <th class="text-end">Alunos c/ conclusão</th>
                 <th class="text-end">Taxa</th>
-                <th class="text-end">Score médio</th>
+                <th class="text-end">Score médio / máximo</th>
             </tr>
         </thead>
         <tbody>
@@ -40,7 +59,13 @@
                 <td>{{ r.descricao }}</td>
                 <td class="text-end">{{ r.alunos_com_conclusao }} / {{ r.alunos_elegiveis }}</td>
                 <td class="text-end">{{ r.taxa_pct }}%</td>
-                <td class="text-end">{% if r.score_medio is not none %}{{ r.score_medio }}{% else %}—{% endif %}</td>
+                <td class="text-end">
+                    {% if r.score_medio_10 is not none %}
+                    {{ r.score_medio_10 }}/{{ r.score_maximo|default(10) }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

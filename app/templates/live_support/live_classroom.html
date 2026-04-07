@@ -27,6 +27,7 @@
         <a href="{{ live_class.meeting_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-mj-outline">Abrir em nova aba</a>
     </div>
     <div class="card-body p-0">
+        {% if live_class.meeting_provider == "jitsi" %}
         <iframe
             src="{{ live_class.meeting_url }}#config.prejoinPageEnabled=false"
             title="Aula ao vivo"
@@ -34,6 +35,16 @@
             allow="camera; microphone; fullscreen; display-capture"
             referrerpolicy="strict-origin-when-cross-origin">
         </iframe>
+        {% else %}
+        <div class="p-4">
+            <div class="alert alert-warning mb-3">
+                Este provedor externo não permite abertura dentro da plataforma. Use o botão para abrir em nova aba.
+            </div>
+            <a href="{{ live_class.meeting_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-mj rounded-pill">
+                <i class="fas fa-up-right-from-square me-1"></i> Abrir reunião agora
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

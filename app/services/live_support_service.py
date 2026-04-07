@@ -35,8 +35,7 @@ class LiveSupportService:
         return f"ava-mj-{payload.turma_id}-{self._slugify_room(payload.disciplina)}-{self._slugify_room(payload.titulo)}-{user.id}"
 
     def _build_meeting_url(self, room_name: str, external_url: str | None) -> tuple[str, str]:
-        if external_url:
-            return "externo", external_url.strip()
+        # Fluxo simplificado: sempre usa sala interna Jitsi.
         base_url = settings.JITSI_BASE_URL.rstrip("/")
         return "jitsi", f"{base_url}/{room_name}"
 
