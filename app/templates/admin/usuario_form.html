@@ -87,6 +87,19 @@
                     {% endfor %}
                 </div>
                 <small class="text-muted">Marque uma ou mais turmas que este professor irá atender.</small>
+                <div class="form-check form-switch mt-3">
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        name="permite_cadastro_trilha_geral"
+                        value="true"
+                        id="permite_trilha_geral"
+                        {% if permite_cadastro_trilha_geral %}checked{% endif %}
+                    >
+                    <label class="form-check-label" for="permite_trilha_geral">
+                        Permitir cadastro em trilha geral
+                    </label>
+                </div>
             </div>
             <div id="gestor-fields" class="mb-3 d-none">
                 <label class="form-label fw-bold">Escolas que o Gestor Administra</label>

@@ -22,6 +22,7 @@ class Usuario(Base):
         default=UserRole.ALUNO,
     )
     ativo = Column(Boolean, default=True)
+    permite_cadastro_trilha_geral = Column(Boolean, default=False)
 
     aluno_perfil = relationship("Aluno", back_populates="usuario", uselist=False)
     logs = relationship("AuditLog", back_populates="usuario")

@@ -1,0 +1,43 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Chamados de suporte{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Admin{% endblock %}
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/admin">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/suporte">Suporte</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/cursos">Cursos</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/trilhas">Trilhas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/usuarios">Usuários</a>
+{% endblock %}
+{% block main_content %}
+<div class="mb-3"><a href="/admin" class="text-mj-primary text-decoration-none small">← Painel admin</a></div>
+<h1 class="h4 fw-bold text-mj-dark mb-3">Chamados de suporte</h1>
+<div class="table-responsive rounded-4 border bg-white shadow-sm">
+    <table class="table table-hover mb-0 small align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Data</th>
+                <th>E-mail</th>
+                <th>Assunto</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tickets %}
+            <tr>
+                <td>{{ t.id }}</td>
+                <td>{{ t.created_at.strftime('%d/%m/%Y %H:%M') if t.created_at else '—' }}</td>
+                <td class="text-break">{{ t.email }}</td>
+                <td class="text-break">{{ t.assunto }}</td>
+                <td><span class="badge rounded-pill bg-mj-light text-mj-primary">{{ t.status }}</span></td>
+                <td><a class="btn btn-sm btn-mj-outline rounded-pill" href="/admin/suporte/{{ t.id }}">Abrir</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Nenhum chamado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

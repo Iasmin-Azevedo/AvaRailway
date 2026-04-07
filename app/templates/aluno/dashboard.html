@@ -47,8 +47,7 @@
 
 {% block offcanvas_links %}
 <a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/missao1">Mapa de Missões</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/portugues">Trilhas</a>
 <a class="btn btn-mj-outline w-100 rounded-pill" href="#">Configurações</a>
 {% endblock %}
 
@@ -117,7 +116,7 @@
                     <div class="gm-progress mb-4">
                         <span class="gm-progress__fill" data-progress-width="{{ preview_width }}"></span>
                     </div>
-                    <a href="/aluno/trilhas" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Ver jornada</a>
+                    <a href="/aluno/portugues" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Ver jornada</a>
                 </article>
             </div>
 
@@ -136,7 +135,26 @@
                     <div class="gm-progress mb-4">
                         <span class="gm-progress__fill" style="width: 0%"></span>
                     </div>
-                    <a href="/aluno/trilhas/matematica" class="btn gm-btn gm-btn--green w-100 text-center text-decoration-none">Iniciar Missão</a>
+                    <a href="/aluno/matematica" class="btn gm-btn gm-btn--green w-100 text-center text-decoration-none">Iniciar Missão</a>
+                </article>
+            </div>
+            <div class="col-md-6">
+                <article class="gm-card h-100 hover-lift border-bottom border-mj-primary border-3">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="gm-circle gm-circle--orange"><i class="fas fa-chalkboard-teacher"></i></span>
+                        <span class="mission-chip-mj">Turma</span>
+                    </div>
+                    <h5 class="gm-card__title">Atividades da sua turma</h5>
+                    <p class="gm-card__text mb-3">Conteúdos enviados pelo seu professor para sua turma.</p>
+                    <div class="d-flex justify-content-between small text-mj-muted mb-2">
+                        <span>Concluídas</span>
+                        <strong>{{ atividades_turma_concluidas|default(0) }}/{{ atividades_turma_total|default(0) }}</strong>
+                    </div>
+                    {% set turma_pct = ((atividades_turma_concluidas / atividades_turma_total) * 100) if atividades_turma_total else 0 %}
+                    <div class="gm-progress mb-4">
+                        <span class="gm-progress__fill" data-progress-width="{{ turma_pct|round|int }}"></span>
+                    </div>
+                    <a href="/aluno/portugues#atividades-turma" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Abrir atividades da turma</a>
                 </article>
             </div>
         </div>

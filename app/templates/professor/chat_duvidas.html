@@ -1,0 +1,36 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Dúvidas no chatbot{% endblock %}
+{% block brand_link %}/professor{% endblock %}
+{% block menu_title %}Professor{% endblock %}
+{% block header_right %}
+<div class="w-100 w-lg-auto mw-100">
+    {% include "professor/partials/turma_selector.html" %}
+</div>
+{% endblock %}
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/desempenho-descritores">Desempenho</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/radar-alunos">Radar de Alunos</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/chat-duvidas">Dúvidas Chatbot</a>
+{% endblock %}
+{% block main_content %}
+<div class="mb-3">
+    <a href="/professor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao painel</a>
+</div>
+<h1 class="h4 fw-bold text-mj-dark mb-3">Perguntas frequentes no chatbot (turma)</h1>
+<p class="text-mj-muted small mb-4">Mensagens enviadas por alunos da turma, agrupadas por texto igual.</p>
+{% if not chat_duvidas %}
+<div class="alert alert-light border rounded-4">Nenhuma mensagem de aluno encontrada no chat para esta turma.</div>
+{% else %}
+<div class="list-group list-group-flush shadow-sm rounded-4 border overflow-hidden">
+    {% for d in chat_duvidas %}
+    <div class="list-group-item p-3">
+        <div class="d-flex justify-content-between gap-2 flex-wrap">
+            <span class="fw-bold text-mj-dark">{{ d.texto }}</span>
+            <span class="badge bg-mj-light text-mj-primary rounded-pill">{{ d.vezes }}×</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

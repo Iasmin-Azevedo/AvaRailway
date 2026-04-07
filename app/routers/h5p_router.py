@@ -4,12 +4,14 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
 import logging
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_current_user_optional
 from app.models.user import Usuario
 from app.models.aluno import Aluno, PontuacaoGamificacao
 from app.models.h5p import AtividadeH5P
+from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
 from app.repositories.h5p_repository import AtividadeH5PRepository, ProgressoH5PRepository
 from app.repositories.gestao_repository import TrilhaRepository
 from app.schemas.h5p_schema import AtividadeH5PResponse, ProgressoH5PResponse
@@ -257,6 +259,66 @@ async def concluir_atividade(
         )
 
     return progresso
+
+
+@router.post("/professor-atividades/{id}/concluir")
+async def concluir_atividade_professor(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    aluno = db.query(Aluno).filter(Aluno.usuario_id == current_user.id).first()
+    if not aluno:
+        raise HTTPException(403, "Apenas alunos podem concluir essa atividade")
+    atividade = db.query(ProfessorAtividadeH5P).filter(ProfessorAtividadeH5P.id == id, ProfessorAtividadeH5P.ativo == True).first()
+    if not atividade:
+        raise HTTPException(404, "Atividade não encontrada")
+    if not aluno.turma_id or atividade.turma_id != aluno.turma_id:
+        raise HTTPException(403, "Atividade não pertence à sua turma")
+
+    score = None
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = None
+    if isinstance(payload, dict):
+        score = _parse_score_from_payload(payload)
+
+    progresso = db.query(ProfessorProgressoH5P).filter(
+        ProfessorProgressoH5P.aluno_id == aluno.id,
+        ProfessorProgressoH5P.atividade_id == atividade.id,
+    ).first()
+    primeira_conclusao = not (progresso and progresso.concluido)
+    if not progresso:
+        progresso = ProfessorProgressoH5P(
+            aluno_id=aluno.id,
+            atividade_id=atividade.id,
+            tentativas=0,
+        )
+        db.add(progresso)
+    progresso.tentativas = int((progresso.tentativas or 0) + 1)
+    progresso.concluido = True
+    progresso.score = score
+    progresso.data_conclusao = datetime.utcnow()
+    db.commit()
+
+    if primeira_conclusao:
+        gamificacao = db.query(PontuacaoGamificacao).filter(PontuacaoGamificacao.aluno_id == aluno.id).first()
+        if not gamificacao:
+            gamificacao = PontuacaoGamificacao(aluno_id=aluno.id, xp_total=0, nivel="Novato")
+            db.add(gamificacao)
+            db.commit()
+            db.refresh(gamificacao)
+        ganho_xp = calculate_xp_gain(
+            activity_type=getattr(atividade, "tipo", "outro"),
+            score=score,
+            is_first_completion=True,
+        )
+        gamificacao.xp_total = int((gamificacao.xp_total or 0) + ganho_xp)
+        gamificacao.nivel = get_level_progress(gamificacao.xp_total)["nivel"]
+        db.commit()
+    return {"aluno_id": aluno.id, "atividade_id": atividade.id, "concluido": True, "score": score}
 
 
 @router.get("/atividades/{id}/progresso")

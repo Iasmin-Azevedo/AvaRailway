@@ -24,10 +24,10 @@
     --mj-dark: #1a1d29;
     --mj-dark-soft: #2d3142;
     --mj-white: #ffffff;
-    --mj-muted: #6c757d;
+    --mj-muted: #5c6670;
 
     --mj-gradient: linear-gradient(135deg, var(--mj-blue-600) 0%, var(--mj-blue-400) 40%, var(--mj-blue-700) 100%);
-    --mj-gradient-soft: linear-gradient(180deg, rgba(194, 208, 4, 0.06) 0%, transparent 100%); /* mj-blue 6% */
+    --mj-gradient-soft: #E8EEF2;
 
     --mj-border-color: rgba(194, 208, 4, 0.2);
     --mj-border-color-soft: rgba(194, 208, 4, 0.12);
@@ -962,6 +962,25 @@ body {
     border-bottom: 1px solid rgba(17, 41, 90, 0.08);
     background: #fafbfd;
 }
+
+/* Login/cadastro: body em flex-row (aside + main) deixava a utilbar como 1ª coluna estreita → botões empilhavam */
+body.login-page-mj.d-flex {
+    flex-wrap: wrap;
+    align-content: flex-start;
+}
+body.login-page-mj .mission-utilbar-mj {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+}
+body.login-page-mj #a11y-caption-panel:not(.d-none) {
+    flex: 1 1 100%;
+    width: 100%;
+}
+.mission-utilbar-mj .container.d-flex {
+    flex-direction: row;
+    align-items: center;
+}
 .mission-util-btn,
 .mission-util-link {
     border: 0;
@@ -977,6 +996,42 @@ body {
 }
 .mission-topbar-mj {
     background: #fff;
+}
+.mission-subnav-mj {
+    background: #ffffff;
+    border-bottom: 1px solid rgba(17, 41, 90, 0.08);
+}
+.mission-subnav-mj .container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.9rem 2rem;
+    align-items: center;
+}
+.mission-subnav-mj .btn {
+    width: auto !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--mj-dark-soft) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0.2rem 0 !important;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 2px solid transparent !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    line-height: 1.2 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+.mission-subnav-mj .btn:hover {
+    color: var(--mj-primary) !important;
+}
+.mission-subnav-mj .btn.is-current {
+    color: var(--mj-primary) !important;
+    border-bottom-color: var(--mj-primary) !important;
 }
 .mission-brand-mj {
     font-size: 2rem;
@@ -1584,4 +1639,45 @@ body {
 }
 .jornada-trilha-card--locked .gm-card__title {
     color: var(--mj-muted);
+}
+
+/* ========== Acessibilidade: alto contraste (harmonioso, sem preto puro) ========== */
+body.a11y-high-contrast {
+    --mj-dark: #0f1419;
+    --mj-dark-soft: #1a2230;
+    --mj-muted: #3d4754;
+    --mj-primary: #1a5f73;
+    --mj-primary-dark: #134555;
+    --mj-white: #f8fafb;
+}
+body.a11y-high-contrast.mission-page-mj,
+body.a11y-high-contrast .bg-mj-soft {
+    background: #e8eef2 !important;
+}
+body.a11y-high-contrast .text-muted {
+    color: var(--mj-muted) !important;
+}
+body.a11y-high-contrast .card,
+body.a11y-high-contrast .dash-card {
+    border: 1px solid rgba(0, 0, 0, 0.18) !important;
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08) !important;
+}
+body.a11y-high-contrast a.text-mj-primary,
+body.a11y-high-contrast .btn-mj-outline {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+body.a11y-high-contrast .mission-utilbar-mj {
+    border-bottom: 2px solid var(--mj-dark);
+}
+body.a11y-high-contrast .form-control:focus,
+body.a11y-high-contrast .btn:focus-visible {
+    outline: 3px solid var(--mj-primary);
+    outline-offset: 2px;
+}
+
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--mj-primary);
+    outline-offset: 2px;
 }

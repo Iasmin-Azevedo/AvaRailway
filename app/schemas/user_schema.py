@@ -7,12 +7,14 @@ class UserCreate(BaseModel):
     email: EmailStr
     senha: str = Field(min_length=6, max_length=128)
     role: UserRole = UserRole.ALUNO
+    permite_cadastro_trilha_geral: bool = False
 
 class UserResponse(BaseModel):
     id: int
     nome: str
     email: EmailStr
     role: str
+    permite_cadastro_trilha_geral: bool = False
     class Config:
         from_attributes = True
 
@@ -23,3 +25,4 @@ class UserUpdate(BaseModel):
     senha: Optional[str] = Field(None, min_length=6, max_length=128)
     role: Optional[UserRole] = None
     ativo: Optional[bool] = None
+    permite_cadastro_trilha_geral: Optional[bool] = None

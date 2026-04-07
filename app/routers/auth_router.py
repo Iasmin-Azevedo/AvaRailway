@@ -11,6 +11,15 @@ router = APIRouter()
 service = AuthService()
 
 
+def _safe_internal_path(raw: str | None, fallback: str) -> str:
+    if not raw or not isinstance(raw, str):
+        return fallback
+    s = raw.strip()
+    if not s.startswith("/") or s.startswith("//"):
+        return fallback
+    return s
+
+
 def _role_redirect_path(role) -> str:
     role_value = getattr(role, "value", role)
     role_value = str(role_value).strip().lower()
@@ -41,7 +50,8 @@ async def login(request: Request, db: Session = Depends(get_db)):
     dados = LoginRequest(email=form.get("email"), senha=form.get("senha"))
     token = service.login(db, dados, request.client.host if request.client else None)
     user = service.user_repo.get_by_email(db, dados.email)
-    redirect_url = _role_redirect_path(user.role if user else None)
+    default_dest = _role_redirect_path(user.role if user else None)
+    redirect_url = _safe_internal_path(form.get("next"), default_dest)
 
     if accepts_html:
         response = RedirectResponse(url=redirect_url, status_code=303)

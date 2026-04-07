@@ -4,18 +4,10 @@
 {% block menu_title %}Menu do Professor{% endblock %}
 
 {% block header_right %}
-<div class="d-flex align-items-center gap-2 bg-mj-soft px-3 py-1 rounded-3 border border-mj-primary border-opacity-25">
-    <span class="text-mj-dark small fw-bold">Turma Atual:</span>
-    <select class="form-select form-select-sm bg-white text-mj-primary fw-bold border-0">
-        <option value="" {% if not selected_turma_id %}selected{% endif %}>Todas as turmas</option>
-        {% for t in professor_turmas %}
-        <option value="{{ t.id }}" {% if selected_turma_id == t.id %}selected{% endif %}>
-            {{ t.nome }} - {{ t.escola.nome if t.escola else "Sem escola" }}
-        </option>
-        {% endfor %}
-    </select>
+<div class="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 bg-mj-soft px-3 py-2 rounded-3 border border-mj-primary border-opacity-25 mw-100" style="min-width: 0;">
+    {% include "professor/partials/turma_selector.html" %}
 </div>
-<div class="vr text-muted"></div>
+<div class="vr text-muted d-none d-lg-block"></div>
 <div class="d-flex align-items-center gap-2">
     <div class="text-end d-none d-md-block">
         <div class="mission-user-name mb-0">
@@ -36,30 +28,30 @@
 
 {% block offcanvas_links %}
 <a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Desempenho</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Radar de Alunos</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="#">Dúvidas Chatbot</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/desempenho-descritores{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Desempenho</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/radar-alunos{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Radar de Alunos</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/chat-duvidas{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Dúvidas Chatbot</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mt-2" href="/professor/atividades">Minhas Atividades H5P</a>
 {% endblock %}
 
 {% block main_content %}
+{% if ia_alerta_ativo and ia_alerta_descritor %}
 <div class="alert alert-warning border-0 shadow-sm border-start border-warning border-5 d-flex align-items-start gap-3 mb-4 rounded-3" role="alert">
     <div class="bg-warning bg-opacity-25 p-2 rounded-circle text-warning">
-        <i class="fa-solid fa-robot fs-4"></i>
+        <i class="fa-solid fa-chart-line fs-4"></i>
     </div>
-    <div class="flex-grow-1">
-        <h6 class="fw-bold mb-1 text-dark">Alerta da IA: Dificuldade Coletiva Detectada</h6>
-        <p class="small text-muted mb-2">
-            Após o último simulado, notei que <strong>45% da turma</strong> apresentou erros recorrentes no descritor <strong>Inferir sentido de palavras (EF02LP09)</strong>. As dúvidas no chat confirmam essa lacuna.
+    <div class="flex-grow-1 min-w-0">
+        <h6 class="fw-bold mb-1 text-dark">Atenção: descritor com menor taxa de conclusão</h6>
+        <p class="small text-muted mb-2 text-break">
+            O descritor <strong>{{ ia_alerta_descritor.codigo }}</strong> ({{ ia_alerta_descritor.descricao[:120] }}{% if ia_alerta_descritor.descricao|length > 120 %}…{% endif %}) está com taxa de conclusão de <strong>{{ ia_alerta_descritor.taxa_pct }}%</strong> na turma selecionada.
         </p>
-        <div class="d-flex gap-2 flex-wrap">
-            <button class="btn btn-sm btn-mj"><i class="fa-solid fa-paper-plane me-1"></i> Liberar Atividade H5P de Reforço</button>
-            <button class="btn btn-sm btn-mj-outline">Ver Questões Erradas</button>
-        </div>
+        <a class="btn btn-sm btn-mj" href="/professor/desempenho-descritores{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Ver todos os descritores</a>
     </div>
 </div>
+{% endif %}
 
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card dash-stat-card h-100 border-0">
             <span class="dash-stat-label mb-3">Proficiência da Turma</span>
             <div class="d-flex align-items-center justify-content-between">
@@ -71,7 +63,7 @@
             <small class="text-muted mt-2 d-block">Média no último simulado SAEB</small>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card dash-stat-card h-100 border-0">
             <span class="dash-stat-label mb-3">Engajamento nas Trilhas</span>
             <div class="d-flex align-items-center justify-content-between">
@@ -83,7 +75,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card dash-stat-card dash-stat-card--danger h-100">
             <span class="dash-stat-label mb-3">Alunos em Risco</span>
             <div class="d-flex align-items-center justify-content-between">
@@ -93,7 +85,7 @@
             <small class="text-danger fw-bold mt-2 d-block">Requer intervenção imediata</small>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="card dash-card h-100 bg-mj-gradient text-white border-0">
             <div class="card-body p-3">
                 <span class="small text-uppercase fw-bold opacity-75">Moedas da Turma</span>
@@ -110,38 +102,26 @@
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="card dash-card mb-4">
-            <div class="dash-card-header d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0 text-dark">Desempenho por Habilidades BNCC/SAEB</h6>
-                <button class="btn btn-sm btn-mj-outline">Exportar CSV</button>
+            <div class="dash-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h6 class="fw-bold mb-0 text-dark">Desempenho por descritores (H5P)</h6>
+                <a class="btn btn-sm btn-mj-outline" href="/professor/desempenho-descritores{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Ver completo</a>
             </div>
             <div class="card-body p-4">
-                <div class="row mb-3 align-items-center">
-                    <div class="col-md-4 small fw-bold text-muted">EF02LP01 - Ler palavras novas</div>
-                    <div class="col-md-6">
+                {% if not descritores_preview %}
+                <p class="small text-muted mb-0">Sem atividades vinculadas a descritores ou sem dados de conclusão para esta turma.</p>
+                {% else %}
+                {% for r in descritores_preview %}
+                <div class="row mb-3 align-items-center g-2">
+                    <div class="col-12 col-md-4 small fw-bold text-muted text-break">{{ r.codigo }}</div>
+                    <div class="col-12 col-md-6">
                         <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-success" style="width: 88%"></div>
+                            <div class="progress-bar {% if r.taxa_pct < 40 %}bg-danger{% elif r.taxa_pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="width: {{ r.taxa_pct }}%"></div>
                         </div>
                     </div>
-                    <div class="col-md-2 text-end small fw-bold text-success">88% (Adequado)</div>
+                    <div class="col-12 col-md-2 text-md-end small fw-bold">{{ r.taxa_pct }}%</div>
                 </div>
-                <div class="row mb-3 align-items-center">
-                    <div class="col-md-4 small fw-bold text-muted">EF02LP04 - Produzir frases c/ pontuação</div>
-                    <div class="col-md-6">
-                        <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-mj-primary" style="width: 72%"></div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 text-end small fw-bold text-mj-primary">72% (Bom)</div>
-                </div>
-                <div class="row mb-3 align-items-center">
-                    <div class="col-md-4 small fw-bold text-danger">EF02LP09 - Inferir sentido (Alerta)</div>
-                    <div class="col-md-6">
-                        <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" style="width: 45%"></div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 text-end small fw-bold text-danger">45% (Crítico)</div>
-                </div>
+                {% endfor %}
+                {% endif %}
             </div>
         </div>
 
@@ -157,32 +137,26 @@
                                 <th class="ps-4">Aluno</th>
                                 <th>Status</th>
                                 <th>Principal Dificuldade</th>
-                                <th class="text-end pe-4">Ação Sugerida</th>
+                                <th class="text-end pe-4">Progresso</th>
                             </tr>
                         </thead>
                         <tbody class="small">
+                            {% for a in radar_alunos %}
                             <tr>
-                                <td class="ps-4 fw-bold text-dark">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="bg-danger rounded-circle" style="width: 8px; height: 8px;"></div>
-                                        Marcos Silva
-                                    </div>
+                                <td class="ps-4 fw-bold text-dark text-break">{{ a.nome }}</td>
+                                <td>
+                                    {% if a.nivel_risco == 'BAIXO' %}
+                                    <span class="badge bg-success bg-opacity-25 text-success">Baixo</span>
+                                    {% else %}
+                                    <span class="badge bg-warning bg-opacity-25 text-warning">{{ a.nivel_risco }}</span>
+                                    {% endif %}
                                 </td>
-                                <td><span class="badge bg-danger bg-opacity-25 text-danger border border-danger">Evasão / Baixo Acesso</span></td>
-                                <td class="text-muted">Não acessa o AVA há 8 dias</td>
-                                <td class="text-end pe-4"><button class="btn btn-sm btn-outline-danger">Notificar Coordenação</button></td>
+                                <td class="text-muted">{{ a.concluidas }} / {{ a.total_atividades }} atividades H5P</td>
+                                <td class="text-end pe-4">{{ a.progresso_pct }}%</td>
                             </tr>
-                            <tr>
-                                <td class="ps-4 fw-bold text-dark">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="bg-warning rounded-circle" style="width: 8px; height: 8px;"></div>
-                                        Ana Júlia
-                                    </div>
-                                </td>
-                                <td><span class="badge bg-warning bg-opacity-25 text-warning border border-warning">Dificuldade Pedagógica</span></td>
-                                <td class="text-muted">Segmentação de palavras (Trilha 1)</td>
-                                <td class="text-end pe-4"><button class="btn btn-sm btn-mj-outline">Atribuir Microaula H5P</button></td>
-                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">Sem alunos na turma selecionada.</td></tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -221,31 +195,20 @@
             </div>
             <div class="card-body p-0">
                 <div class="list-group list-group-flush small">
+                    {% for d in chat_duvidas %}
                     <div class="list-group-item p-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold text-dark">"O que é personagem principal?"</span>
-                            <span class="badge bg-secondary rounded-pill">12x</span>
+                        <div class="d-flex justify-content-between gap-2 mb-1 flex-wrap">
+                            <span class="fw-bold text-dark text-break">{{ d.texto }}</span>
+                            <span class="badge bg-secondary rounded-pill flex-shrink-0">{{ d.vezes }}×</span>
                         </div>
-                        <p class="text-muted mb-0" style="font-size: 0.8rem;">O agente explicou o conceito usando exemplos de fábulas.</p>
                     </div>
-                    <div class="list-group-item p-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold text-dark">"Onde coloco a vírgula?"</span>
-                            <span class="badge bg-secondary rounded-pill">8x</span>
-                        </div>
-                        <p class="text-muted mb-0" style="font-size: 0.8rem;">O agente direcionou para o Quiz de Pontuação da Trilha 3.</p>
-                    </div>
-                    <div class="list-group-item p-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold text-dark">"Não entendi a questão 4."</span>
-                            <span class="badge bg-secondary rounded-pill">5x</span>
-                        </div>
-                        <p class="text-muted mb-0" style="font-size: 0.8rem;">Questão do simulado sobre localização de informação explícita.</p>
-                    </div>
+                    {% else %}
+                    <div class="list-group-item p-3 text-muted">Nenhuma pergunta registrada no chat para esta turma.</div>
+                    {% endfor %}
                 </div>
             </div>
             <div class="card-footer bg-white border-top text-center py-2">
-                <a href="#" class="small text-decoration-none fw-bold text-mj-primary">Ver histórico completo do chat</a>
+                <a href="/professor/chat-duvidas{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}" class="small text-decoration-none fw-bold text-mj-primary">Ver mais perguntas</a>
             </div>
         </div>
 

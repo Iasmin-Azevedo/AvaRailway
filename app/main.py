@@ -5,18 +5,18 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy import text
+from sqlalchemy import func, inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import SessionLocal, engine, get_db
-from app.core.dependencies import require_admin_redirect, require_role_redirect
+from app.core.dependencies import get_current_user_optional, require_admin_redirect, require_role_redirect
 from app.core.logging_config import configure_logging
 from app.core.security import limiter
 from app.models.base import Base
@@ -49,6 +49,8 @@ from app.models import (
     relacoes,
     resposta,
     saeb,
+    professor_h5p,
+    support_ticket,
     user,
 )
 
@@ -74,9 +76,65 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
+def _wants_html_response(request: Request) -> bool:
+    accept = (request.headers.get("accept") or "").lower()
+    path = request.url.path or ""
+    if path.startswith("/api/") or path.startswith("/auth/") and path.endswith("/refresh"):
+        return False
+    if "text/html" in accept:
+        return True
+    if "application/json" in accept and "text/html" not in accept:
+        return False
+    return True
+
+
+def _detail_as_text(detail) -> str:
+    if detail is None:
+        return ""
+    if isinstance(detail, str):
+        return detail
+    try:
+        import json
+
+        return json.dumps(detail, ensure_ascii=False)[:4000]
+    except Exception:
+        return str(detail)[:4000]
+
+
+def _error_html(
+    request: Request,
+    *,
+    status_code: int,
+    title: str,
+    message: str,
+    detail: str | None = None,
+):
+    ctx = {
+        "request": request,
+        "status_code": status_code,
+        "title": title,
+        "message": message,
+        "detail": detail if settings.APP_DEBUG else None,
+    }
+    return templates.TemplateResponse(
+        request,
+        "errors/error_page.html",
+        ctx,
+        status_code=status_code,
+    )
+
+
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     logger.error(f"Erro critico de banco de dados: {str(exc)}")
+    if _wants_html_response(request):
+        return _error_html(
+            request,
+            status_code=500,
+            title="Erro no banco de dados",
+            message="Não foi possível processar a solicitação. Tente novamente em instantes.",
+            detail=str(exc),
+        )
     return JSONResponse(
         status_code=500,
         content={
@@ -89,6 +147,14 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    if _wants_html_response(request):
+        return _error_html(
+            request,
+            status_code=422,
+            title="Dados inválidos",
+            message="Alguns campos do formulário estão incorretos ou incompletos.",
+            detail=_detail_as_text(exc.errors()),
+        )
     return JSONResponse(
         status_code=422,
         content={
@@ -101,12 +167,29 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    detail_text = _detail_as_text(exc.detail)
+    titles = {
+        401: "Não autenticado",
+        403: "Acesso negado",
+        404: "Não encontrado",
+        422: "Dados inválidos",
+        500: "Erro interno",
+    }
+    title = titles.get(exc.status_code, "Erro")
+    if _wants_html_response(request):
+        return _error_html(
+            request,
+            status_code=exc.status_code,
+            title=title,
+            message=detail_text or title,
+            detail=detail_text if settings.APP_DEBUG else None,
+        )
     return JSONResponse(
         status_code=exc.status_code,
         content={
             "status_code": exc.status_code,
-            "mensagem_amigavel": str(exc.detail),
-            "detalhe_tecnico": str(exc.detail),
+            "mensagem_amigavel": detail_text,
+            "detalhe_tecnico": detail_text,
         },
     )
 
@@ -114,6 +197,14 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     logger.exception("Erro inesperado na aplicacao", exc_info=exc)
+    if _wants_html_response(request):
+        return _error_html(
+            request,
+            status_code=500,
+            title="Erro inesperado",
+            message="Ocorreu um problema ao processar sua solicitação. Nossa equipe foi notificada.",
+            detail=str(exc),
+        )
     return JSONResponse(
         status_code=500,
         content={
@@ -168,11 +259,26 @@ def seed_default_users() -> None:
 @app.on_event("startup")
 def on_startup():
     try:
+        _ensure_runtime_schema()
         Base.metadata.create_all(bind=engine)
         seed_default_users()
         logger.info("Banco sincronizado e seed executado.")
     except Exception as exc:
         logger.error(f"Erro no startup: {exc}")
+
+
+def _ensure_runtime_schema() -> None:
+    """
+    Ajustes incrementais simples sem migração formal (ambiente atual).
+    """
+    insp = inspect(engine)
+    try:
+        cols = {c["name"] for c in insp.get_columns("usuarios")}
+    except Exception:
+        cols = set()
+    if "permite_cadastro_trilha_geral" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE usuarios ADD COLUMN permite_cadastro_trilha_geral BOOLEAN DEFAULT 0"))
 
 
 app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
@@ -191,7 +297,32 @@ app.include_router(live_support_router.page_router)
 
 @app.get("/login")
 def login_page(request: Request):
-    return templates.TemplateResponse(request, "auth/login.html", {"request": request})
+    next_url = (request.query_params.get("next") or "").strip()
+    return templates.TemplateResponse(
+        request,
+        "auth/login.html",
+        {"request": request, "next_url": next_url},
+    )
+
+
+@app.get("/erro/{code:int}")
+def erro_demo(request: Request, code: int):
+    """Páginas de erro estáticas para teste e links diretos."""
+    titles = {403: "Acesso negado", 404: "Página não encontrada", 500: "Erro interno"}
+    msgs = {
+        403: "Você não tem permissão para ver este conteúdo.",
+        404: "O endereço não existe ou foi removido.",
+        500: "Ocorreu uma falha no servidor.",
+    }
+    if code not in titles:
+        code = 404
+    return _error_html(
+        request,
+        status_code=code,
+        title=titles.get(code, "Erro"),
+        message=msgs.get(code, "Erro."),
+        detail=None,
+    )
 
 
 @app.get("/cadastro")
@@ -211,25 +342,51 @@ def cadastro_page(request: Request, db: Session = Depends(get_db)):
     )
 
 
+def _professor_turmas_list(db: Session, professor_user_id: int):
+    from app.models.gestao import Turma
+    from app.models.relacoes import ProfessorTurma
+
+    relacoes = (
+        db.query(ProfessorTurma)
+        .join(Turma, ProfessorTurma.turma_id == Turma.id)
+        .filter(ProfessorTurma.professor_id == professor_user_id)
+        .all()
+    )
+    return [rel.turma for rel in relacoes]
+
+
+def _resolve_selected_turma_id(request: Request, professor_turmas: list, raw: str | None) -> int | None:
+    ids = {t.id for t in professor_turmas}
+    if raw and raw.isdigit() and int(raw) in ids:
+        return int(raw)
+    if professor_turmas:
+        return professor_turmas[0].id
+    return None
+
+
 @app.get("/professor")
 def professor_dashboard(
     request: Request,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
 ):
-    from app.models.gestao import Turma
-    from app.models.relacoes import ProfessorTurma
     from app.services.live_support_service import LiveSupportService
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
 
     stats = DashboardService().get_professor_stats(db)
-    live_support = LiveSupportService(db)
-    relacoes = (
-        db.query(ProfessorTurma)
-        .join(Turma, ProfessorTurma.turma_id == Turma.id)
-        .filter(ProfessorTurma.professor_id == current_user.id)
-        .all()
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    selected_turma_id = _resolve_selected_turma_id(
+        request, professor_turmas, request.query_params.get("turma_id")
     )
-    professor_turmas = [rel.turma for rel in relacoes]
+    live_support = LiveSupportService(db)
+
+    dsvc = DescriptorPerformanceService()
+    aluno_ids = dsvc.aluno_ids_for_turma(db, selected_turma_id)
+    descritores_rows = dsvc.aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
+    radar_alunos = dsvc.radar_alunos_turma(db, selected_turma_id)
+    chat_duvidas = dsvc.top_chat_questions_for_turma(db, selected_turma_id)
+    pior = descritores_rows[0] if descritores_rows else None
+    ia_alerta_ativo = bool(pior and pior["taxa_pct"] < 50 and pior["alunos_elegiveis"] > 0)
 
     nome = (current_user.nome or "").strip()
     partes = nome.split()
@@ -248,12 +405,278 @@ def professor_dashboard(
             "stats": stats,
             "current_user": current_user,
             "professor_turmas": professor_turmas,
-            "selected_turma_id": None,
+            "selected_turma_id": selected_turma_id,
             "avatar_iniciais": avatar_iniciais,
             "upcoming_live_classes": live_support.list_live_classes_for_professor(current_user),
             "teacher_help_requests": live_support.list_teacher_help_requests(current_user),
+            "descritores_rows": descritores_rows,
+            "descritores_preview": descritores_rows[:5],
+            "radar_alunos": radar_alunos[:12],
+            "chat_duvidas": chat_duvidas,
+            "ia_alerta_ativo": ia_alerta_ativo,
+            "ia_alerta_descritor": pior,
         },
     )
+
+
+@app.get("/professor/desempenho-descritores")
+def professor_desempenho_descritores(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
+
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    selected_turma_id = _resolve_selected_turma_id(
+        request, professor_turmas, request.query_params.get("turma_id")
+    )
+    dsvc = DescriptorPerformanceService()
+    aluno_ids = dsvc.aluno_ids_for_turma(db, selected_turma_id)
+    rows = dsvc.aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
+    return templates.TemplateResponse(
+        request,
+        "professor/desempenho_descritores.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "professor_turmas": professor_turmas,
+            "selected_turma_id": selected_turma_id,
+            "descritores_rows": rows,
+        },
+    )
+
+
+@app.get("/professor/radar-alunos")
+def professor_radar_alunos(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
+
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    selected_turma_id = _resolve_selected_turma_id(
+        request, professor_turmas, request.query_params.get("turma_id")
+    )
+    dsvc = DescriptorPerformanceService()
+    radar_alunos = dsvc.radar_alunos_turma(db, selected_turma_id)
+    return templates.TemplateResponse(
+        request,
+        "professor/radar_alunos.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "professor_turmas": professor_turmas,
+            "selected_turma_id": selected_turma_id,
+            "radar_alunos": radar_alunos,
+        },
+    )
+
+
+@app.get("/professor/chat-duvidas")
+def professor_chat_duvidas(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
+
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    selected_turma_id = _resolve_selected_turma_id(
+        request, professor_turmas, request.query_params.get("turma_id")
+    )
+    dsvc = DescriptorPerformanceService()
+    chat_duvidas = dsvc.top_chat_questions_for_turma(db, selected_turma_id, limit=30)
+    return templates.TemplateResponse(
+        request,
+        "professor/chat_duvidas.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "professor_turmas": professor_turmas,
+            "selected_turma_id": selected_turma_id,
+            "chat_duvidas": chat_duvidas,
+        },
+    )
+
+
+def _professor_allowed_turma_ids(db: Session, professor_user_id: int) -> set[int]:
+    from app.models.relacoes import ProfessorTurma
+
+    rows = db.query(ProfessorTurma.turma_id).filter(ProfessorTurma.professor_id == professor_user_id).all()
+    return {r[0] for r in rows}
+
+
+@app.get("/professor/atividades")
+def professor_atividades_list(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.models.professor_h5p import ProfessorAtividadeH5P
+    from app.models.gestao import Turma
+
+    atividades = (
+        db.query(ProfessorAtividadeH5P, Turma.nome)
+        .join(Turma, Turma.id == ProfessorAtividadeH5P.turma_id)
+        .filter(ProfessorAtividadeH5P.professor_id == current_user.id)
+        .order_by(ProfessorAtividadeH5P.created_at.desc())
+        .all()
+    )
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    return templates.TemplateResponse(
+        request,
+        "professor/atividades_h5p_list.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "professor_turmas": professor_turmas,
+            "atividades": atividades,
+            "permite_trilha_geral": bool(getattr(current_user, "permite_cadastro_trilha_geral", False)),
+        },
+    )
+
+
+@app.get("/professor/atividades/nova")
+def professor_atividades_nova(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.repositories.gestao_repository import TrilhaRepository
+    from app.repositories.saeb_repository import DescritorRepository
+
+    turmas = _professor_turmas_list(db, current_user.id)
+    anos = sorted({t.ano_escolar for t in turmas if t.ano_escolar is not None})
+    trilhas = []
+    for ano in anos:
+        trilhas.extend(TrilhaRepository().listar(db, ano_escolar=ano))
+    descritores = DescritorRepository().listar(db)
+    return templates.TemplateResponse(
+        request,
+        "professor/atividade_h5p_form.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "turmas": turmas,
+            "trilhas": trilhas,
+            "descritores": descritores,
+            "permite_trilha_geral": bool(getattr(current_user, "permite_cadastro_trilha_geral", False)),
+        },
+    )
+
+
+@app.post("/professor/atividades/nova")
+async def professor_atividades_criar(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.models.professor_h5p import ProfessorAtividadeH5P
+    from app.schemas.h5p_schema import AtividadeH5PCreate
+    from app.repositories.h5p_repository import AtividadeH5PRepository
+    from app.repositories.gestao_repository import TrilhaRepository
+    from app.services.h5p_upload_service import save_h5p_upload
+
+    form = await request.form()
+    titulo = (form.get("titulo") or "").strip()
+    tipo = (form.get("tipo") or "outro").strip()
+    turma_id_raw = form.get("turma_id")
+    descritor_id_raw = form.get("descritor_id")
+    trilha_id_raw = form.get("trilha_id")
+    modo = (form.get("modo") or "personalizada_turma").strip()
+    arquivo_h5p = form.get("arquivo_h5p")
+
+    if not titulo or not arquivo_h5p:
+        return RedirectResponse(url="/professor/atividades/nova?erro=campos", status_code=303)
+
+    allowed_turmas = _professor_allowed_turma_ids(db, current_user.id)
+    try:
+        turma_id = int(str(turma_id_raw))
+    except Exception:
+        turma_id = None
+    if turma_id not in allowed_turmas:
+        return RedirectResponse(url="/professor/atividades/nova?erro=turma_invalida", status_code=303)
+
+    desc_id = int(str(descritor_id_raw)) if descritor_id_raw and str(descritor_id_raw).strip() else None
+    trilha_id = int(str(trilha_id_raw)) if trilha_id_raw and str(trilha_id_raw).strip() else None
+    rel_path = save_h5p_upload(db, arquivo_h5p, titulo, trilha_id=trilha_id if modo == "trilha_geral" else None, turma_id=turma_id)
+
+    if (
+        modo == "trilha_geral"
+        and bool(getattr(current_user, "permite_cadastro_trilha_geral", False))
+        and trilha_id
+    ):
+        trilha = TrilhaRepository().get(db, trilha_id)
+        turma = next((t for t in _professor_turmas_list(db, current_user.id) if t.id == turma_id), None)
+        if not trilha or not turma:
+            return RedirectResponse(url="/professor/atividades/nova?erro=trilha_invalida", status_code=303)
+        if trilha.ano_escolar and turma.ano_escolar and trilha.ano_escolar != turma.ano_escolar:
+            return RedirectResponse(url="/professor/atividades/nova?erro=ano_invalido", status_code=303)
+        AtividadeH5PRepository().create(
+            db,
+            AtividadeH5PCreate(
+                titulo=titulo,
+                tipo=tipo,
+                path_ou_json=rel_path,
+                trilha_id=trilha_id,
+                descritor_id=desc_id,
+                ordem=0,
+                ativo=True,
+            ),
+        )
+        return RedirectResponse(url="/professor/atividades?ok=trilha", status_code=303)
+
+    db.add(
+        ProfessorAtividadeH5P(
+            professor_id=current_user.id,
+            turma_id=turma_id,
+            titulo=titulo,
+            tipo=tipo,
+            path_ou_json=rel_path,
+            descritor_id=desc_id,
+            ativo=True,
+        )
+    )
+    db.commit()
+    return RedirectResponse(url="/professor/atividades?ok=criado", status_code=303)
+
+
+@app.post("/professor/atividades/{id}/deletar")
+def professor_atividades_deletar(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
+
+    obj = (
+        db.query(ProfessorAtividadeH5P)
+        .filter(ProfessorAtividadeH5P.id == id, ProfessorAtividadeH5P.professor_id == current_user.id)
+        .first()
+    )
+    if obj:
+        db.query(ProfessorProgressoH5P).filter(ProfessorProgressoH5P.atividade_id == obj.id).delete()
+        db.delete(obj)
+        db.commit()
+    return RedirectResponse(url="/professor/atividades", status_code=303)
+
+
+def _gestor_escola_ids(db: Session, gestor_user_id: int) -> list[int]:
+    """IDs das escolas vinculadas ao gestor. Lista vazia = não há vínculo; usar todas as escolas."""
+    from app.models.relacoes import GestorEscola
+
+    rows = db.query(GestorEscola.escola_id).filter(GestorEscola.gestor_id == gestor_user_id).all()
+    return [r[0] for r in rows]
 
 
 @app.get("/gestor")
@@ -262,8 +685,164 @@ def gestor_dashboard(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
 ):
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
+
     stats = DashboardService().get_gestor_stats(db)
-    return templates.TemplateResponse(request, "gestor/dashboard.html", {"request": request, "stats": stats})
+    escola_ids = _gestor_escola_ids(db, current_user.id)
+    dsvc = DescriptorPerformanceService()
+    if escola_ids:
+        aluno_ids = dsvc.aluno_ids_for_escolas(db, escola_ids)
+        escolas_tbl = dsvc.escolas_engajamento(db, escola_ids)
+    else:
+        aluno_ids = dsvc.aluno_ids_all(db)
+        escolas_tbl = dsvc.escolas_engajamento(db, None)
+    return templates.TemplateResponse(
+        request,
+        "gestor/dashboard.html",
+        {
+            "request": request,
+            "stats": stats,
+            "escolas_engajamento": escolas_tbl,
+            "descritores_resumo": dsvc.aggregates_for_alunos(db, aluno_ids)[:6],
+        },
+    )
+
+
+@app.get("/gestor/proficiencia")
+def gestor_proficiencia(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
+):
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
+
+    escola_ids = _gestor_escola_ids(db, current_user.id)
+    dsvc = DescriptorPerformanceService()
+    rows = dsvc.escolas_engajamento(db, escola_ids if escola_ids else None)
+    return templates.TemplateResponse(
+        request,
+        "gestor/proficiencia.html",
+        {"request": request, "escolas_rows": rows},
+    )
+
+
+@app.get("/gestor/alertas")
+def gestor_alertas(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
+):
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
+
+    escola_ids = _gestor_escola_ids(db, current_user.id)
+    dsvc = DescriptorPerformanceService()
+    rows = dsvc.escolas_engajamento(db, escola_ids if escola_ids else None)
+    alertas = [r for r in rows if r["engajamento_pct"] < 40 and r["n_alunos"] > 0]
+    return templates.TemplateResponse(
+        request,
+        "gestor/alertas.html",
+        {"request": request, "alertas": alertas},
+    )
+
+
+@app.get("/gestor/relatorios")
+def gestor_relatorios_page(
+    request: Request,
+    current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
+):
+    return templates.TemplateResponse(request, "gestor/relatorios.html", {"request": request})
+
+
+@app.get("/gestor/relatorios/export.csv")
+def gestor_relatorios_export(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
+    tipo: str = "progresso_escolas",
+):
+    import csv
+    import io
+
+    from fastapi.responses import StreamingResponse
+
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
+
+    escola_ids = _gestor_escola_ids(db, current_user.id)
+    dsvc = DescriptorPerformanceService()
+    aluno_ids = (
+        dsvc.aluno_ids_for_escolas(db, escola_ids) if escola_ids else dsvc.aluno_ids_all(db)
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+
+    if tipo == "progresso_escolas":
+        writer.writerow(["escola_id", "escola_nome", "n_alunos", "engajamento_pct", "media_concluidas_atividades"])
+        for r in dsvc.escolas_engajamento(db, escola_ids if escola_ids else None):
+            writer.writerow(
+                [
+                    r["escola_id"],
+                    r["escola_nome"],
+                    r["n_alunos"],
+                    r["engajamento_pct"],
+                    r["media_concluidas"],
+                ]
+            )
+        filename = "relatorio_progresso_escolas.csv"
+    elif tipo == "descritores":
+        writer.writerow(
+            ["codigo", "descricao", "taxa_conclusao_pct", "alunos_com_conclusao", "alunos_elegiveis", "score_medio"]
+        )
+        for r in dsvc.aggregates_for_alunos(db, aluno_ids):
+            writer.writerow(
+                [
+                    r["codigo"],
+                    r["descricao"],
+                    r["taxa_pct"],
+                    r["alunos_com_conclusao"],
+                    r["alunos_elegiveis"],
+                    r["score_medio"] if r["score_medio"] is not None else "",
+                ]
+            )
+        filename = "relatorio_descritores.csv"
+    elif tipo == "risco_alunos":
+        from app.models.aluno import Aluno
+        from app.models.gestao import Escola, Turma
+        from app.models.user import Usuario
+
+        writer.writerow(["aluno_id", "nome", "turma", "escola", "nivel_risco", "ano_escolar"])
+        q = (
+            db.query(Aluno, Usuario.nome, Turma.nome, Escola.nome)
+            .join(Usuario, Aluno.usuario_id == Usuario.id)
+            .outerjoin(Turma, Aluno.turma_id == Turma.id)
+            .outerjoin(Escola, Turma.escola_id == Escola.id)
+        )
+        if escola_ids:
+            q = q.filter(Turma.escola_id.in_(escola_ids))
+        for aluno, nome, turma_nome, escola_nome in q.all():
+            if (aluno.nivel_risco or "").upper() != "BAIXO":
+                writer.writerow(
+                    [
+                        aluno.id,
+                        nome or "",
+                        turma_nome or "",
+                        escola_nome or "",
+                        aluno.nivel_risco or "",
+                        aluno.ano_escolar or "",
+                    ]
+                )
+        filename = "relatorio_alunos_risco.csv"
+    else:
+        from fastapi import HTTPException
+
+        raise HTTPException(400, "Tipo de relatório inválido")
+
+    data = "\ufeff" + output.getvalue()
+    return StreamingResponse(
+        iter([data]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/admin")
@@ -282,8 +861,8 @@ def coordenador_dashboard(
 ):
     from app.models.gestao import Escola
     from app.models.relacoes import CoordenadorEscola
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
 
-    stats = DashboardService().get_coordenador_stats(db)
     rel = (
         db.query(CoordenadorEscola)
         .join(Escola, CoordenadorEscola.escola_id == Escola.id)
@@ -291,6 +870,19 @@ def coordenador_dashboard(
         .first()
     )
     escola = rel.escola if rel else None
+    stats = DashboardService().get_coordenador_stats(db, escola.id if escola else None)
+    dsvc = DescriptorPerformanceService()
+    aluno_ids_escola = dsvc.aluno_ids_for_escolas(db, [escola.id]) if escola else []
+    descritores_escola = dsvc.aggregates_for_alunos(db, aluno_ids_escola) if aluno_ids_escola else []
+    lacunas_cards = []
+    for row in descritores_escola[:2]:
+        lacunas_cards.append(
+            {
+                "titulo": f"{row.get('codigo') or 'Descritor'} — {(row.get('descricao') or '')[:48]}",
+                "pct": max(0, min(100, float(row.get("taxa_pct") or 0))),
+                "descricao": f"Score médio: {row.get('score_medio') if row.get('score_medio') is not None else '—'} · {row.get('alunos_com_conclusao', 0)}/{row.get('alunos_elegiveis', 0)} alunos com conclusão.",
+            }
+        )
 
     nome = (current_user.nome or "").strip()
     partes = nome.split()
@@ -310,8 +902,199 @@ def coordenador_dashboard(
             "current_user": current_user,
             "escola": escola,
             "avatar_iniciais": avatar_iniciais,
+            "turmas_monitoramento": _coordenador_turmas_monitoramento(db, escola.id if escola else None),
+            "riscos_por_turma": _coordenador_riscos_por_turma(db, escola.id if escola else None),
+            "lacunas_cards": lacunas_cards,
         },
     )
+
+
+def _coordenador_turmas_monitoramento(db: Session, escola_id: int | None) -> list[dict]:
+    from app.models.gestao import Turma
+    from app.models.aluno import Aluno
+    from app.models.relacoes import ProfessorTurma
+    from app.models.user import Usuario
+    from app.models.h5p import ProgressoH5P, AtividadeH5P
+
+    if not escola_id:
+        return []
+    total_atividades = db.query(AtividadeH5P).filter(AtividadeH5P.ativo).count()
+    turmas = db.query(Turma).filter(Turma.escola_id == escola_id).order_by(Turma.ano_escolar, Turma.nome).all()
+    out = []
+    for t in turmas:
+        professor_nome = (
+            db.query(Usuario.nome)
+            .join(ProfessorTurma, ProfessorTurma.professor_id == Usuario.id)
+            .filter(ProfessorTurma.turma_id == t.id)
+            .limit(1)
+            .scalar()
+            or "Sem professor"
+        )
+        aluno_ids = [r[0] for r in db.query(Aluno.id).filter(Aluno.turma_id == t.id).all()]
+        adesao = 0.0
+        prof_media = 0.0
+        if aluno_ids and total_atividades:
+            done = (
+                db.query(ProgressoH5P)
+                .filter(ProgressoH5P.aluno_id.in_(aluno_ids), ProgressoH5P.concluido)
+                .count()
+            )
+            adesao = round(min(100.0, (done / (len(aluno_ids) * total_atividades)) * 100), 1)
+            avg_score = (
+                db.query(func.avg(ProgressoH5P.score))
+                .filter(ProgressoH5P.aluno_id.in_(aluno_ids), ProgressoH5P.concluido, ProgressoH5P.score.isnot(None))
+                .scalar()
+            )
+            prof_media = round(float(avg_score or 0), 1)
+        status = "Crítico" if adesao < 60 else ("Bom" if adesao < 85 else "Adequado")
+        out.append(
+            {
+                "turma": f"{t.ano_escolar}º Ano {t.nome}",
+                "professor": professor_nome,
+                "adesao_pct": adesao,
+                "proficiencia": prof_media,
+                "status": status,
+            }
+        )
+    return out
+
+
+def _coordenador_riscos_por_turma(db: Session, escola_id: int | None) -> list[dict]:
+    from app.models.gestao import Turma
+    from app.models.aluno import Aluno
+
+    if not escola_id:
+        return []
+    turmas = db.query(Turma).filter(Turma.escola_id == escola_id).all()
+    out = []
+    for t in turmas:
+        total = db.query(Aluno).filter(Aluno.turma_id == t.id).count()
+        risco = db.query(Aluno).filter(Aluno.turma_id == t.id, Aluno.nivel_risco != "BAIXO").count()
+        if risco <= 0:
+            continue
+        out.append(
+            {
+                "turma": f"{t.ano_escolar}º Ano {t.nome}",
+                "qtd_risco": risco,
+                "pct": round((risco / max(1, total)) * 100, 1),
+            }
+        )
+    out.sort(key=lambda x: x["qtd_risco"], reverse=True)
+    return out[:5]
+
+
+@app.get("/coordenador/relatorios")
+def coordenador_relatorios_page(
+    request: Request,
+    current_user: Usuario = Depends(require_role_redirect(UserRole.COORDENADOR)),
+):
+    return templates.TemplateResponse(request, "coordenador/relatorios.html", {"request": request})
+
+
+@app.get("/coordenador/relatorios/export.csv")
+def coordenador_relatorios_export(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.COORDENADOR)),
+    tipo: str = "monitoramento_turmas",
+):
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    from app.models.gestao import Escola
+    from app.models.relacoes import CoordenadorEscola
+
+    rel = (
+        db.query(CoordenadorEscola)
+        .join(Escola, CoordenadorEscola.escola_id == Escola.id)
+        .filter(CoordenadorEscola.coordenador_id == current_user.id)
+        .first()
+    )
+    escola_id = rel.escola_id if rel else None
+    if not escola_id:
+        raise HTTPException(400, "Coordenador sem escola vinculada")
+
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+    if tipo == "monitoramento_turmas":
+        writer.writerow(["turma", "professor", "adesao_pct", "proficiencia_media", "status"])
+        for r in _coordenador_turmas_monitoramento(db, escola_id):
+            writer.writerow([r["turma"], r["professor"], r["adesao_pct"], r["proficiencia"], r["status"]])
+        filename = "coordenacao_monitoramento_turmas.csv"
+    elif tipo == "risco_turmas":
+        writer.writerow(["turma", "alunos_em_risco", "pct_risco"])
+        for r in _coordenador_riscos_por_turma(db, escola_id):
+            writer.writerow([r["turma"], r["qtd_risco"], r["pct"]])
+        filename = "coordenacao_mapa_risco.csv"
+    else:
+        raise HTTPException(400, "Tipo de relatório inválido")
+
+    data = "\ufeff" + output.getvalue()
+    return StreamingResponse(
+        iter([data]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename=\"{filename}\"'},
+    )
+
+
+@app.get("/suporte/chamado")
+def suporte_chamado_get(
+    request: Request,
+    current_user: Usuario | None = Depends(get_current_user_optional),
+):
+    err = request.query_params.get("erro")
+    ok = request.query_params.get("ok")
+    email_default = (current_user.email if current_user else "") or ""
+    return templates.TemplateResponse(
+        request,
+        "suporte/chamado.html",
+        {
+            "request": request,
+            "email_default": email_default,
+            "erro": err,
+            "ok": ok,
+        },
+    )
+
+
+@app.post("/suporte/chamado")
+async def suporte_chamado_post(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | None = Depends(get_current_user_optional),
+):
+    from datetime import datetime
+
+    from app.models.support_ticket import SupportTicket, SupportTicketMessage
+
+    form = await request.form()
+    email = (form.get("email") or "").strip()
+    assunto = (form.get("assunto") or "").strip()
+    mensagem = (form.get("mensagem") or "").strip()
+    if current_user and getattr(current_user, "email", None):
+        email = email or current_user.email
+    if not email or not assunto or not mensagem:
+        return RedirectResponse(url="/suporte/chamado?erro=campos", status_code=303)
+    ticket = SupportTicket(
+        usuario_id=current_user.id if current_user else None,
+        email=email[:255],
+        assunto=assunto[:200],
+        status="aberto",
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    db.add(ticket)
+    db.flush()
+    db.add(
+        SupportTicketMessage(
+            ticket_id=ticket.id,
+            autor_role="usuario",
+            corpo=mensagem[:8000],
+            created_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+    return RedirectResponse(url="/suporte/chamado?ok=1", status_code=303)
 
 
 @app.get("/")

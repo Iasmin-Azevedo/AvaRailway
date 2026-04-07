@@ -1,0 +1,50 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Desempenho por descritores{% endblock %}
+{% block brand_link %}/professor{% endblock %}
+{% block menu_title %}Professor{% endblock %}
+{% block header_right %}
+<div class="w-100 w-lg-auto mw-100">
+    {% include "professor/partials/turma_selector.html" %}
+</div>
+{% endblock %}
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/desempenho-descritores">Desempenho</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/radar-alunos">Radar de Alunos</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/chat-duvidas">Dúvidas Chatbot</a>
+{% endblock %}
+{% block main_content %}
+<div class="mb-3">
+    <a href="/professor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao painel</a>
+</div>
+<h1 class="h4 fw-bold text-mj-dark mb-3">Desempenho por descritores SAEB</h1>
+<p class="text-mj-muted small mb-4">Dados agregados das atividades H5P concluídas pelos alunos da turma selecionada.</p>
+{% if not descritores_rows %}
+<div class="alert alert-light border rounded-4">Sem dados de descritores para esta turma (nenhuma atividade vinculada ou sem conclusões).</div>
+{% else %}
+<div class="table-responsive rounded-4 border bg-white shadow-sm">
+    <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+            <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th class="text-end">Alunos c/ conclusão</th>
+                <th class="text-end">Taxa</th>
+                <th class="text-end">Score médio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in descritores_rows %}
+            <tr>
+                <td class="fw-bold text-mj-primary">{{ r.codigo }}</td>
+                <td>{{ r.descricao }}</td>
+                <td class="text-end">{{ r.alunos_com_conclusao }} / {{ r.alunos_elegiveis }}</td>
+                <td class="text-end">{{ r.taxa_pct }}%</td>
+                <td class="text-end">{% if r.score_medio is not none %}{{ r.score_medio }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

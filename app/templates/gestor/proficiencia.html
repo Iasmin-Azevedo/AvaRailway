@@ -1,0 +1,41 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Proficiência por escola{% endblock %}
+{% block brand_link %}/gestor{% endblock %}
+{% block menu_title %}Gestor{% endblock %}
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/gestor">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/proficiencia">Proficiência</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/alertas">Alertas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/gestor/relatorios">Relatórios</a>
+{% endblock %}
+{% block main_content %}
+<div class="mb-3"><a href="/gestor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Painel</a></div>
+<h1 class="h4 fw-bold text-mj-dark mb-3">Engajamento H5P por escola</h1>
+<div class="table-responsive rounded-4 border bg-white shadow-sm">
+    <table class="table table-hover mb-0 small align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Escola</th>
+                <th>Alunos</th>
+                <th>Engajamento (estimado)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in escolas_rows %}
+            <tr>
+                <td class="fw-bold">{{ r.escola_nome }}</td>
+                <td>{{ r.n_alunos }}</td>
+                <td>
+                    <div class="progress" style="height:8px;max-width:220px;">
+                        <div class="progress-bar bg-mj-primary" style="width: {{ r.engajamento_pct }}%"></div>
+                    </div>
+                    <span class="small text-mj-muted">{{ r.engajamento_pct }}%</span>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4">Sem escolas cadastradas.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

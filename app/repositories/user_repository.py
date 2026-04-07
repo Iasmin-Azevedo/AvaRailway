@@ -29,7 +29,8 @@ class UserRepository:
             nome=user.nome,
             email=user.email,
             senha_hash=get_password_hash(user.senha),
-            role=user.role
+            role=user.role,
+            permite_cadastro_trilha_geral=bool(getattr(user, "permite_cadastro_trilha_geral", False)),
         )
         db.add(db_user)
         db.commit()
@@ -45,6 +46,7 @@ class UserRepository:
         senha: Optional[str] = None,
         role: Optional[UserRole] = None,
         ativo: Optional[bool] = None,
+        permite_cadastro_trilha_geral: Optional[bool] = None,
     ) -> Optional[Usuario]:
         obj = self.get_by_id(db, id)
         if not obj:
@@ -59,6 +61,8 @@ class UserRepository:
             obj.role = role
         if ativo is not None:
             obj.ativo = ativo
+        if permite_cadastro_trilha_geral is not None:
+            obj.permite_cadastro_trilha_geral = bool(permite_cadastro_trilha_geral)
         db.commit()
         db.refresh(obj)
         return obj

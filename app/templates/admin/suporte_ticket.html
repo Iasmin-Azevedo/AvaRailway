@@ -1,0 +1,48 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Chamado #{{ ticket.id }}{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Admin{% endblock %}
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/admin">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/suporte">Suporte</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/cursos">Cursos</a>
+{% endblock %}
+{% block main_content %}
+<div class="mb-3 d-flex flex-wrap gap-2">
+    <a href="/admin/suporte" class="text-mj-primary text-decoration-none small">← Lista</a>
+</div>
+<h1 class="h4 fw-bold text-mj-dark mb-1">#{{ ticket.id }} — {{ ticket.assunto }}</h1>
+<p class="small text-mj-muted mb-3">{{ ticket.email }} · <span class="badge bg-secondary">{{ ticket.status }}</span></p>
+
+<div class="card dash-card border-0 mb-4">
+    <div class="card-body">
+        <h2 class="h6 fw-bold">Histórico</h2>
+        <ul class="list-unstyled mb-0">
+            {% for m in mensagens %}
+            <li class="mb-3 pb-3 border-bottom">
+                <span class="badge {% if m.autor_role == 'admin' %}bg-mj-primary{% else %}bg-light text-dark{% endif %} mb-1">{{ m.autor_role }}</span>
+                <span class="small text-muted">{{ m.created_at.strftime('%d/%m/%Y %H:%M') if m.created_at else '' }}</span>
+                <p class="mb-0 mt-1 text-break">{{ m.corpo }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% if ticket.status != 'resolvido' %}
+<div class="card dash-card border-0 mb-3">
+    <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">Responder</h2>
+        <form action="/admin/suporte/{{ ticket.id }}/responder" method="post">
+            <textarea name="corpo" class="form-control mb-3" rows="4" required placeholder="Sua resposta ao usuário"></textarea>
+            <button type="submit" class="btn btn-mj rounded-pill">Enviar resposta</button>
+        </form>
+    </div>
+</div>
+<form action="/admin/suporte/{{ ticket.id }}/resolver" method="post" class="d-inline" onsubmit="return confirm('Marcar como resolvido?');">
+    <button type="submit" class="btn btn-mj-outline rounded-pill" {% if ticket.status == 'resolvido' %}disabled{% endif %}>Marcar como resolvido</button>
+</form>
+{% else %}
+<p class="text-success small"><i class="fas fa-check-circle me-1"></i> Chamado resolvido.</p>
+{% endif %}
+{% endblock %}

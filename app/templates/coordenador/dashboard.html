@@ -28,9 +28,9 @@
 
 {% block offcanvas_links %}
 <a class="btn btn-mj w-100 rounded-pill mb-2" href="/coordenador">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Monitoramento</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Mapa de Risco</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="#">Relatórios</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/coordenador#monitoramento">Monitoramento</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/coordenador#mapa-risco">Mapa de Risco</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/coordenador/relatorios">Relatórios</a>
 {% endblock %}
 
 {% block main_content %}
@@ -43,6 +43,9 @@
             </div>
             <div class="dash-stat-value text-mj-primary mb-1">{{ stats.adesao_escolar_pct|default(92) }}%</div>
             <small class="text-success fw-bold">Meta atingida (Alunos ativos)</small>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-mj-primary" style="width: {{ stats.kpi_chart_adesao|default(0) }}%"></div>
+            </div>
         </div>
     </div>
     <div class="col-md-3">
@@ -53,6 +56,9 @@
             </div>
             <div class="dash-stat-value text-success mb-1">{{ stats.media_proficiencia|default(210.5) }}</div>
             <small class="text-muted">Desempenho nos simulados SAEB</small>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-success" style="width: {{ stats.kpi_chart_proficiencia|default(0) }}%"></div>
+            </div>
         </div>
     </div>
     <div class="col-md-3">
@@ -63,6 +69,9 @@
             </div>
             <div class="dash-stat-value text-warning mb-1">{{ stats.turmas_alerta|default(0) }}</div>
             <small class="text-muted">Abaixo de 60% no engajamento</small>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-warning" style="width: {{ stats.kpi_chart_turmas_alerta|default(0) }}%"></div>
+            </div>
         </div>
     </div>
     <div class="col-md-3">
@@ -73,13 +82,16 @@
             </div>
             <div class="dash-stat-value text-info mb-1">{{ stats.interacoes_chatbot|default(3450) }}</div>
             <small class="text-muted">Dúvidas tiradas na escola este mês</small>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-info" style="width: {{ stats.kpi_chart_chat|default(0) }}%"></div>
+            </div>
         </div>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
     <div class="col-lg-8 d-flex flex-column gap-4">
-        <div class="card dash-card flex-grow-1">
+        <div class="card dash-card flex-grow-1" id="monitoramento">
             <div class="dash-card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-dark">Monitoramento por Turma</h5>
                 <div class="d-flex gap-2">
@@ -102,27 +114,27 @@
                             </tr>
                         </thead>
                         <tbody class="small">
+                            {% for row in turmas_monitoramento %}
+                            <tr class="{% if row.status == 'Crítico' %}table-warning border-warning{% endif %}">
+                                <td class="ps-4 fw-bold text-dark">{{ row.turma }}</td>
+                                <td>{{ row.professor }}</td>
+                                <td><span class="fw-bold {% if row.adesao_pct < 60 %}text-danger{% elif row.adesao_pct < 85 %}text-mj-primary{% else %}text-success{% endif %}">{{ row.adesao_pct }}%</span></td>
+                                <td>
+                                    <span class="badge {% if row.status == 'Crítico' %}bg-danger text-white{% elif row.status == 'Bom' %}bg-primary bg-opacity-25 text-mj-primary border border-mj-primary{% else %}bg-success bg-opacity-25 text-success border border-success{% endif %}">
+                                        {{ row.status }}
+                                    </span>
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <button class="btn btn-sm btn-mj-outline" title="Proficiência média {{ row.proficiencia }}">
+                                        <i class="fa-solid fa-chart-pie"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
                             <tr>
-                                <td class="ps-4 fw-bold text-dark">2º Ano A</td>
-                                <td>Carlos Eduardo</td>
-                                <td><span class="fw-bold text-success">95%</span></td>
-                                <td><span class="badge bg-success bg-opacity-25 text-success border border-success">Adequado</span></td>
-                                <td class="pe-4 text-end"><button class="btn btn-sm btn-mj-outline"><i class="fa-solid fa-chart-pie"></i></button></td>
+                                <td class="ps-4 text-muted" colspan="5">Sem dados de turmas para monitoramento.</td>
                             </tr>
-                            <tr>
-                                <td class="ps-4 fw-bold text-dark">5º Ano B</td>
-                                <td>Silvia Helena</td>
-                                <td><span class="fw-bold text-mj-primary">82%</span></td>
-                                <td><span class="badge bg-primary bg-opacity-25 text-mj-primary border border-mj-primary">Bom</span></td>
-                                <td class="pe-4 text-end"><button class="btn btn-sm btn-mj-outline"><i class="fa-solid fa-chart-pie"></i></button></td>
-                            </tr>
-                            <tr class="table-warning border-warning">
-                                <td class="ps-4 fw-bold text-warning">9º Ano C</td>
-                                <td>Roberto Alves</td>
-                                <td><span class="fw-bold text-danger">45%</span></td>
-                                <td><span class="badge bg-danger text-white">Crítico</span></td>
-                                <td class="pe-4 text-end"><button class="btn btn-sm btn-warning fw-bold text-dark">Intervir</button></td>
-                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -137,55 +149,55 @@
             <div class="card-body p-4">
                 <p class="small text-muted mb-4">O Chatbot de IA mapeou os temas mais perguntados pelos alunos desta escola nos últimos 15 dias. Utilize esses dados para organizar Lives e distribuir materiais complementares.</p>
                 <div class="row g-3">
+                    {% if lacunas_cards and lacunas_cards|length > 0 %}
+                    {% for c in lacunas_cards %}
                     <div class="col-md-6">
-                        <div class="border rounded-3 p-3 h-100 dash-alert-item dash-alert-item--danger">
-                            <h6 class="fw-bold text-dark small mb-2">5º Ano - Frações e Decimais</h6>
+                        <div class="border rounded-3 p-3 h-100 dash-alert-item {% if c.pct < 45 %}dash-alert-item--danger{% else %}dash-alert-item--warning{% endif %}">
+                            <h6 class="fw-bold text-dark small mb-2">{{ c.titulo }}</h6>
                             <div class="progress mb-2" style="height: 6px;">
-                                <div class="progress-bar bg-danger" style="width: 42%"></div>
+                                <div class="progress-bar {% if c.pct < 45 %}bg-danger{% else %}bg-warning{% endif %}" style="width: {{ c.pct }}%"></div>
                             </div>
-                            <small class="text-muted d-block mb-2">42% das interações do 5º ano foram sobre "Soma de Frações".</small>
-                            <button class="btn btn-sm btn-outline-danger w-100 fw-bold">Sugerir Live de Revisão</button>
+                            <small class="text-muted d-block mb-2">{{ c.descricao }}</small>
+                            <a href="/coordenador/relatorios/export.csv?tipo=monitoramento_turmas" class="btn btn-sm {% if c.pct < 45 %}btn-outline-danger{% else %}btn-outline-warning text-dark{% endif %} w-100 fw-bold">Abrir relatório de intervenção</a>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    {% endfor %}
+                    {% else %}
+                    <div class="col-12">
                         <div class="border rounded-3 p-3 h-100 dash-alert-item dash-alert-item--warning">
-                            <h6 class="fw-bold text-dark small mb-2">9º Ano - Interpretação Textual</h6>
-                            <div class="progress mb-2" style="height: 6px;">
-                                <div class="progress-bar bg-warning" style="width: 28%"></div>
-                            </div>
-                            <small class="text-muted d-block mb-2">Dificuldade coletiva em "Ideia Principal" e "Causa e Consequência".</small>
-                            <button class="btn btn-sm btn-outline-warning text-dark w-100 fw-bold">Recomendar Trilha de Reforço</button>
+                            <h6 class="fw-bold text-dark small mb-2">Sem lacunas detectadas</h6>
+                            <small class="text-muted d-block mb-2">Ainda não há dados suficientes para sugerir intervenções automáticas por descritor.</small>
+                            <a href="/coordenador/relatorios" class="btn btn-sm btn-outline-warning text-dark w-100 fw-bold">Acessar central de relatórios</a>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
     <div class="col-lg-4 d-flex flex-column gap-4">
-        <div class="card dash-card bg-mj-dark text-white border-0 flex-grow-1">
+        <div class="card dash-card bg-mj-dark text-white border-0 flex-grow-1" id="mapa-risco">
             <div class="dash-card-header bg-transparent border-secondary d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0 text-white"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i> Mapa de Risco Escolar</h6>
                 <span class="badge bg-danger rounded-pill">12 Alunos</span>
             </div>
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush small">
+                    {% for risco in riscos_por_turma %}
                     <li class="list-group-item bg-transparent text-white border-secondary p-3">
                         <div class="d-flex justify-content-between align-items-start mb-1">
-                            <span class="fw-bold">Turma 9º Ano C</span>
-                            <span class="badge bg-warning text-dark">8 alunos</span>
+                            <span class="fw-bold">{{ risco.turma }}</span>
+                            <span class="badge {% if risco.pct >= 40 %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ risco.qtd_risco }} alunos</span>
                         </div>
-                        <p class="text-light opacity-75 mb-2" style="font-size: 0.8rem;">Sem acesso há mais de 10 dias.</p>
-                        <button class="btn btn-sm btn-light py-0 fw-bold w-100">Acionar Busca Ativa</button>
+                        <p class="text-light opacity-75 mb-2" style="font-size: 0.8rem;">{{ risco.pct }}% da turma está em nível de risco pedagógico.</p>
+                        <button class="btn btn-sm btn-light py-0 fw-bold w-100">Acompanhar intervenção</button>
                     </li>
+                    {% else %}
                     <li class="list-group-item bg-transparent text-white border-secondary p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <span class="fw-bold">Turma 5º Ano A</span>
-                            <span class="badge bg-danger">4 alunos</span>
-                        </div>
-                        <p class="text-light opacity-75 mb-2" style="font-size: 0.8rem;">Desempenho abaixo de 20% no Simulado.</p>
-                        <button class="btn btn-sm btn-light py-0 fw-bold w-100">Contatar Professor</button>
+                        <p class="text-light opacity-75 mb-0" style="font-size: 0.8rem;">Sem turmas em risco no momento.</p>
                     </li>
+                    {% endfor %}
                 </ul>
             </div>
         </div>
@@ -196,20 +208,23 @@
             </div>
             <div class="card-body p-3">
                 <div class="d-grid gap-2">
-                    <button class="btn btn-light border shadow-sm text-start d-flex justify-content-between align-items-center p-3 hover-lift">
+                    <a href="/coordenador/relatorios/export.csv?tipo=monitoramento_turmas" class="btn btn-light border shadow-sm text-start d-flex justify-content-between align-items-center p-3 hover-lift">
                         <div>
                             <span class="fw-bold text-dark d-block small">Relatório Mensal de Engajamento</span>
                             <span class="text-muted" style="font-size: 0.75rem;">Acessos por turma e tempo médio</span>
                         </div>
                         <i class="fa-solid fa-download text-mj-primary"></i>
-                    </button>
-                    <button class="btn btn-light border shadow-sm text-start d-flex justify-content-between align-items-center p-3 hover-lift">
+                    </a>
+                    <a href="/coordenador/relatorios/export.csv?tipo=risco_turmas" class="btn btn-light border shadow-sm text-start d-flex justify-content-between align-items-center p-3 hover-lift">
                         <div>
                             <span class="fw-bold text-dark d-block small">Relatório de Desempenho Habilidades</span>
                             <span class="text-muted" style="font-size: 0.75rem;">Lacunas do SAEB na escola</span>
                         </div>
                         <i class="fa-solid fa-download text-success"></i>
-                    </button>
+                    </a>
+                    <a href="/coordenador/relatorios" class="btn btn-mj-outline text-start p-3 rounded-3">
+                        <i class="fa-solid fa-folder-open me-2"></i> Abrir central de relatórios
+                    </a>
                 </div>
             </div>
         </div>

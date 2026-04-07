@@ -9,8 +9,7 @@
 
 {% block offcanvas_links %}
 <a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/trilhas">Trilhas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/missao1">Mapa de Missões</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/portugues">Trilhas</a>
 <a class="btn btn-mj-outline w-100 rounded-pill" href="#">Configurações</a>
 {% endblock %}
 {% block offcanvas_extra %}
@@ -51,6 +50,11 @@
 {% if request.query_params.get("acesso_negado_ano") %}
 <div class="alert alert-warning border-0 rounded-4 shadow-sm mb-3">
     <i class="fas fa-lock me-2"></i> Essa atividade pertence a outro ano escolar e não está disponível para você.
+</div>
+{% endif %}
+{% if request.query_params.get("acesso_bloqueado_trilha") %}
+<div class="alert alert-warning border-0 rounded-4 shadow-sm mb-3">
+    <i class="fas fa-lock me-2"></i> Esta trilha ainda está bloqueada. Finalize a trilha anterior para liberar.
 </div>
 {% endif %}
 <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -169,10 +173,36 @@
             </div>
         </article>
 
-        {% set unlock = namespace(previous_completed=true) %}
+        {% if atividades_professor_turma %}
+        <article class="card dash-card border-0 mb-4" id="atividades-turma">
+            <div class="card-body p-4">
+                <h4 class="h6 fw-bold text-mj-dark mb-3"><i class="fas fa-chalkboard-teacher me-2 text-mj-primary"></i>Atividades da sua turma</h4>
+                <p class="small text-mj-muted mb-3">As atividades cadastradas pelo seu professor aparecem nesta seção.</p>
+                <div class="row g-3">
+                    {% for ap in atividades_professor_turma %}
+                    <div class="col-12 col-md-6">
+                        <div class="border rounded-4 p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div class="fw-bold text-mj-dark">{{ ap.titulo }}</div>
+                                    <div class="small text-mj-muted">{{ tipo_labels.get(ap.tipo, 'Outro') }}</div>
+                                </div>
+                                {% if ap.id in atividades_professor_concluidas %}
+                                <span class="badge bg-success">Concluída</span>
+                                {% endif %}
+                            </div>
+                            <a href="/aluno/atividade-professor/{{ ap.id }}" class="btn btn-sm btn-mj mt-3 rounded-pill">Abrir atividade</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+        {% endif %}
+
         {% for t in trilhas %}
         {% set p = progresso_por_trilha.get(t.id, {"total": 0, "concluidas": 0, "pct": 0}) %}
-        {% set bloqueada = (not unlock.previous_completed) and loop.index > 1 %}
+        {% set bloqueada = t.id in trilhas_bloqueadas %}
         {% set acts = atividades_por_trilha.get(t.id, []) %}
         {% set curso_nome = t.curso.nome if t.curso else 'Trilha' %}
 
@@ -190,7 +220,7 @@
                 </div>
 
                 <div class="row g-4">
-                    <div class="col-md-4">
+                    <div class="col-12 col-lg-4">
                         <h5 class="small fw-bold text-mj-dark text-uppercase mb-3">Habilidades e objetos</h5>
                         {% set descs = descritores_por_trilha.get(t.id, []) %}
                         {% if descs %}
@@ -209,19 +239,19 @@
                         {% endif %}
                     </div>
 
-                    <div class="col-md-6 offset-2">
+                    <div class="col-12 col-lg-7 offset-lg-1">
                         <h5 class="small fw-bold text-mj-dark text-uppercase mb-3">Atividades</h5>
                         {% if acts %}
                         <ul class="list-unstyled mb-0 jornada-atividades-list">
                             {% for a in acts %}
-                            <li id="atividade-{{ t.id }}-{{ a.id }}" class="card p-3 mb-3 border-0 shadow-sm rounded-4 d-flex flex-row align-items-center gap-3 transition-hover">
+                            <li id="atividade-{{ t.id }}-{{ a.id }}" class="card p-3 mb-3 border-0 shadow-sm rounded-4 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-3 transition-hover scroll-margin-top">
                                 
                                 <div class="jornada-atividade-icon--{{ tipo_css.get(a.tipo, 'outro') }} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
                                      style="width: 50px; height: 50px;">
                                     <i class="fas {{ tipo_icons.get(a.tipo, 'fa-puzzle-piece') }} fs-5"></i>
                                 </div>
                         
-                                <div class="flex-grow-1 min-w-0">
+                                <div class="flex-grow-1 min-w-0 text-break">
                                     <div class="mb-1">
                                         <span class="badge rounded-pill fw-medium px-2 py-1 small jornada-atividade-tipo-badge--{{ tipo_css.get(a.tipo, 'outro') }}" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">
                                             {{ tipo_labels.get(a.tipo, a.tipo) }}
@@ -232,7 +262,7 @@
                                     </h6>
                                 </div>
                         
-                                <div class="ms-auto flex-shrink-0">
+                                <div class="ms-sm-auto flex-shrink-0 d-flex justify-content-sm-end">
                                     {% if bloqueada %}
                                         <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-muted shadow-sm" style="width: 40px; height: 40px;" data-bs-toggle="tooltip" title="Disponível após liberar esta trilha">
                                             <i class="fas fa-lock"></i>
@@ -258,7 +288,6 @@
                 </div>
             </div>
         </article>
-        {% set unlock.previous_completed = (p.total == 0) or (p.concluidas >= p.total) %}
         {% endfor %}
     </div>
 </div>

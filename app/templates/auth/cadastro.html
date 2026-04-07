@@ -1,25 +1,14 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Criar conta — AVA MJ</title>
-    <link rel="shortcut icon" href="/static/img/icon.png" type="image/x-icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="/static/css/style.css" rel="stylesheet">
-</head>
-<body class="login-page-mj  bg-image-login min-vh-100 d-flex flex-lg-row flex-column">
+{% extends "base_public.html" %}
+{% block page_title %}Criar conta — AVA MJ{% endblock %}
+{% block body_class %}login-page-mj bg-image-login min-vh-100 d-flex flex-lg-row flex-column{% endblock %}
+{% block public_body %}
     <aside class="login-brand-mj d-none d-lg-flex flex-column justify-content-center align-items-center p-5 p-xl-6">
         <!-- <p class="text-mj-primary mt-4 mb-0 fw-medium small text-center" style="max-width: 20rem;">
             Cadastre-se conforme seu perfil na rede e acesse trilhas, gamificação e relatórios por descritor SAEB.
         </p> -->
     </aside>
 
-    <main class="login-form-mj flex-grow-1 d-flex p-4">
+    <main id="main-content" class="login-form-mj flex-grow-1 d-flex p-4" data-a11y-caption="Cadastro de novo usuário: escolha perfil de aluno e preencha os dados obrigatórios.">
         <div class="login-card-mj card border-0 shadow rounded-5 p-4 p-sm-5 flex-grow-1 d-flex flex-column justify-content-center align-items-center overflow-auto">
             <div class="login-card-inner w-100" style="max-width: 480px;">
                 <a href="/" class="d-flex align-items-center justify-content-center gap-2 text-mj-dark text-decoration-none mb-3">
@@ -165,7 +154,8 @@
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+{% block extra_scripts %}
     <script>
         (function () {
             var labels = { aluno: 'Aluno', professor: 'Professor', coordenador: 'Coordenador', gestor: 'Gestor' };
@@ -312,5 +302,4 @@
             setupPasswordToggle('senha_confirmar', 'toggleSenhaConfirmarIcon', 'toggleSenhaConfirmar');
         })();
     </script>
-</body>
-</html>
+{% endblock %}

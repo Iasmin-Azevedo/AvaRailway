@@ -4,15 +4,17 @@
 {% block menu_title %}Menu do Gestor{% endblock %}
 
 {% block header_right %}
+<div class="d-flex flex-wrap align-items-center gap-2 justify-content-end w-100 w-lg-auto">
 <span class="badge bg-white text-mj-primary border border-mj-primary">Ciclo 2025/2026</span>
-<div class="vr text-muted"></div>
-<span class="text-mj-muted small">Última atualização: Hoje, 10:45</span>
-<div class="d-flex align-items-center gap-2 ms-2">
+<div class="vr text-muted d-none d-md-block"></div>
+<span class="text-mj-muted small d-none d-sm-inline">Painel estratégico</span>
+<div class="d-flex align-items-center gap-2">
     <div class="text-end d-none d-md-block">
         <div class="mission-user-name mb-0">Gestor</div>
         <small class="text-mj-muted">Painel Estratégico</small>
     </div>
     <span class="mission-user-avatar bg-mj-primary text-white" style="font-size: 0.65rem;">G</span>
+</div>
 </div>
 {% endblock %}
 
@@ -20,9 +22,9 @@
 
 {% block offcanvas_links %}
 <a class="btn btn-mj w-100 rounded-pill mb-2" href="/gestor">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Proficiência</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Alertas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="#">Relatórios</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/proficiencia">Proficiência</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/alertas">Alertas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/gestor/relatorios">Relatórios</a>
 {% endblock %}
 
 {% block main_content %}
@@ -57,54 +59,52 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card dash-card border-0 border-start border-mj-primary border-4">
+            <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h2 class="h6 fw-bold text-mj-dark mb-1">Relatórios para gestão</h2>
+                    <p class="small text-mj-muted mb-0">Exporte CSV de escolas, descritores e alunos em risco.</p>
+                </div>
+                <a href="/gestor/relatorios" class="btn btn-mj rounded-pill"><i class="fas fa-file-csv me-1"></i> Abrir relatórios</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="card dash-card h-100">
-            <div class="dash-card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold text-mj-dark">Mapa de Proficiência por Unidade Escolar</h5>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-mj-outline dropdown-toggle" data-bs-toggle="dropdown">Filtrar: Língua Portuguesa</button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">Língua Portuguesa</a></li>
-                        <li><a class="dropdown-item" href="#">Matemática</a></li>
-                    </ul>
-                </div>
+            <div class="dash-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0 fw-bold text-mj-dark">Engajamento H5P por escola</h5>
+                <a class="btn btn-sm btn-mj-outline" href="/gestor/proficiencia">Ver tela completa</a>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr class="small text-muted">
-                                <th>Escola / Unidade</th>
-                                <th>Engajamento</th>
-                                <th>Proficiência (0-400)</th>
-                                <th>Status Meta</th>
-                                <th>Ações</th>
+                                <th>Escola</th>
+                                <th>Alunos</th>
+                                <th>Engajamento (estimado)</th>
                             </tr>
                         </thead>
                         <tbody>
+                            {% for r in escolas_engajamento|default([]) %}
                             <tr>
-                                <td class="fw-bold">Escola Municipal Boa Viagem Central</td>
-                                <td>
+                                <td class="fw-bold text-break">{{ r.escola_nome }}</td>
+                                <td>{{ r.n_alunos }}</td>
+                                <td style="min-width: 140px;">
                                     <div class="progress" style="height: 6px;">
-                                        <div class="progress-bar bg-mj-primary" style="width: 92%"></div>
+                                        <div class="progress-bar bg-mj-primary" style="width: {{ r.engajamento_pct }}%"></div>
                                     </div>
+                                    <span class="small text-muted">{{ r.engajamento_pct }}%</span>
                                 </td>
-                                <td><span class="badge bg-success">215.4 (Adequado)</span></td>
-                                <td class="text-success fw-bold">DENTRO</td>
-                                <td><button class="btn btn-sm btn-light border">Ver Detalhes</button></td>
                             </tr>
-                            <tr>
-                                <td class="fw-bold">Unidade Escolar Ponte Nova</td>
-                                <td>
-                                    <div class="progress" style="height: 6px;">
-                                        <div class="progress-bar bg-warning" style="width: 45%"></div>
-                                    </div>
-                                </td>
-                                <td><span class="badge bg-danger text-white">160.2 (Insatisfatório)</span></td>
-                                <td class="text-danger fw-bold">ABAIXO</td>
-                                <td><button class="btn btn-sm btn-light border">Ver Detalhes</button></td>
-                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-4">Nenhuma escola com dados.</td></tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -119,12 +119,16 @@
                     <span class="fs-4 me-2">🤖</span>
                     <h6 class="mb-0">Agente de IA: Análise de Rede</h6>
                 </div>
-                <p class="small text-light opacity-75">
-                    Detectamos que o <strong>Descritor D12 (Matemática)</strong> é a maior lacuna da rede no momento. Isso pode reduzir o IDEB em até 0.2 pontos.
+                <p class="small text-light opacity-75 mb-0">
+                    {% if descritores_resumo and descritores_resumo|length > 0 %}
+                    Descritores com menor taxa de conclusão na rede (amostra): <strong>{{ descritores_resumo[0].codigo }}</strong> — {{ descritores_resumo[0].taxa_pct }}% dos alunos com ao menos uma atividade concluída neste descritor.
+                    {% else %}
+                    Cadastre descritores nas atividades H5P para ver indicadores agregados aqui.
+                    {% endif %}
                 </p>
                 <hr class="bg-secondary">
                 <div class="d-grid">
-                    <button class="btn btn-mj btn-sm">Liberar Material de Apoio p/ Coordenadores</button>
+                    <a class="btn btn-mj btn-sm" href="/gestor/relatorios">Baixar relatório de descritores</a>
                 </div>
             </div>
         </div>

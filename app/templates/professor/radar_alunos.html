@@ -1,0 +1,53 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Radar de alunos{% endblock %}
+{% block brand_link %}/professor{% endblock %}
+{% block menu_title %}Professor{% endblock %}
+{% block header_right %}
+<div class="w-100 w-lg-auto mw-100">
+    {% include "professor/partials/turma_selector.html" %}
+</div>
+{% endblock %}
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/desempenho-descritores">Desempenho</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/radar-alunos">Radar de Alunos</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/chat-duvidas">Dúvidas Chatbot</a>
+{% endblock %}
+{% block main_content %}
+<div class="mb-3">
+    <a href="/professor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao painel</a>
+</div>
+<h1 class="h4 fw-bold text-mj-dark mb-3">Radar de acompanhamento</h1>
+<div class="table-responsive rounded-4 border bg-white shadow-sm">
+    <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light text-uppercase text-muted">
+            <tr>
+                <th class="ps-3">Aluno</th>
+                <th>Risco</th>
+                <th>Atividades H5P concluídas</th>
+                <th class="text-end pe-3">Progresso estimado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in radar_alunos %}
+            <tr>
+                <td class="ps-3 fw-bold">{{ a.nome }}</td>
+                <td>
+                    {% if a.nivel_risco == 'BAIXO' %}
+                    <span class="badge bg-success bg-opacity-25 text-success">Baixo</span>
+                    {% elif a.nivel_risco == 'MEDIO' or a.nivel_risco == 'MÉDIO' %}
+                    <span class="badge bg-warning bg-opacity-25 text-warning">Médio</span>
+                    {% else %}
+                    <span class="badge bg-danger bg-opacity-25 text-danger">{{ a.nivel_risco }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ a.concluidas }} / {{ a.total_atividades }}</td>
+                <td class="text-end pe-3">{{ a.progresso_pct }}%</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-4">Nenhum aluno nesta turma.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

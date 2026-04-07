@@ -1,0 +1,45 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Relatórios da Coordenação{% endblock %}
+{% block brand_link %}/coordenador{% endblock %}
+{% block menu_title %}Menu do Coordenador{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/coordenador">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/coordenador#monitoramento">Monitoramento</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/coordenador#mapa-risco">Mapa de Risco</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/coordenador/relatorios">Relatórios</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-3">
+    <a href="/coordenador" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao painel</a>
+</div>
+
+<h2 class="fw-bold text-mj-dark mb-3">Central de relatórios da coordenação</h2>
+<p class="text-mj-muted small mb-4">Exports CSV com dados reais da escola vinculada ao coordenador.</p>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card dash-card border-0 h-100">
+            <div class="card-body">
+                <h6 class="fw-bold text-mj-dark">Monitoramento por turma</h6>
+                <p class="small text-muted mb-3">Adesão, professor responsável e status de cada turma.</p>
+                <a class="btn btn-mj rounded-pill" href="/coordenador/relatorios/export.csv?tipo=monitoramento_turmas">
+                    <i class="fas fa-download me-1"></i> Baixar CSV
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card dash-card border-0 h-100">
+            <div class="card-body">
+                <h6 class="fw-bold text-mj-dark">Mapa de risco por turma</h6>
+                <p class="small text-muted mb-3">Quantidade e percentual de alunos em risco por turma.</p>
+                <a class="btn btn-mj rounded-pill" href="/coordenador/relatorios/export.csv?tipo=risco_turmas">
+                    <i class="fas fa-download me-1"></i> Baixar CSV
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Relatórios CSV{% endblock %}
+{% block brand_link %}/gestor{% endblock %}
+{% block menu_title %}Gestor{% endblock %}
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/gestor">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/proficiencia">Proficiência</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/alertas">Alertas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/gestor/relatorios">Relatórios</a>
+{% endblock %}
+{% block main_content %}
+<div class="mb-3"><a href="/gestor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Painel</a></div>
+<h1 class="h4 fw-bold text-mj-dark mb-3">Exportação de relatórios</h1>
+<!-- <p class="text-mj-muted small mb-4">Arquivos CSV com separador ponto e vírgula, codificação UTF-8 (compatível com Excel).</p> -->
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card dash-card border-0 h-100">
+            <div class="card-body">
+                <h2 class="h6 fw-bold text-mj-dark">Progresso por escola</h2>
+                <p class="small text-muted">Engajamento e média de conclusões de atividades H5P.</p>
+                <a class="btn btn-mj rounded-pill" href="/gestor/relatorios/export.csv?tipo=progresso_escolas"><i class="fas fa-download me-1"></i> Baixar Relatório</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card dash-card border-0 h-100">
+            <div class="card-body">
+                <h2 class="h6 fw-bold text-mj-dark">Desempenho por descritor</h2>
+                <p class="small text-muted">Taxa de conclusão e score médio por código SAEB.</p>
+                <a class="btn btn-mj rounded-pill" href="/gestor/relatorios/export.csv?tipo=descritores"><i class="fas fa-download me-1"></i> Baixar Relatório</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card dash-card border-0 h-100">
+            <div class="card-body">
+                <h2 class="h6 fw-bold text-mj-dark">Alunos em risco</h2>
+                <p class="small text-muted">Alunos com nível de risco diferente de baixo.</p>
+                <a class="btn btn-mj rounded-pill" href="/gestor/relatorios/export.csv?tipo=risco_alunos"><i class="fas fa-download me-1"></i> Baixar Relatório</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

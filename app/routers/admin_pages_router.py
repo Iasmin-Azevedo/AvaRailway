@@ -26,6 +26,7 @@ from app.repositories.h5p_repository import AtividadeH5PRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.aluno_repository import AlunoRepository
 from app.models.aluno import Aluno
+from app.services.h5p_upload_service import save_h5p_upload
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -66,37 +67,7 @@ def _save_h5p_upload(
     titulo: str,
     trilha_id: Optional[int],
 ) -> str:
-    if not arquivo_h5p or not arquivo_h5p.filename:
-        raise HTTPException(status_code=400, detail="Arquivo .h5p é obrigatório")
-
-    if not arquivo_h5p.filename.lower().endswith(".h5p"):
-        raise HTTPException(status_code=400, detail="Apenas arquivos .h5p são aceitos")
-
-    materia, ano = _get_materia_ano_from_trilha(db, trilha_id)
-    base_dir = Path(settings.H5P_CONTENT_DIR).resolve()
-    target_dir = base_dir / materia / ano / f"{_slugify(titulo)}-{uuid.uuid4().hex[:8]}"
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    pacote_path = target_dir / "upload.h5p"
-    with pacote_path.open("wb") as out:
-        shutil.copyfileobj(arquivo_h5p.file, out)
-
-    try:
-        with zipfile.ZipFile(pacote_path, "r") as zf:
-            zf.extractall(target_dir)
-    except zipfile.BadZipFile as exc:
-        raise HTTPException(status_code=400, detail="Arquivo .h5p inválido/corrompido") from exc
-    finally:
-        if pacote_path.exists():
-            pacote_path.unlink()
-
-    if not (target_dir / "h5p.json").is_file() or not (target_dir / "content" / "content.json").is_file():
-        raise HTTPException(
-            status_code=400,
-            detail="Pacote H5P inválido: h5p.json ou content/content.json não encontrado",
-        )
-
-    return target_dir.relative_to(base_dir).as_posix()
+    return save_h5p_upload(db, arquivo_h5p, titulo, trilha_id=trilha_id)
 
 
 def _validate_h5p_archive_file(arquivo_h5p: UploadFile) -> tuple[bool, str]:
@@ -795,6 +766,7 @@ def usuarios_novo(
             "aluno_turma_id": None,
             "aluno_escola_id": None,
             "aluno_ano": None,
+            "permite_cadastro_trilha_geral": False,
         },
     )
 
@@ -844,6 +816,7 @@ def usuarios_editar(
             "aluno_turma_id": aluno_turma_id,
             "aluno_escola_id": aluno_escola_id,
             "aluno_ano": aluno_ano,
+            "permite_cadastro_trilha_geral": bool(getattr(usuario, "permite_cadastro_trilha_geral", False)),
         },
     )
 
@@ -864,6 +837,7 @@ async def usuarios_criar(
     professor_turmas_raw = form.getlist("professor_turmas")
     gestor_escolas_raw = form.getlist("gestor_escolas")
     coordenador_escola_raw = form.get("coordenador_escola")
+    permite_cadastro_trilha_geral = (form.get("permite_cadastro_trilha_geral") or "").lower() == "true"
     from app.schemas.user_schema import UserCreate
 
     try:
@@ -871,7 +845,13 @@ async def usuarios_criar(
     except ValueError:
         role_enum = UserRole.ALUNO
 
-    data = UserCreate(nome=nome, email=email, senha=senha, role=role_enum)
+    data = UserCreate(
+        nome=nome,
+        email=email,
+        senha=senha,
+        role=role_enum,
+        permite_cadastro_trilha_geral=(permite_cadastro_trilha_geral if role_enum == UserRole.PROFESSOR else False),
+    )
     try:
         user = UserRepository().create(db, data)
     except Exception:
@@ -913,6 +893,7 @@ async def usuarios_atualizar(
     professor_turmas_raw = form.getlist("professor_turmas")
     gestor_escolas_raw = form.getlist("gestor_escolas")
     coordenador_escola_raw = form.get("coordenador_escola")
+    permite_cadastro_trilha_geral = (form.get("permite_cadastro_trilha_geral") or "").lower() == "true"
     try:
         role_enum = UserRole(role)
     except ValueError:
@@ -926,6 +907,7 @@ async def usuarios_atualizar(
         senha=senha,
         role=role_enum,
         ativo=(ativo_raw or "").lower() == "true",
+        permite_cadastro_trilha_geral=(permite_cadastro_trilha_geral if role_enum == UserRole.PROFESSOR else False),
     )
     if not user:
         return RedirectResponse(url="/admin/usuarios", status_code=302)
@@ -951,6 +933,20 @@ async def usuarios_atualizar(
     elif user.role == UserRole.ALUNO:
         _set_aluno_turma(db, user.id, aluno_turma_id, aluno_ano)
 
+    return RedirectResponse(url="/admin/usuarios", status_code=303)
+
+
+@router.post("/usuarios/{id}/toggle-trilha-geral")
+def usuarios_toggle_trilha_geral(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    user = UserRepository().get_by_id(db, id)
+    if not user or user.role != UserRole.PROFESSOR:
+        return RedirectResponse(url="/admin/usuarios", status_code=302)
+    novo_valor = not bool(getattr(user, "permite_cadastro_trilha_geral", False))
+    UserRepository().update(db, id, permite_cadastro_trilha_geral=novo_valor)
     return RedirectResponse(url="/admin/usuarios", status_code=303)
 
 
@@ -1143,3 +1139,95 @@ def atividades_h5p_deletar(
     if not _remove_atividade_h5p_com_arquivos(db, id):
         return RedirectResponse(url="/admin/atividades-h5p", status_code=302)
     return RedirectResponse(url="/admin/atividades-h5p?ok=deletado", status_code=303)
+
+
+@router.get("/suporte")
+def admin_suporte_list(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    from app.models.support_ticket import SupportTicket
+
+    tickets = db.query(SupportTicket).order_by(SupportTicket.created_at.desc()).all()
+    return templates.TemplateResponse(
+        request,
+        "admin/suporte_list.html",
+        {"request": request, "tickets": tickets},
+    )
+
+
+@router.get("/suporte/{ticket_id}")
+def admin_suporte_ticket(
+    request: Request,
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    from app.models.support_ticket import SupportTicket, SupportTicketMessage
+
+    ticket = db.query(SupportTicket).filter(SupportTicket.id == ticket_id).first()
+    if not ticket:
+        return RedirectResponse(url="/admin/suporte", status_code=302)
+    mensagens = (
+        db.query(SupportTicketMessage)
+        .filter(SupportTicketMessage.ticket_id == ticket_id)
+        .order_by(SupportTicketMessage.created_at.asc())
+        .all()
+    )
+    return templates.TemplateResponse(
+        request,
+        "admin/suporte_ticket.html",
+        {"request": request, "ticket": ticket, "mensagens": mensagens},
+    )
+
+
+@router.post("/suporte/{ticket_id}/responder")
+async def admin_suporte_responder(
+    request: Request,
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+    corpo: str = Form(...),
+):
+    from datetime import datetime
+
+    from app.models.support_ticket import SupportTicket, SupportTicketMessage
+
+    ticket = db.query(SupportTicket).filter(SupportTicket.id == ticket_id).first()
+    if not ticket:
+        return RedirectResponse(url="/admin/suporte", status_code=302)
+    texto = (corpo or "").strip()
+    if texto:
+        db.add(
+            SupportTicketMessage(
+                ticket_id=ticket_id,
+                autor_role="admin",
+                corpo=texto[:8000],
+                created_at=datetime.utcnow(),
+            )
+        )
+        if ticket.status == "aberto":
+            ticket.status = "em_andamento"
+        ticket.updated_at = datetime.utcnow()
+        db.commit()
+    return RedirectResponse(url=f"/admin/suporte/{ticket_id}", status_code=303)
+
+
+@router.post("/suporte/{ticket_id}/resolver")
+def admin_suporte_resolver(
+    request: Request,
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    from datetime import datetime
+
+    from app.models.support_ticket import SupportTicket
+
+    ticket = db.query(SupportTicket).filter(SupportTicket.id == ticket_id).first()
+    if ticket:
+        ticket.status = "resolvido"
+        ticket.updated_at = datetime.utcnow()
+        db.commit()
+    return RedirectResponse(url=f"/admin/suporte/{ticket_id}", status_code=303)

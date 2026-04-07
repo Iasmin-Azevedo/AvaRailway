@@ -1,0 +1,54 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Minhas Atividades H5P{% endblock %}
+{% block brand_link %}/professor{% endblock %}
+{% block menu_title %}Menu do Professor{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor">Início</a>
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor/atividades">Minhas Atividades H5P</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/atividades/nova">Nova atividade</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h4 class="fw-bold mb-0">Minhas Atividades H5P</h4>
+  <a href="/professor/atividades/nova" class="btn btn-mj rounded-pill">Nova atividade</a>
+</div>
+{% if request.query_params.get('ok') == 'criado' %}
+<div class="alert alert-success">Atividade personalizada criada com sucesso.</div>
+{% elif request.query_params.get('ok') == 'trilha' %}
+<div class="alert alert-success">Atividade publicada na trilha geral.</div>
+{% endif %}
+<div class="card dash-card border-0">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3">Título</th>
+          <th>Turma</th>
+          <th>Tipo</th>
+          <th>Status</th>
+          <th class="text-end pe-3">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for atividade, turma_nome in atividades %}
+        <tr>
+          <td class="ps-3">{{ atividade.titulo }}</td>
+          <td>{{ turma_nome }}</td>
+          <td><span class="badge bg-secondary">{{ atividade.tipo }}</span></td>
+          <td>{% if atividade.ativo %}<span class="badge bg-success">Ativa</span>{% else %}<span class="badge bg-secondary">Inativa</span>{% endif %}</td>
+          <td class="text-end pe-3">
+            <form method="post" action="/professor/atividades/{{ atividade.id }}/deletar" class="d-inline" onsubmit="return confirm('Excluir atividade?');">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma atividade cadastrada.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

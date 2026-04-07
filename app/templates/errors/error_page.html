@@ -1,0 +1,35 @@
+{% extends "base_public.html" %}
+{% block page_title %}{{ title|default('Erro') }} — AVA MJ{% endblock %}
+{% block body_class %}bg-mj-soft min-vh-100 d-flex flex-column{% endblock %}
+{% block public_body %}
+<main id="main-content" class="flex-grow-1 d-flex align-items-center py-5" data-a11y-caption="Página de erro do sistema com opções para voltar ou ir ao login.">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-10 col-lg-7">
+                <div class="card dash-card border-0 shadow rounded-4 overflow-hidden border-bottom border-mj-primary border-3">
+                    <div class="card-body p-4 p-md-5 text-center">
+                        <img src="/static/img/icon.png" alt="" width="56" height="56" class="mb-3 opacity-75">
+                        <p class="small text-mj-muted mb-1">Código {{ status_code }}</p>
+                        <h1 class="h3 fw-bold text-mj-dark mb-3">{{ title|default('Algo saiu do esperado') }}</h1>
+                        <p class="text-mj-muted mb-4">{{ message|default('Não foi possível concluir esta ação. Tente novamente ou volte à página anterior.') }}</p>
+                        {% if detail %}
+                        <div class="alert alert-light border text-start small text-mj-dark mb-4 rounded-3" role="status">
+                            <strong>Detalhe:</strong> {{ detail }}
+                        </div>
+                        {% endif %}
+                        <div class="d-flex flex-wrap gap-2 justify-content-center">
+                            <button type="button" class="btn btn-mj-outline rounded-pill px-4" onclick="history.length > 1 ? history.back() : (window.location.href='/')">
+                                <i class="fas fa-arrow-left me-1"></i> Voltar
+                            </button>
+                            <a href="/login" class="btn btn-mj rounded-pill px-4">
+                                <i class="fas fa-sign-in-alt me-1"></i> Ir para o login
+                            </a>
+                            <a href="/" class="btn btn-link text-mj-primary">Página inicial</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

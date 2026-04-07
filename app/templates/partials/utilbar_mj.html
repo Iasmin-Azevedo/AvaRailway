@@ -1,7 +1,20 @@
-<div class="mission-utilbar-mj py-2">
-    <div class="container d-flex align-items-center gap-3">
-        <button type="button" class="mission-util-btn">T <span class="small">A+</span></button>
-        <button type="button" class="mission-util-btn">T <span class="small">A-</span></button>
-        <button type="button" class="mission-util-btn"><i class="fas fa-adjust me-1"></i> Alto Contraste</button>
+<div class="mission-utilbar-mj py-2" role="toolbar" aria-label="Ferramentas de acessibilidade">
+    <div class="container d-flex flex-row flex-wrap align-items-center gap-2 gap-md-3">
+        <span class="small text-mj-muted d-none d-sm-inline me-1">Acessibilidade:</span>
+        <button type="button" class="mission-util-btn" id="a11y-font-plus" aria-label="Aumentar texto" title="Aumentar texto">
+            T <span class="small">A+</span>
+        </button>
+        <button type="button" class="mission-util-btn" id="a11y-font-minus" aria-label="Diminuir texto" title="Diminuir texto">
+            T <span class="small">A-</span>
+        </button>
+        <button type="button" class="mission-util-btn" id="a11y-high-contrast" aria-label="Alternar alto contraste" title="Alto contraste">
+            <i class="fas fa-adjust me-1" aria-hidden="true"></i> Contraste
+        </button>
+        <button type="button" class="mission-util-btn" id="a11y-read-aloud" aria-label="Ouvir conteúdo da página" title="Leitura em voz alta">
+            <i class="fas fa-volume-up me-1" aria-hidden="true"></i> Ler
+        </button>
+        <button type="button" class="mission-util-btn" id="a11y-toggle-captions" aria-label="Mostrar ou ocultar legenda" title="Legenda">
+            <i class="fas fa-closed-captioning me-1" aria-hidden="true"></i> Legenda
+        </button>
     </div>
 </div>
