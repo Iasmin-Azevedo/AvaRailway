@@ -3,8 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.interacao_ia import InteracaoIA
-from app.models.user import AuditLog
-from app.models.user import Usuario
+from app.models.user import AuditLog, Usuario
 from app.repositories.chat_repository import ChatRepository
 from app.schemas.chat_schema import ChatMessageRequest, ChatMessageResponse
 from app.services.chat_context_service import ChatContextService
@@ -45,6 +44,27 @@ class ChatService:
             return "Nova conversa"
         return cleaned[:60]
 
+    def _is_follow_up_message(self, message: str) -> bool:
+        normalized = self.retrieval_service._normalize(" ".join(message.strip().split()))
+        tokens = normalized.split()
+        if len(tokens) > 5:
+            return False
+        return any(term in normalized for term in ("explique", "explica", "entendi", "ajuda", "ajude"))
+
+    def _build_effective_question(self, message: str, recent_history: list) -> str:
+        if not self._is_follow_up_message(message):
+            return message
+
+        previous_user_messages = [
+            item.message_text.strip()
+            for item in reversed(recent_history)
+            if item.sender == "user" and item.message_text.strip()
+        ]
+        if not previous_user_messages:
+            return message
+
+        return previous_user_messages[0]
+
     def _register_audit(self, user: Usuario, action: str, details: str) -> None:
         self.db.add(AuditLog(usuario_id=user.id, acao=action, detalhes=details, ip=None))
         self.db.commit()
@@ -72,16 +92,16 @@ class ChatService:
         """Recupera o histórico completo da sessão informada."""
         session = self.chat_repository.get_user_session(session_id, user.id)
         if not session:
-            raise HTTPException(status_code=404, detail="Sessao de chat nao encontrada")
+            raise HTTPException(status_code=404, detail="Sessão de chat não encontrada")
         return self.chat_repository.get_history(session_id)
 
     def _ensure_session(self, user: Usuario, payload: ChatMessageRequest, message: str):
         if payload.session_id:
             session = self.chat_repository.get_user_session(payload.session_id, user.id)
             if not session:
-                raise HTTPException(status_code=404, detail="Sessao de chat nao encontrada")
+                raise HTTPException(status_code=404, detail="Sessão de chat não encontrada")
             if session.status != "ativa":
-                raise HTTPException(status_code=409, detail="Sessao de chat encerrada")
+                raise HTTPException(status_code=409, detail="Sessão de chat encerrada")
             return session
         return self.create_session(user, self._build_session_title(message))
 
@@ -132,16 +152,8 @@ class ChatService:
 
     def _build_main_menu_actions(self, user: Usuario) -> list[dict]:
         actions = [
-            {
-                "label": "Falar com o chat",
-                "action": "focus_chat_input",
-                "kind": "chat",
-            },
-            {
-                "label": "Sair",
-                "action": "close_chat_panel",
-                "kind": "system",
-            },
+            {"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"},
+            {"label": "Sair", "action": "close_chat_panel", "kind": "system"},
         ]
         role = getattr(user.role, "value", user.role)
         if role == "aluno":
@@ -176,11 +188,7 @@ class ChatService:
     def _build_operational_actions(self, topic: str) -> list[dict]:
         if topic == "atividade":
             return [
-                {
-                    "label": "Falar com o chat",
-                    "action": "focus_chat_input",
-                    "kind": "chat",
-                },
+                {"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"},
                 {
                     "label": "Chamar professor de Matemática",
                     "action": "request_teacher_help",
@@ -198,11 +206,7 @@ class ChatService:
             ]
         if topic == "aula_ao_vivo":
             return [
-                {
-                    "label": "Falar com o chat",
-                    "action": "focus_chat_input",
-                    "kind": "chat",
-                },
+                {"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"},
                 {
                     "label": "Falar com professor",
                     "action": "choose_teacher_subject",
@@ -210,13 +214,7 @@ class ChatService:
                 },
             ]
         if topic == "plataforma":
-            return [
-                {
-                    "label": "Falar com o chat",
-                    "action": "focus_chat_input",
-                    "kind": "chat",
-                },
-            ]
+            return [{"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"}]
         return []
 
     def _store_simple_response(
@@ -291,24 +289,19 @@ class ChatService:
         support_topic = self.router_service.detect_support_topic(message)
 
         if nlu_result.get("is_greeting_only"):
-            greeting = "Oi. Escolha uma opção abaixo."
             return self._store_simple_response(
                 session,
                 message,
-                greeting,
+                "Oi. Escolha uma opção abaixo.",
                 "greeting",
                 suggested_actions=self._build_main_menu_actions(user),
             )
 
         if wants_teacher_help and not subject:
-            guidance = (
-                "Posso encaminhar sua dúvida para um professor. "
-                "Escolha a disciplina para eu enviar a solicitação corretamente."
-            )
             return self._store_simple_response(
                 session,
                 message,
-                guidance,
+                "Posso encaminhar sua dúvida para um professor. Escolha a disciplina para eu enviar a solicitação corretamente.",
                 "teacher_guidance",
                 suggested_actions=self._build_teacher_choice_actions(),
             )
@@ -332,46 +325,41 @@ class ChatService:
             )
 
         if support_topic == "atividade":
-            guidance = (
-                "Posso te ajudar com a atividade de duas formas: explicar pelo chat ou encaminhar para o professor da disciplina."
-            )
             return self._store_simple_response(
                 session,
                 message,
-                guidance,
+                "Posso te ajudar com a atividade de duas formas: explicar pelo chat ou encaminhar para o professor da disciplina.",
                 "activity_guidance",
                 suggested_actions=self._build_operational_actions("atividade"),
             )
 
         if support_topic == "aula_ao_vivo":
-            guidance = (
-                "Para aula ao vivo, você pode consultar sua agenda no painel e entrar pela própria plataforma. "
-                "Se quiser, também posso te orientar ou encaminhar sua dúvida ao professor."
-            )
             return self._store_simple_response(
                 session,
                 message,
-                guidance,
+                "Para aula ao vivo, você pode consultar sua agenda no painel e entrar pela própria plataforma. Se quiser, também posso te orientar ou encaminhar sua dúvida ao professor.",
                 "live_class_guidance",
                 suggested_actions=self._build_operational_actions("aula_ao_vivo"),
             )
 
         if support_topic == "plataforma":
-            guidance = (
-                "Posso te orientar sobre trilhas, desempenho, medalhas e navegação pela plataforma. "
-                "Escolha uma opção para eu seguir de forma mais direta."
-            )
             return self._store_simple_response(
                 session,
                 message,
-                guidance,
+                "Posso te orientar sobre trilhas, desempenho, medalhas e navegação pela plataforma. Escolha uma opção para eu seguir de forma mais direta.",
                 "platform_guidance",
                 suggested_actions=self._build_operational_actions("plataforma"),
             )
 
         message_type = nlu_result.get("message_type") or self.router_service.classify(message)
         context = self.context_service.build_context(user, message_type)
-        math_answer = self.math_service.try_answer(message)
+        recent_history = self.chat_repository.get_recent_history(
+            session.id,
+            limit=settings.CHAT_MAX_HISTORY_MESSAGES,
+        )
+        effective_question = self._build_effective_question(message, recent_history)
+
+        math_answer = self.math_service.try_answer(effective_question)
         if math_answer:
             return self._store_simple_response(
                 session,
@@ -381,11 +369,7 @@ class ChatService:
                 suggested_actions=self._build_suggested_actions(user, "Matemática"),
             )
 
-        retrieved_chunks = self.retrieval_service.search(message, context=context)
-        recent_history = self.chat_repository.get_recent_history(
-            session.id,
-            limit=settings.CHAT_MAX_HISTORY_MESSAGES,
-        )
+        retrieved_chunks = self.retrieval_service.search(effective_question, context=context)
         memory_summary = self.memory_service.get_memory_summary(session.id)
         system_prompt = self.prompt_builder.build_system_prompt(
             app_name=settings.CHAT_SYSTEM_NAME,
@@ -406,13 +390,10 @@ class ChatService:
 
         ia_result = await self.ia_service.chat(
             payload={
-                "question": message,
+                "question": effective_question,
                 "system_prompt": system_prompt,
                 "profile": getattr(user.role, "value", user.role),
-                "history": [
-                    {"sender": item.sender, "message_text": item.message_text}
-                    for item in recent_history
-                ],
+                "history": [{"sender": item.sender, "message_text": item.message_text} for item in recent_history],
                 "context": context,
                 "retrieved_chunks": [chunk.model_dump() for chunk in retrieved_chunks],
             }
@@ -420,11 +401,7 @@ class ChatService:
         ia_result.answer = self.guardrails_service.sanitize_assistant_message(ia_result.answer)
 
         knowledge_status = "grounded"
-        if (
-            nlu_result.get("is_question")
-            and not retrieved_chunks
-            and self.ia_service.is_low_information_answer(ia_result.answer)
-        ):
+        if nlu_result.get("is_question") and not retrieved_chunks and self.ia_service.is_low_information_answer(ia_result.answer):
             ia_result.answer = (
                 "Ainda não encontrei base suficiente para responder essa pergunta com segurança. "
                 "Estou em treinamento para esse tipo de dúvida e prefiro não improvisar uma resposta sem contexto confiável."
@@ -497,7 +474,7 @@ class ChatService:
         """Registra feedback do usuário para uma resposta do assistente."""
         session = self.chat_repository.get_user_session(session_id, user.id)
         if not session:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessao de chat nao encontrada")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessão de chat não encontrada")
         self.chat_repository.add_feedback(
             session_id=session_id,
             message_id=message_id,
@@ -510,5 +487,5 @@ class ChatService:
         """Encerra a sessão de conversa do usuário."""
         session = self.chat_repository.get_user_session(session_id, user.id)
         if not session:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessao de chat nao encontrada")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessão de chat não encontrada")
         return self.chat_repository.close_session(session)

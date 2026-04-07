@@ -265,9 +265,8 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var historyLoadedFor = null;
     var sessionsCache = [];
     var quickActionButtons = document.querySelectorAll('.chat-quick-action');
-    var helpRequestButtons = document.querySelectorAll('.chat-help-request');
     var teacherOptionButtons = document.querySelectorAll('.chat-open-teacher-options');
-    var initialGreeting = 'Oi. Escolha uma opção:';
+    var initialGreeting = 'Oi. Escolha uma op??o:';
     var initialActions = [
         { label: 'Falar com o chat', action: 'focus_chat_input', kind: 'chat' },
         { label: 'Falar com professor', action: 'choose_teacher_subject', kind: 'teacher_help' },
@@ -311,65 +310,6 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         });
 
         return actionsWrap;
-    }
-
-    async function handleSuggestedAction(action) {
-        if (!action || !action.action) return;
-
-        if (action.action === 'request_teacher_help' && action.disciplina) {
-            try {
-                await createTeacherHelpRequest(action.disciplina);
-                appendMessage('Encaminhei sua solicitação para o professor responsável de ' + action.disciplina + '.', 'bot');
-            } catch (err) {
-                appendMessage('Não consegui encaminhar sua solicitação agora. Tente novamente em instantes.', 'bot');
-                console.error(err);
-            }
-            return;
-        }
-
-        if (action.action === 'choose_teacher_subject') {
-            appendMessage(
-                'Escolha a disciplina para eu encaminhar sua dúvida ao professor.',
-                'bot',
-                [
-                    { label: 'Professor de Matemática', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Matemática' },
-                    { label: 'Professor de Português', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Língua Portuguesa' }
-                ]
-            );
-            return;
-        }
-
-        if (action.action === 'close_chat_panel') {
-            panel.classList.add('d-none');
-            return;
-        }
-
-        if (action.action === 'send_message' && action.message) {
-            await sendChatMessage(action.message);
-            return;
-        }
-
-        if (action.action === 'focus_chat_input') {
-            input.focus();
-            return;
-        }
-
-        if (action.action === 'rephrase_question') {
-            input.value = 'Vou reformular minha pergunta para você.';
-            input.focus();
-            return;
-        }
-
-        if (action.action === 'focus_live_classes') {
-            panel.classList.add('d-none');
-            var liveCard = document.querySelector('.fa-video');
-            if (liveCard && liveCard.closest('.card')) {
-                liveCard.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return;
-        }
-
-        input.focus();
     }
 
     function appendTypingBubble() {
@@ -423,7 +363,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         sessionSelect.innerHTML = '';
         var placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = 'Sessões';
+        placeholder.textContent = 'Sess?es';
         sessionSelect.appendChild(placeholder);
         sessionsCache.slice(0, 10).forEach(function(s) {
             var opt = document.createElement('option');
@@ -440,7 +380,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             credentials: 'same-origin',
             headers: { 'Accept': 'application/json' }
         });
-        if (!listResp.ok) throw new Error('Falha ao listar sessões de chat');
+        if (!listResp.ok) throw new Error('Falha ao listar sess?es de chat');
         const sessions = await listResp.json();
         sessionsCache = Array.isArray(sessions) ? sessions : [];
         return sessionsCache;
@@ -449,6 +389,28 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     function resetToGreeting() {
         messages.innerHTML = '';
         appendMessage(initialGreeting, 'bot', initialActions);
+    }
+
+    async function closeCurrentSession() {
+        if (!sessionId) {
+            historyLoadedFor = null;
+            resetToGreeting();
+            return;
+        }
+        try {
+            await fetch('/api/v1/chat/sessions/' + encodeURIComponent(sessionId), {
+                method: 'DELETE',
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' }
+            });
+        } catch (err) {
+            console.error(err);
+        }
+        sessionId = null;
+        historyLoadedFor = null;
+        await listSessions();
+        renderSessionOptions('');
+        resetToGreeting();
     }
 
     async function sendChatMessage(text) {
@@ -468,10 +430,10 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             if (!resp.ok) throw new Error('Falha ao enviar mensagem');
             const data = await resp.json();
             removeTypingBubble(typingNode);
-            appendMessage(data.assistant_message || 'Não consegui responder agora.', 'bot', data.suggested_actions || []);
+            appendMessage(data.assistant_message || 'N?o consegui responder agora.', 'bot', data.suggested_actions || []);
         } catch (err) {
             removeTypingBubble(typingNode);
-            appendMessage('Não consegui conectar ao tutor agora. Tente novamente em instantes.', 'bot');
+            appendMessage('N?o consegui conectar ao tutor agora. Tente novamente em instantes.', 'bot');
             console.error(err);
         }
     }
@@ -483,7 +445,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ titulo: 'Nova conversa' })
         });
-        if (!createResp.ok) throw new Error('Falha ao criar nova sessão de chat');
+        if (!createResp.ok) throw new Error('Falha ao criar nova sess?o de chat');
         const created = await createResp.json();
         sessionId = created.id;
         historyLoadedFor = created.id;
@@ -495,20 +457,13 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
 
     async function ensureSession() {
         if (sessionId) return sessionId;
-        const sessions = await listSessions();
-        if (Array.isArray(sessions) && sessions.length > 0 && sessions[0].id) {
-            sessionId = sessions[0].id;
-            renderSessionOptions(sessionId);
-            return sessionId;
-        }
-
         const createResp = await fetch('/api/v1/chat/sessions', {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ titulo: 'Chat do aluno' })
         });
-        if (!createResp.ok) throw new Error('Falha ao criar sessão de chat');
+        if (!createResp.ok) throw new Error('Falha ao criar sess?o de chat');
         const created = await createResp.json();
         sessionId = created.id;
         await listSessions();
@@ -529,12 +484,12 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.mensagem_amigavel || 'Falha ao encaminhar a solicitacao.');
+        if (!response.ok) throw new Error(data.mensagem_amigavel || 'Falha ao encaminhar a solicita??o.');
         return data;
     }
 
     async function loadHistoryIfNeeded() {
-        const sid = await ensureSession();
+        const sid = sessionId;
         if (!sid || historyLoadedFor === sid) return;
 
         const resp = await fetch('/api/v1/chat/history/' + encodeURIComponent(sid), {
@@ -544,7 +499,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         });
         if (!resp.ok) return;
         const data = await resp.json();
-        const items = (data && Array.isArray(data.items)) ? data.items : [];
+        const items = Array.isArray(data.items) ? data.items : [];
         if (items.length === 0) {
             historyLoadedFor = sid;
             return;
@@ -559,50 +514,102 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         renderSessionOptions(sid);
     }
 
+    async function handleSuggestedAction(action) {
+        if (!action || !action.action) return;
+
+        if (action.action === 'request_teacher_help' && action.disciplina) {
+            try {
+                await createTeacherHelpRequest(action.disciplina);
+                appendMessage('Encaminhei sua solicita??o para o professor respons?vel de ' + action.disciplina + '.', 'bot');
+            } catch (err) {
+                appendMessage('N?o consegui encaminhar sua solicita??o agora. Tente novamente em instantes.', 'bot');
+                console.error(err);
+            }
+            return;
+        }
+
+        if (action.action === 'choose_teacher_subject') {
+            appendMessage(
+                'Escolha a disciplina para eu encaminhar sua d?vida ao professor.',
+                'bot',
+                [
+                    { label: 'Professor de Matem?tica', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Matem?tica' },
+                    { label: 'Professor de Portugu?s', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'L?ngua Portuguesa' }
+                ]
+            );
+            return;
+        }
+
+        if (action.action === 'close_chat_panel') {
+            await closeCurrentSession();
+            panel.classList.add('d-none');
+            return;
+        }
+
+        if (action.action === 'send_message' && action.message) {
+            await sendChatMessage(action.message);
+            return;
+        }
+
+        if (action.action === 'focus_chat_input') {
+            input.focus();
+            return;
+        }
+
+        if (action.action === 'rephrase_question') {
+            input.value = 'Vou reformular minha pergunta para voc?.';
+            input.focus();
+            return;
+        }
+
+        if (action.action === 'focus_live_classes') {
+            panel.classList.add('d-none');
+            var liveCard = document.querySelector('.fa-video');
+            if (liveCard && liveCard.closest('.card')) {
+                liveCard.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
+        input.focus();
+    }
+
     openBtn && openBtn.addEventListener('click', async function() {
         panel.classList.remove('d-none');
         input && input.focus();
         try {
+            if (!sessionId) {
+                resetToGreeting();
+            }
             await loadHistoryIfNeeded();
         } catch (err) {
             console.error(err);
         }
     });
-    closeBtn && closeBtn.addEventListener('click', function() {
+
+    closeBtn && closeBtn.addEventListener('click', async function() {
+        await closeCurrentSession();
         panel.classList.add('d-none');
     });
+
     sessionsToggleBtn && sessionsToggleBtn.addEventListener('click', function() {
         if (!sessionsTools) return;
         sessionsTools.classList.toggle('d-none');
     });
+
     newBtn && newBtn.addEventListener('click', async function() {
         try {
             await createNewSession();
             input && input.focus();
         } catch (err) {
-            appendMessage('Não consegui iniciar uma nova conversa agora. Tente novamente.', 'bot');
+            appendMessage('N?o consegui iniciar uma nova conversa agora. Tente novamente.', 'bot');
             console.error(err);
         }
     });
 
     quickActionButtons.forEach(function(button) {
         button.addEventListener('click', function() {
-            if (!input) return;
-            input.focus();
-        });
-    });
-
-    helpRequestButtons.forEach(function(button) {
-        button.addEventListener('click', async function() {
-            var disciplina = String(button.getAttribute('data-disciplina') || '').trim();
-            if (!disciplina) return;
-            try {
-                await createTeacherHelpRequest(disciplina);
-                appendMessage('Encaminhei sua solicitação para o professor responsável de ' + disciplina + '.', 'bot');
-            } catch (err) {
-                appendMessage('Não consegui encaminhar sua solicitação agora. Tente novamente em instantes.', 'bot');
-                console.error(err);
-            }
+            input && input.focus();
         });
     });
 
@@ -622,34 +629,30 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             await loadHistoryIfNeeded();
             input && input.focus();
         } catch (err) {
-            appendMessage('Não consegui carregar essa conversa agora.', 'bot');
+            appendMessage('N?o consegui carregar essa conversa agora.', 'bot');
             console.error(err);
         }
     });
 
     deleteBtn && deleteBtn.addEventListener('click', async function() {
         if (!sessionId) return;
-        if (!confirm('Deseja excluir esta conversa?')) return;
+        if (!confirm('Deseja encerrar esta conversa?')) return;
         try {
             const resp = await fetch('/api/v1/chat/sessions/' + encodeURIComponent(sessionId), {
                 method: 'DELETE',
                 credentials: 'same-origin',
                 headers: { 'Accept': 'application/json' }
             });
-            if (!resp.ok) throw new Error('Falha ao excluir sessão');
+            if (!resp.ok) throw new Error('Falha ao encerrar sess?o');
 
             sessionId = null;
             historyLoadedFor = null;
             resetToGreeting();
-            appendMessage('Conversa excluída com sucesso.', 'bot');
-            const sessions = await listSessions();
+            appendMessage('Conversa encerrada com sucesso.', 'bot');
+            await listSessions();
             renderSessionOptions('');
-            if (sessions.length > 0) {
-                sessionId = sessions[0].id;
-                await loadHistoryIfNeeded();
-            }
         } catch (err) {
-            appendMessage('Não consegui excluir a conversa agora.', 'bot');
+            appendMessage('N?o consegui encerrar a conversa agora.', 'bot');
             console.error(err);
         }
     });

@@ -247,6 +247,37 @@ class BackendFlowTestCase(unittest.TestCase):
         self.assertIsInstance(body["used_sources"], list)
         self.assertIn("answer_provider", body)
 
+    def test_chat_maintains_subject_on_follow_up_question(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        token = login.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        session_response = self.client.post(
+            "/api/v1/chat/sessions",
+            json={"titulo": "Teste de continuidade"},
+            headers=headers,
+        )
+        session_id = session_response.json()["id"]
+
+        first_response = self.client.post(
+            "/api/v1/chat/message",
+            json={"session_id": session_id, "message": "O que é fração?"},
+            headers=headers,
+        )
+        self.assertEqual(first_response.status_code, 200)
+
+        follow_up_response = self.client.post(
+            "/api/v1/chat/message",
+            json={"session_id": session_id, "message": "Me explique melhor"},
+            headers=headers,
+        )
+        self.assertEqual(follow_up_response.status_code, 200)
+        assistant_message = follow_up_response.json()["assistant_message"].lower()
+        self.assertIn("fra", assistant_message)
+
     def test_chat_offers_teacher_or_chat_for_subject_help(self):
         login = self.client.post(
             "/auth/login",

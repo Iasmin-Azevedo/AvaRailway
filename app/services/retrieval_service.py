@@ -49,6 +49,7 @@ class RetrievalService:
         "para",
         "sobre",
         "voce",
+        "você",
         "sabe",
     }
 
@@ -61,44 +62,44 @@ class RetrievalService:
             {
                 "source": "faq",
                 "title": "Como estudar melhor",
-                "content": "Estude em blocos curtos, revise o conteudo, pratique exercicios e tire duvidas progressivamente.",
-                "metadata": {"area": "geral"},
+                "content": "Estude em blocos curtos, revise o conteúdo, pratique exercícios e tire dúvidas progressivamente.",
+                "metadata": {"area": "geral", "keywords": ["estudar", "estudo", "revisão"]},
             },
             {
                 "source": "faq",
-                "title": "O que e fracao",
-                "content": "Fracao representa partes de um todo. O numerador indica quantas partes foram consideradas e o denominador em quantas partes o todo foi dividido.",
-                "metadata": {"area": "matematica"},
+                "title": "O que é fração",
+                "content": "Fração representa partes de um todo. O numerador indica quantas partes foram consideradas e o denominador em quantas partes o todo foi dividido.",
+                "metadata": {"area": "matemática", "keywords": ["fração", "fracao", "numerador", "denominador"]},
             },
             {
                 "source": "faq",
-                "title": "Diferenca entre substantivo e adjetivo",
-                "content": "Substantivo nomeia seres, objetos, lugares ou ideias. Adjetivo caracteriza o substantivo, indicando qualidade, estado ou caracteristica.",
-                "metadata": {"area": "portugues"},
+                "title": "Diferença entre substantivo e adjetivo",
+                "content": "Substantivo nomeia seres, objetos, lugares ou ideias. Adjetivo caracteriza o substantivo, indicando qualidade, estado ou característica.",
+                "metadata": {"area": "português", "keywords": ["substantivo", "adjetivo"]},
             },
             {
                 "source": "faq",
                 "title": "Como resolver porcentagem",
-                "content": "Para calcular porcentagem, transforme a taxa em fracao sobre 100 e multiplique pelo valor total. Exemplo: 25% de 200 equivale a 25 sobre 100 vezes 200, resultando em 50.",
-                "metadata": {"area": "matematica"},
+                "content": "Para calcular porcentagem, transforme a taxa em fração sobre 100 e multiplique pelo valor total. Exemplo: 25% de 200 equivale a 25 sobre 100 vezes 200, resultando em 50.",
+                "metadata": {"area": "matemática", "keywords": ["porcentagem", "percentual", "por cento"]},
             },
             {
                 "source": "faq",
-                "title": "Como interpretar problemas de matematica",
-                "content": "Leia o enunciado com calma, identifique os dados, descubra o que a questao pede e escolha a operacao correta antes de calcular.",
-                "metadata": {"area": "matematica"},
+                "title": "Como interpretar problemas de matemática",
+                "content": "Leia o enunciado com calma, identifique os dados, descubra o que a questão pede e escolha a operação correta antes de calcular.",
+                "metadata": {"area": "matemática", "keywords": ["matemática", "matematica", "problema", "conta"]},
             },
             {
                 "source": "faq",
-                "title": "Uso da virgula",
-                "content": "A virgula pode separar elementos de uma lista, marcar uma pausa curta e isolar expressoes explicativas. Ela nao deve separar sujeito e verbo sem necessidade.",
-                "metadata": {"area": "portugues"},
+                "title": "Uso da vírgula",
+                "content": "A vírgula pode separar elementos de uma lista, marcar uma pausa curta e isolar expressões explicativas. Ela não deve separar sujeito e verbo sem necessidade.",
+                "metadata": {"area": "português", "keywords": ["vírgula", "virgula"]},
             },
             {
                 "source": "faq",
-                "title": "Como melhorar interpretacao de texto",
-                "content": "Leia o texto por partes, destaque palavras importantes, observe quem fala, onde a historia acontece e relacione as perguntas com trechos do texto.",
-                "metadata": {"area": "portugues"},
+                "title": "Como melhorar interpretação de texto",
+                "content": "Leia o texto por partes, destaque palavras importantes, observe quem fala, onde a história acontece e relacione as perguntas com trechos do texto.",
+                "metadata": {"area": "português", "keywords": ["interpretação", "interpretacao", "texto", "leitura"]},
             },
         ]
         self.corpus_embeddings = None
@@ -106,7 +107,17 @@ class RetrievalService:
         if self.enabled:
             self.model = SentenceTransformer(settings.CHAT_EMBEDDING_MODEL)
 
+    def _repair_text(self, text: str) -> str:
+        try:
+            repaired = text.encode("latin1").decode("utf-8")
+            if repaired.count("?") <= text.count("?"):
+                return repaired
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+        return text
+
     def _normalize(self, text: str) -> str:
+        text = self._repair_text(text)
         value = unicodedata.normalize("NFKD", text.lower())
         return "".join(ch for ch in value if not unicodedata.combining(ch))
 
@@ -134,7 +145,7 @@ class RetrievalService:
                 {
                     "source": "curso",
                     "title": f"Curso {curso.nome}",
-                    "content": f"Curso disponivel no sistema: {curso.nome}.",
+                    "content": f"Curso disponível no sistema: {curso.nome}.",
                     "metadata": {"tipo": "curso"},
                 }
             )
@@ -163,8 +174,8 @@ class RetrievalService:
             corpus.append(
                 {
                     "source": "avaliacao",
-                    "title": f"Avaliacao {avaliacao.titulo or avaliacao.id}",
-                    "content": avaliacao.descricao or f"Avaliacao cadastrada no sistema com titulo {avaliacao.titulo or avaliacao.id}.",
+                    "title": f"Avaliação {avaliacao.titulo or avaliacao.id}",
+                    "content": avaliacao.descricao or f"Avaliação cadastrada no sistema com título {avaliacao.titulo or avaliacao.id}.",
                     "metadata": {"tipo": "avaliacao"},
                 }
             )
@@ -177,7 +188,7 @@ class RetrievalService:
                     "title": "Contexto atual do aluno",
                     "content": (
                         f"Aproveitamento atual: {pedagogical.get('aproveitamento_pct', 0)}%. "
-                        f"Conteudos concluidos: {pedagogical.get('conteudos_concluidos', 0)}. "
+                        f"Conteúdos concluídos: {pedagogical.get('conteudos_concluidos', 0)}. "
                         f"XP total: {pedagogical.get('xp_total', 0)}. "
                         f"Trilhas sugeridas: {', '.join(pedagogical.get('trilhas_sugeridas', [])) or 'nenhuma informada'}."
                     ),
@@ -189,11 +200,11 @@ class RetrievalService:
             corpus.append(
                 {
                     "source": "moodle",
-                    "title": content.get("title") or "Conteudo do Moodle",
+                    "title": content.get("title") or "Conteúdo do Moodle",
                     "content": (
-                        f"Curso: {content.get('course', 'Nao informado')}. "
-                        f"Secao: {content.get('section', 'Nao informada')}. "
-                        f"Descricao: {content.get('description', '')}"
+                        f"Curso: {content.get('course', 'Não informado')}. "
+                        f"Seção: {content.get('section', 'Não informada')}. "
+                        f"Descrição: {content.get('description', '')}"
                     ).strip(),
                     "metadata": {
                         "tipo": content.get("modname", "recurso"),
@@ -208,6 +219,9 @@ class RetrievalService:
     def search(self, query: str, top_k: int | None = None, context: dict | None = None) -> List[RetrievedChunk]:
         top_k = top_k or settings.CHAT_RETRIEVAL_TOP_K
         corpus = self._build_dynamic_corpus(context)
+        direct_matches = self.direct_match(query, corpus, top_k)
+        if direct_matches:
+            return direct_matches
         if not self.enabled or not self.model or util is None:
             return self.keyword_fallback(query, top_k, corpus)
 
@@ -254,3 +268,35 @@ class RetrievalService:
             )
             for score, item in scored[:top_k]
         ]
+
+    def direct_match(self, query: str, corpus: list[dict], top_k: int) -> List[RetrievedChunk]:
+        normalized_query = self._normalize(query)
+        query_terms = self._tokenize(query)
+        matches = []
+
+        for item in corpus:
+            keywords = (item.get("metadata") or {}).get("keywords") or []
+            normalized_keywords = [self._normalize(str(keyword)) for keyword in keywords]
+            title_terms = self._tokenize(item.get("title", ""))
+            keyword_terms = [term for keyword in normalized_keywords for term in self._tokenize(keyword)]
+
+            has_direct_keyword = any(keyword and keyword in normalized_query for keyword in normalized_keywords)
+            has_prefix_match = any(
+                query_term.startswith(keyword_term) or keyword_term.startswith(query_term)
+                for query_term in query_terms
+                for keyword_term in keyword_terms + title_terms
+                if query_term and keyword_term
+            )
+
+            if has_direct_keyword or has_prefix_match:
+                matches.append(
+                    RetrievedChunk(
+                        source=item["source"],
+                        title=item["title"],
+                        content=item["content"],
+                        score=100.0,
+                        metadata=item["metadata"],
+                    )
+                )
+
+        return matches[:top_k]
