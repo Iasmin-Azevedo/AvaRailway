@@ -1,8 +1,14 @@
+from datetime import datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.models.aluno import Aluno
+from app.models.h5p import AtividadeH5P, ProgressoH5P
 from app.models.interacao_ia import InteracaoIA
+from app.models.live_support import AulaAoVivo
+from app.models.gestao import Trilha
 from app.models.user import AuditLog, Usuario
 from app.repositories.chat_repository import ChatRepository
 from app.schemas.chat_schema import ChatMessageRequest, ChatMessageResponse
@@ -217,6 +223,143 @@ class ChatService:
             return [{"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"}]
         return []
 
+    def _normalize_text(self, text: str) -> str:
+        return self.retrieval_service._normalize(text)
+
+    def _get_student(self, user: Usuario) -> Aluno | None:
+        return self.db.query(Aluno).filter(Aluno.usuario_id == user.id).first()
+
+    def _format_datetime(self, value: datetime | None) -> str:
+        if not value:
+            return "data não informada"
+        return value.strftime("%d/%m/%Y às %H:%M")
+
+    def _build_live_class_guidance(self, user: Usuario, message: str) -> tuple[str, list[dict]]:
+        aluno = self._get_student(user)
+        if not aluno or not aluno.turma_id:
+            return (
+                "Ainda não encontrei uma turma vinculada ao seu perfil para consultar aulas ao vivo.",
+                self._build_operational_actions("aula_ao_vivo"),
+            )
+
+        upcoming_classes = (
+            self.db.query(AulaAoVivo)
+            .filter(
+                AulaAoVivo.turma_id == aluno.turma_id,
+                AulaAoVivo.ativa == True,
+                AulaAoVivo.scheduled_at >= datetime.utcnow(),
+            )
+            .order_by(AulaAoVivo.scheduled_at.asc())
+            .limit(3)
+            .all()
+        )
+        if not upcoming_classes:
+            return (
+                "No momento, não encontrei aula ao vivo agendada para a sua turma. Se precisar, posso encaminhar sua dúvida para o professor.",
+                self._build_operational_actions("aula_ao_vivo"),
+            )
+
+        next_class = upcoming_classes[0]
+        normalized_message = self._normalize_text(message)
+        asks_for_link = any(term in normalized_message for term in ("link", "entrar", "acessar", "abrir", "sala"))
+        asks_for_time = any(term in normalized_message for term in ("horario", "hora", "quando", "dia", "data"))
+
+        base_message = (
+            f"Sua próxima aula ao vivo é {next_class.titulo}, de {next_class.disciplina}, "
+            f"marcada para {self._format_datetime(next_class.scheduled_at)}."
+        )
+        if asks_for_link:
+            base_message += f" Para entrar, use o acesso interno em /ao-vivo/{next_class.id}."
+        elif asks_for_time:
+            base_message += " Quando chegar o horário, ela aparecerá na sua agenda e você poderá entrar pela própria plataforma."
+        else:
+            base_message += " Se quiser, eu também posso te orientar sobre horário, acesso ou encaminhar sua dúvida para o professor."
+
+        actions = self._build_operational_actions("aula_ao_vivo")
+        actions.insert(
+            1,
+            {
+                "label": "Abrir próxima aula",
+                "action": "open_live_class",
+                "kind": "navigation",
+                "path": f"/ao-vivo/{next_class.id}",
+            },
+        )
+        return base_message, actions
+
+    def _build_activity_guidance(self, user: Usuario, message: str) -> tuple[str, list[dict]]:
+        aluno = self._get_student(user)
+        if not aluno:
+            return (
+                "Ainda não consegui localizar seu perfil de aluno para consultar atividades.",
+                self._build_operational_actions("atividade"),
+            )
+
+        trilha_ids = [
+            item.id
+            for item in self.db.query(Trilha)
+            .filter((Trilha.ano_escolar == aluno.ano_escolar) | (Trilha.ano_escolar.is_(None)))
+            .all()
+        ]
+
+        activity_query = self.db.query(AtividadeH5P).filter(AtividadeH5P.ativo == True)
+        if trilha_ids:
+            activity_query = activity_query.filter(
+                (AtividadeH5P.trilha_id.in_(trilha_ids)) | (AtividadeH5P.trilha_id.is_(None))
+            )
+
+        available_activities = activity_query.order_by(AtividadeH5P.ordem.asc(), AtividadeH5P.id.asc()).limit(5).all()
+        progress_items = self.db.query(ProgressoH5P).filter(ProgressoH5P.aluno_id == aluno.id).all()
+        progress_by_activity = {item.atividade_id: item for item in progress_items}
+
+        completed_count = sum(1 for item in progress_items if item.concluido)
+        pending_activity = next(
+            (item for item in available_activities if not progress_by_activity.get(item.id) or not progress_by_activity[item.id].concluido),
+            None,
+        )
+
+        if not available_activities:
+            return (
+                "Ainda não encontrei atividades liberadas para você no momento. Se achar que deveria haver alguma, posso te orientar ou encaminhar isso ao professor.",
+                self._build_operational_actions("atividade"),
+            )
+
+        normalized_message = self._normalize_text(message)
+        asks_for_status = any(term in normalized_message for term in ("fiz", "conclui", "terminei", "pendente", "resta"))
+
+        if pending_activity:
+            response = (
+                f"Você tem {len(available_activities)} atividades mapeadas e concluiu {completed_count}. "
+                f"A próxima atividade recomendada é {pending_activity.titulo}."
+            )
+        else:
+            response = (
+                f"Você já concluiu {completed_count} atividades das {len(available_activities)} que encontrei para o seu ano. "
+                "Se quiser, posso te ajudar a revisar o conteúdo ou chamar o professor."
+            )
+
+        if asks_for_status and pending_activity:
+            response += f" No momento, a que aparece como próxima é {pending_activity.titulo}."
+
+        return response, self._build_operational_actions("atividade")
+
+    def _build_platform_guidance(self, context: dict) -> tuple[str, list[dict]]:
+        pedagogical = context.get("pedagogical", {})
+        if not pedagogical:
+            return (
+                "Posso te orientar sobre uso da plataforma, acesso às trilhas, desempenho e agenda.",
+                self._build_operational_actions("plataforma"),
+            )
+
+        trilhas = pedagogical.get("trilhas_sugeridas") or []
+        trilhas_text = ", ".join(trilhas[:2]) if trilhas else "nenhuma trilha sugerida agora"
+        response = (
+            f"Na plataforma, você pode acompanhar sua turma {pedagogical.get('turma') or 'não informada'}, "
+            f"seu aproveitamento atual de {pedagogical.get('aproveitamento_pct', 0)}% "
+            f"e suas trilhas sugeridas: {trilhas_text}."
+        )
+        return response, self._build_operational_actions("plataforma")
+
     def _store_simple_response(
         self,
         session,
@@ -325,30 +468,33 @@ class ChatService:
             )
 
         if support_topic == "atividade":
+            activity_guidance, actions = self._build_activity_guidance(user, message)
             return self._store_simple_response(
                 session,
                 message,
-                "Posso te ajudar com a atividade de duas formas: explicar pelo chat ou encaminhar para o professor da disciplina.",
+                activity_guidance,
                 "activity_guidance",
-                suggested_actions=self._build_operational_actions("atividade"),
+                suggested_actions=actions,
             )
 
         if support_topic == "aula_ao_vivo":
+            live_guidance, actions = self._build_live_class_guidance(user, message)
             return self._store_simple_response(
                 session,
                 message,
-                "Para aula ao vivo, você pode consultar sua agenda no painel e entrar pela própria plataforma. Se quiser, também posso te orientar ou encaminhar sua dúvida ao professor.",
+                live_guidance,
                 "live_class_guidance",
-                suggested_actions=self._build_operational_actions("aula_ao_vivo"),
+                suggested_actions=actions,
             )
 
         if support_topic == "plataforma":
+            platform_guidance, actions = self._build_platform_guidance(context=self.context_service.build_context(user, "general"))
             return self._store_simple_response(
                 session,
                 message,
-                "Posso te orientar sobre trilhas, desempenho, medalhas e navegação pela plataforma. Escolha uma opção para eu seguir de forma mais direta.",
+                platform_guidance,
                 "platform_guidance",
-                suggested_actions=self._build_operational_actions("plataforma"),
+                suggested_actions=actions,
             )
 
         message_type = nlu_result.get("message_type") or self.router_service.classify(message)

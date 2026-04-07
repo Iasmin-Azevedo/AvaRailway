@@ -15,7 +15,8 @@ from app.core.database import Base, engine
 from app.main import seed_default_users
 from app.main import app
 from app.models.aluno import Aluno
-from app.models.gestao import Escola, Turma
+from app.models.gestao import Curso, Escola, Trilha, Turma
+from app.models.h5p import AtividadeH5P
 from app.models.relacoes import ProfessorTurma
 from app.models.user import Usuario
 from app.core.database import SessionLocal
@@ -334,6 +335,99 @@ class BackendFlowTestCase(unittest.TestCase):
         self.assertEqual(body["message_type"], "activity_guidance")
         self.assertIn("atividade", body["assistant_message"].lower())
         self.assertTrue(any(item["action"] == "request_teacher_help" for item in body["suggested_actions"]))
+
+    def test_chat_returns_contextual_live_class_guidance(self):
+        professor_login = self.client.post(
+            "/auth/login",
+            json={"email": "professor@avamj.com", "senha": "123456"},
+        )
+        professor_headers = {"Authorization": f"Bearer {professor_login.json()['access_token']}"}
+
+        db = SessionLocal()
+        try:
+            turma = db.query(Turma).filter(Turma.nome == "Turma Teste").first()
+            turma_id = turma.id
+        finally:
+            db.close()
+
+        self.client.post(
+            "/api/v1/live-support/live-classes",
+            json={
+                "turma_id": turma_id,
+                "disciplina": "Matemática",
+                "titulo": "Plantão de Frações",
+                "descricao": "Encontro para revisar frações.",
+                "meeting_url": None,
+                "scheduled_at": "2099-11-20T18:30:00",
+                "duration_minutes": 45,
+            },
+            headers=professor_headers,
+        )
+
+        aluno_login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        headers = {"Authorization": f"Bearer {aluno_login.json()['access_token']}"}
+
+        response = self.client.post(
+            "/api/v1/chat/message",
+            json={"message": "Qual é o horário da minha aula ao vivo?"},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["message_type"], "live_class_guidance")
+        self.assertIn("Plantão de Frações", body["assistant_message"])
+        self.assertTrue(any(item["action"] == "open_live_class" for item in body["suggested_actions"]))
+
+    def test_chat_returns_contextual_activity_guidance(self):
+        db = SessionLocal()
+        try:
+            curso = db.query(Curso).filter(Curso.nome == "Matemática").first()
+            if not curso:
+                curso = Curso(nome="Matemática")
+                db.add(curso)
+                db.commit()
+                db.refresh(curso)
+
+            trilha = db.query(Trilha).filter(Trilha.nome == "Frações Iniciais").first()
+            if not trilha:
+                trilha = Trilha(nome="Frações Iniciais", curso_id=curso.id, ano_escolar=5, ordem=1)
+                db.add(trilha)
+                db.commit()
+                db.refresh(trilha)
+
+            atividade = db.query(AtividadeH5P).filter(AtividadeH5P.titulo == "Desafio de Frações").first()
+            if not atividade:
+                atividade = AtividadeH5P(
+                    titulo="Desafio de Frações",
+                    tipo="quiz",
+                    path_ou_json="/tmp/desafio-fracoes",
+                    trilha_id=trilha.id,
+                    ordem=1,
+                    ativo=True,
+                )
+                db.add(atividade)
+                db.commit()
+        finally:
+            db.close()
+
+        aluno_login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        headers = {"Authorization": f"Bearer {aluno_login.json()['access_token']}"}
+
+        response = self.client.post(
+            "/api/v1/chat/message",
+            json={"message": "Tenho alguma atividade para fazer?"},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["message_type"], "activity_guidance")
+        self.assertIn("Desafio de Frações", body["assistant_message"])
 
     def test_chat_admits_when_still_in_training(self):
         login = self.client.post(
