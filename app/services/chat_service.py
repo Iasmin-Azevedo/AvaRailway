@@ -83,6 +83,55 @@ class ChatService:
             return session
         return self.create_session(user, self._build_session_title(message))
 
+    def _build_suggested_actions(
+        self,
+        user: Usuario,
+        subject: str | None,
+        wants_teacher_help: bool = False,
+        knowledge_status: str = "grounded",
+    ) -> list[dict]:
+        actions = [
+            {
+                "label": "Continuar no chat",
+                "action": "continue_chat",
+                "kind": "chat",
+            }
+        ]
+
+        role = getattr(user.role, "value", user.role)
+        if role == "aluno" and subject:
+            actions.append(
+                {
+                    "label": f"Chamar professor de {subject}",
+                    "action": "request_teacher_help",
+                    "kind": "teacher_help",
+                    "disciplina": subject,
+                    "endpoint": "/api/v1/live-support/teacher-help-requests",
+                }
+            )
+
+        if knowledge_status == "training":
+            actions.append(
+                {
+                    "label": "Reformular pergunta",
+                    "action": "rephrase_question",
+                    "kind": "chat",
+                }
+            )
+
+        if wants_teacher_help and subject:
+            actions.insert(
+                0,
+                {
+                    "label": f"Seguir com o chat sobre {subject}",
+                    "action": "continue_subject_chat",
+                    "kind": "chat",
+                    "disciplina": subject,
+                }
+            )
+
+        return actions
+
     def _store_simple_response(
         self,
         session,
@@ -90,6 +139,8 @@ class ChatService:
         assistant_text: str,
         message_type: str,
         moderation_action: str | None = None,
+        knowledge_status: str = "grounded",
+        suggested_actions: list[dict] | None = None,
     ) -> ChatMessageResponse:
         user_message = self.chat_repository.add_message(
             session_id=session.id,
@@ -103,7 +154,11 @@ class ChatService:
             sender="assistant",
             message_text=assistant_text,
             message_type=message_type,
-            context_json={"moderation_action": moderation_action} if moderation_action else {},
+            context_json={
+                "moderation_action": moderation_action,
+                "knowledge_status": knowledge_status,
+                "suggested_actions": suggested_actions or [],
+            },
         )
         self.chat_repository.touch_session(session)
         return ChatMessageResponse(
@@ -117,6 +172,8 @@ class ChatService:
             used_sources=[],
             retrieval_count=0,
             moderation_action=moderation_action,
+            knowledge_status=knowledge_status,
+            suggested_actions=suggested_actions or [],
         )
 
     async def process_message(self, user: Usuario, payload: ChatMessageRequest) -> ChatMessageResponse:
@@ -136,20 +193,56 @@ class ChatService:
                 response_text,
                 "moderation",
                 moderation_action=action,
+                knowledge_status="blocked",
             )
+
+        subject = self.router_service.detect_subject(message)
+        wants_teacher_help = self.router_service.wants_teacher_help(message)
 
         if self.router_service.is_greeting_only(message):
             greeting = (
                 "Oi! Eu sou o assistente do AVA MJ. "
-                "Se quiser, posso te ajudar com estudos, atividades, trilhas, desempenho ou uso da plataforma."
+                "Posso te ajudar com estudos, atividades, trilhas, desempenho e uso da plataforma. "
+                "Se a dúvida for de Matemática ou Língua Portuguesa, você pode continuar comigo ou chamar o professor."
             )
-            return self._store_simple_response(session, message, greeting, "greeting")
+            return self._store_simple_response(
+                session,
+                message,
+                greeting,
+                "greeting",
+                suggested_actions=self._build_suggested_actions(user, subject),
+            )
+
+        if wants_teacher_help and subject:
+            guidance = (
+                f"Entendi que você quer ajuda em {subject}. "
+                f"Você pode continuar comigo para uma explicação inicial ou chamar o professor de {subject}. "
+                "Se preferir o professor, use a opção de solicitação para eu encaminhar corretamente."
+            )
+            return self._store_simple_response(
+                session,
+                message,
+                guidance,
+                "teacher_guidance",
+                suggested_actions=self._build_suggested_actions(
+                    user,
+                    subject,
+                    wants_teacher_help=True,
+                ),
+            )
 
         message_type = self.router_service.classify(message)
         context = self.context_service.build_context(user, message_type)
         math_answer = self.math_service.try_answer(message)
         if math_answer:
-            return self._store_simple_response(session, message, math_answer, "math_guided")
+            return self._store_simple_response(
+                session,
+                message,
+                math_answer,
+                "math_guided",
+                suggested_actions=self._build_suggested_actions(user, "Matemática"),
+            )
+
         retrieved_chunks = self.retrieval_service.search(message, context=context)
         recent_history = self.chat_repository.get_recent_history(
             session.id,
@@ -188,6 +281,18 @@ class ChatService:
         )
         ia_result.answer = self.guardrails_service.sanitize_assistant_message(ia_result.answer)
 
+        knowledge_status = "grounded"
+        if (
+            self.router_service.is_question(message)
+            and not retrieved_chunks
+            and self.ia_service.is_low_information_answer(ia_result.answer)
+        ):
+            ia_result.answer = (
+                "Ainda não encontrei base suficiente para responder essa pergunta com segurança. "
+                "Estou em treinamento para esse tipo de dúvida e prefiro não improvisar uma resposta sem contexto confiável."
+            )
+            knowledge_status = "training"
+
         assistant_message = self.chat_repository.add_message(
             session_id=session.id,
             sender="assistant",
@@ -197,6 +302,7 @@ class ChatService:
                 "used_context": ia_result.used_context,
                 "used_sources": [chunk.model_dump() for chunk in retrieved_chunks],
                 "retrieval_count": len(retrieved_chunks),
+                "knowledge_status": knowledge_status,
             },
         )
         self._register_interaction(user, message, assistant_message.message_text, context)
@@ -227,6 +333,12 @@ class ChatService:
             ],
             retrieval_count=len(retrieved_chunks),
             moderation_action=None,
+            knowledge_status=knowledge_status,
+            suggested_actions=self._build_suggested_actions(
+                user,
+                subject,
+                knowledge_status=knowledge_status,
+            ),
         )
 
     def add_feedback(

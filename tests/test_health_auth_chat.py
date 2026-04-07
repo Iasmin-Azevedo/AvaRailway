@@ -222,6 +222,7 @@ class BackendFlowTestCase(unittest.TestCase):
         self.assertEqual(response.json()["message_type"], "greeting")
         self.assertEqual(response.json()["retrieval_count"], 0)
         self.assertIn("Eu sou o assistente do AVA MJ", response.json()["assistant_message"])
+        self.assertIn("suggested_actions", response.json())
 
     def test_chat_returns_used_sources_details(self):
         login = self.client.post(
@@ -240,6 +241,43 @@ class BackendFlowTestCase(unittest.TestCase):
         body = response.json()
         self.assertIn("used_sources", body)
         self.assertIsInstance(body["used_sources"], list)
+
+    def test_chat_offers_teacher_or_chat_for_subject_help(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        token = login.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = self.client.post(
+            "/api/v1/chat/message",
+            json={"message": "Quero falar com o professor de matematica"},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["message_type"], "teacher_guidance")
+        self.assertIn("continuar comigo", body["assistant_message"])
+        self.assertTrue(any(item["action"] == "request_teacher_help" for item in body["suggested_actions"]))
+
+    def test_chat_admits_when_still_in_training(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        token = login.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = self.client.post(
+            "/api/v1/chat/message",
+            json={"message": "O que voce sabe sobre astrofisica quasar e materia escura?"},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["knowledge_status"], "training")
+        self.assertIn("Estou em treinamento", body["assistant_message"])
 
     def test_professor_can_schedule_live_class_and_student_can_view(self):
         professor_login = self.client.post(

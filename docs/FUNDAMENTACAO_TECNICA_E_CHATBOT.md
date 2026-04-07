@@ -95,6 +95,14 @@ No contexto do AVA MJ, a abordagem mais consistente para o chatbot envolve:
 - registrar fontes de apoio utilizadas na resposta;
 - preservar histórico e memória resumida para continuidade da conversa.
 
+### Ajustes recentes de comportamento
+
+- identificar quando a mensagem representa saudação simples, pedido de professor ou pergunta real;
+- reconhecer disciplinas principais para orientar melhor a resposta inicial;
+- devolver ações sugeridas para o frontend integrar escolha entre seguir no chat ou chamar o professor;
+- declarar de forma honesta quando o sistema ainda está em treinamento para aquela dúvida;
+- reduzir respostas genéricas por meio de verificação de baixa informação antes do retorno final.
+
 ## Apoio para raciocínio matemático
 
 Para perguntas matemáticas estruturadas, o backend pode combinar o fluxo geral do chatbot com resolução simbólica local. Isso reduz dependência exclusiva do modelo de linguagem em operações, expressões e equações simples.

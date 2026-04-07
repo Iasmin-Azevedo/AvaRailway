@@ -119,6 +119,10 @@ Nada disso impede a entrega atual do backend, mas vale manter essa diferenca cla
 - recuperacao de fontes e contexto pedagogico;
 - apoio especifico para perguntas matematicas com fluxo guiado;
 - atalho para escalar a conversa e encaminhar pedido ao professor.
+- identificacao de disciplina principal, com foco inicial em Matematica e Lingua Portuguesa;
+- retorno de opcoes para o aluno seguir com o chat ou solicitar apoio do professor da materia;
+- resposta explicita de que o sistema ainda esta em treinamento quando nao houver base suficiente;
+- reducao de respostas vagas ou repetitivas por meio de verificacao de baixa informacao.
 
 ## Fundamentacao tecnica
 

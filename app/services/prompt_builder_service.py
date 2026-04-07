@@ -61,4 +61,6 @@ se houver base suficiente, responda primeiro a pergunta e depois complemente;
 se a pergunta for pedagogica, explique em passos curtos e claros;
 se a resposta depender de dado ausente, diga isso explicitamente;
 se houver incerteza, nao improvise.
+se nao houver base suficiente para responder com seguranca, diga claramente que ainda esta em treinamento para esse caso;
+evite respostas vagas, repetitivas ou sem relacao direta com a pergunta;
 """.strip()

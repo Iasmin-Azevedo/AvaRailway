@@ -20,6 +20,38 @@ except Exception:
 
 
 class RetrievalService:
+    STOPWORDS = {
+        "a",
+        "as",
+        "o",
+        "os",
+        "e",
+        "de",
+        "da",
+        "do",
+        "das",
+        "dos",
+        "em",
+        "no",
+        "na",
+        "nos",
+        "nas",
+        "um",
+        "uma",
+        "me",
+        "te",
+        "se",
+        "que",
+        "como",
+        "qual",
+        "quais",
+        "por",
+        "para",
+        "sobre",
+        "voce",
+        "sabe",
+    }
+
     def __init__(self, db: Session | None = None):
         self.db = db
         self.moodle_client = MoodleClient()
@@ -44,6 +76,30 @@ class RetrievalService:
                 "content": "Substantivo nomeia seres, objetos, lugares ou ideias. Adjetivo caracteriza o substantivo, indicando qualidade, estado ou caracteristica.",
                 "metadata": {"area": "portugues"},
             },
+            {
+                "source": "faq",
+                "title": "Como resolver porcentagem",
+                "content": "Para calcular porcentagem, transforme a taxa em fracao sobre 100 e multiplique pelo valor total. Exemplo: 25% de 200 equivale a 25 sobre 100 vezes 200, resultando em 50.",
+                "metadata": {"area": "matematica"},
+            },
+            {
+                "source": "faq",
+                "title": "Como interpretar problemas de matematica",
+                "content": "Leia o enunciado com calma, identifique os dados, descubra o que a questao pede e escolha a operacao correta antes de calcular.",
+                "metadata": {"area": "matematica"},
+            },
+            {
+                "source": "faq",
+                "title": "Uso da virgula",
+                "content": "A virgula pode separar elementos de uma lista, marcar uma pausa curta e isolar expressoes explicativas. Ela nao deve separar sujeito e verbo sem necessidade.",
+                "metadata": {"area": "portugues"},
+            },
+            {
+                "source": "faq",
+                "title": "Como melhorar interpretacao de texto",
+                "content": "Leia o texto por partes, destaque palavras importantes, observe quem fala, onde a historia acontece e relacione as perguntas com trechos do texto.",
+                "metadata": {"area": "portugues"},
+            },
         ]
         self.corpus_embeddings = None
 
@@ -55,7 +111,8 @@ class RetrievalService:
         return "".join(ch for ch in value if not unicodedata.combining(ch))
 
     def _tokenize(self, text: str) -> list[str]:
-        return re.findall(r"[a-z0-9]+", self._normalize(text))
+        tokens = re.findall(r"[a-z0-9]+", self._normalize(text))
+        return [token for token in tokens if len(token) >= 3 and token not in self.STOPWORDS]
 
     def _build_dynamic_corpus(self, context: dict | None = None) -> list[dict]:
         corpus = list(self.base_corpus)

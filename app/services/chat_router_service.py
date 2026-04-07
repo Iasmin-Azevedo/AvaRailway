@@ -34,6 +34,37 @@ class ChatRouterService:
         r"\bcoordenador\b",
         r"\bescola\b",
     ]
+    MATH_PATTERNS = [
+        r"\bmatematica\b",
+        r"\bfracao\b",
+        r"\bfracoes\b",
+        r"\bdivisao\b",
+        r"\bmultiplicacao\b",
+        r"\bporcentagem\b",
+        r"\bequacao\b",
+        r"\bconta\b",
+        r"\bnumero\b",
+        r"\bgeometria\b",
+    ]
+    PORTUGUESE_PATTERNS = [
+        r"\bportugues\b",
+        r"\blingua portuguesa\b",
+        r"\btexto\b",
+        r"\binterpretacao\b",
+        r"\bacentuacao\b",
+        r"\bvirgula\b",
+        r"\bgramatica\b",
+        r"\bsubstantivo\b",
+        r"\badjetivo\b",
+    ]
+    TEACHER_HELP_PATTERNS = [
+        r"\bfalar com (o )?professor\b",
+        r"\bchamar (o )?professor\b",
+        r"\bquero ajuda do professor\b",
+        r"\bquero tirar duvida com o professor\b",
+        r"\bprofessor dessa materia\b",
+        r"\bpreciso do professor\b",
+    ]
 
     def _normalize(self, text: str) -> str:
         value = unicodedata.normalize("NFKD", text.lower().strip())
@@ -73,3 +104,17 @@ class ChatRouterService:
             "me ajuda",
         )
         return value.startswith(starters)
+
+    def detect_subject(self, text: str) -> str | None:
+        """Identifica a disciplina principal citada na mensagem."""
+        value = self._normalize(text)
+        if any(re.search(pattern, value) for pattern in self.MATH_PATTERNS):
+            return "Matemática"
+        if any(re.search(pattern, value) for pattern in self.PORTUGUESE_PATTERNS):
+            return "Língua Portuguesa"
+        return None
+
+    def wants_teacher_help(self, text: str) -> bool:
+        """Detecta quando o usuário quer encaminhamento para um professor."""
+        value = self._normalize(text)
+        return any(re.search(pattern, value) for pattern in self.TEACHER_HELP_PATTERNS)

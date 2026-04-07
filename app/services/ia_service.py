@@ -5,6 +5,14 @@ from app.schemas.chat_schema import IAChatPayload, IAChatResult
 
 
 class IAService:
+    GENERIC_MARKERS = (
+        "estou pronto para ajudar",
+        "mande a pergunta em uma frase",
+        "posso te ajudar com base no seu contexto atual",
+        "se voce quiser",
+        "eu respondo de forma objetiva",
+    )
+
     def gerar_feedback(self, acertos: int, total: int):
         percentual = (acertos / total) * 100 if total else 0
         if percentual == 100:
@@ -50,6 +58,12 @@ class IAService:
             used_context=[chunk["title"] for chunk in payload.retrieved_chunks],
         )
 
+    def is_low_information_answer(self, answer: str) -> bool:
+        normalized = " ".join(answer.lower().split())
+        if len(normalized) < 40:
+            return True
+        return any(marker in normalized for marker in self.GENERIC_MARKERS)
+
     def _fallback_answer(self, payload: IAChatPayload) -> str:
         if payload.retrieved_chunks:
             top = payload.retrieved_chunks[0]
@@ -70,7 +84,10 @@ class IAService:
                 "Se me disser a duvida, eu explico de forma objetiva."
             )
 
-        return (
-            "Estou pronto para ajudar com duvidas de estudo, uso da plataforma e orientacoes gerais. "
-            "Se voce quiser, mande a pergunta em uma frase e eu respondo de forma objetiva e sem inventar informacoes."
-        )
+        if "?" in payload.question:
+            return (
+                "Ainda nao encontrei base suficiente para responder essa pergunta com seguranca. "
+                "Estou em treinamento e prefiro nao improvisar uma resposta sem contexto confiavel."
+            )
+
+        return "Pode me dizer sua duvida de forma mais direta para eu tentar te ajudar melhor?"
