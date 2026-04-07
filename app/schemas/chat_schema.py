@@ -37,6 +37,8 @@ class ChatMessageResponse(BaseModel):
     moderation_action: str | None = None
     knowledge_status: str = "grounded"
     suggested_actions: list[dict[str, Any]] = Field(default_factory=list)
+    answer_provider: str = "fallback"
+    answer_model: str | None = None
 
 
 class ChatHistoryItem(BaseModel):
@@ -77,3 +79,13 @@ class IAChatPayload(BaseModel):
 class IAChatResult(BaseModel):
     answer: str
     used_context: list[str] = Field(default_factory=list)
+    provider: str = "fallback"
+    model: str | None = None
+
+
+class ChatRuntimeStatusResponse(BaseModel):
+    nlu_provider: str
+    llm_provider: str
+    llm_model: str | None = None
+    llm_available: bool
+    fallback_enabled: bool

@@ -59,6 +59,7 @@ O chatbot do AVA MJ deve evoluir como um assistente educacional seguro, contextu
 ### Estratégia recomendada
 
 - uso de LLM para geração da resposta final;
+- uso de LangChain para organizar a chamada ao modelo, histórico e contexto recuperado;
 - uso de RAG para recuperar conteúdos reais antes de responder;
 - uso de contexto pedagógico por perfil, série e desempenho;
 - uso de fontes rastreáveis para reduzir respostas sem base;
@@ -103,6 +104,13 @@ No contexto do AVA MJ, a abordagem mais consistente para o chatbot envolve:
 - declarar de forma honesta quando o sistema ainda está em treinamento para aquela dúvida;
 - reduzir respostas genéricas por meio de verificação de baixa informação antes do retorno final.
 - permitir integração opcional com NLU externo para melhorar intenção e entidades sem depender exclusivamente de dados pedagógicos já existentes.
+- identificar no retorno da API qual motor respondeu, distinguindo IA local e fallback.
+
+## Direção de operação para o Ollama
+
+O AVA MJ pode operar com Ollama local ou externo. Em ambiente de desenvolvimento leve, um modelo pequeno reduz custo computacional e ajuda a validar a integração. Em ambiente de resposta real, a recomendação é apontar o backend para um host mais forte, mantendo o mesmo contrato de API.
+
+Essa abordagem preserva o fluxo do chatbot e evita acoplamento da aplicação a uma única máquina de inferência.
 
 ## Apoio para raciocínio matemático
 

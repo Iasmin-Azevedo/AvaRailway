@@ -122,6 +122,7 @@ class BackendFlowTestCase(unittest.TestCase):
         message_body = message_response.json()
         self.assertIn("assistant_message", message_body)
         self.assertIn("assistant_message_id", message_body)
+        self.assertIn("answer_provider", message_body)
 
         history_response = self.client.get(
             f"/api/v1/chat/history/{session_id}",
@@ -244,6 +245,7 @@ class BackendFlowTestCase(unittest.TestCase):
         body = response.json()
         self.assertIn("used_sources", body)
         self.assertIsInstance(body["used_sources"], list)
+        self.assertIn("answer_provider", body)
 
     def test_chat_offers_teacher_or_chat_for_subject_help(self):
         login = self.client.post(
@@ -392,6 +394,20 @@ class BackendFlowTestCase(unittest.TestCase):
         body = response.json()
         self.assertTrue(body["success"])
         self.assertIn("encaminhada", body["message"])
+
+    def test_chat_status_endpoint(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        response = self.client.get("/api/v1/chat/status", headers=headers)
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn("llm_provider", body)
+        self.assertIn("llm_available", body)
+        self.assertIn("llm_model", body)
 
 
 if __name__ == "__main__":

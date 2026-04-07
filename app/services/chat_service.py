@@ -261,6 +261,8 @@ class ChatService:
             moderation_action=moderation_action,
             knowledge_status=knowledge_status,
             suggested_actions=suggested_actions or [],
+            answer_provider="system",
+            answer_model=None,
         )
 
     async def process_message(self, user: Usuario, payload: ChatMessageRequest) -> ChatMessageResponse:
@@ -477,7 +479,12 @@ class ChatService:
                 subject,
                 knowledge_status=knowledge_status,
             ),
+            answer_provider=ia_result.provider,
+            answer_model=ia_result.model,
         )
+
+    async def get_runtime_status(self) -> dict:
+        return await self.ia_service.runtime_status()
 
     def add_feedback(
         self,

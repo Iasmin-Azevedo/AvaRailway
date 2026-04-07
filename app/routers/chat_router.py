@@ -10,6 +10,7 @@ from app.schemas.chat_schema import (
     ChatHistoryResponse,
     ChatMessageRequest,
     ChatMessageResponse,
+    ChatRuntimeStatusResponse,
     ChatSessionCreateRequest,
     ChatSessionResponse,
 )
@@ -45,6 +46,15 @@ async def send_message(
 ):
     service = ChatService(db)
     return await service.process_message(current_user, payload)
+
+
+@router.get("/status", response_model=ChatRuntimeStatusResponse)
+async def get_chat_status(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    service = ChatService(db)
+    return await service.get_runtime_status()
 
 
 @router.get("/history/{session_id}", response_model=ChatHistoryResponse)

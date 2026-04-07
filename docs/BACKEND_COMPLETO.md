@@ -34,6 +34,7 @@ O modulo de chatbot foi estruturado para nao ser apenas um endpoint solto. Agora
 - contexto ligado ao perfil do usuario;
 - feedback de resposta;
 - suporte a Ollama quando o servico estiver disponivel;
+- suporte a LangChain com Ollama como camada principal de resposta;
 - fallback local quando o provedor de IA nao responder;
 - fluxo guiado para duvidas de matematica;
 - atalhos para solicitar contato com professor;
@@ -76,6 +77,7 @@ O backend tambem passou a contar com uma estrutura leve para aulas ao vivo:
 - `GET /api/v1/chat/sessions`
 - `POST /api/v1/chat/sessions`
 - `POST /api/v1/chat/message`
+- `GET /api/v1/chat/status`
 - `GET /api/v1/chat/history/{session_id}`
 - `POST /api/v1/chat/sessions/{session_id}/feedback`
 - `DELETE /api/v1/chat/sessions/{session_id}`
@@ -124,6 +126,26 @@ Nada disso impede a entrega atual do backend, mas vale manter essa diferenca cla
 - resposta explicita de que o sistema ainda esta em treinamento quando nao houver base suficiente;
 - reducao de respostas vagas ou repetitivas por meio de verificacao de baixa informacao.
 - camada NLU opcional para melhorar entendimento inicial da mensagem, com fallback local quando o provedor externo nao estiver configurado.
+- resposta agora identifica o motor utilizado, permitindo ao frontend saber se veio do Ollama ou de fallback.
+- endpoint de status do chatbot para validar se o Ollama configurado esta realmente acessivel.
+
+## Operacao com Ollama
+
+O backend aceita duas formas de operacao para o Ollama:
+
+- Ollama local, usando `OLLAMA_BASE_URL=http://localhost:11434`;
+- Ollama externo, apontando `OLLAMA_BASE_URL` para outro host da rede ou servidor dedicado.
+
+Variaveis principais:
+
+- `OLLAMA_BASE_URL`
+- `OLLAMA_MODEL`
+- `CHAT_USE_LANGCHAIN`
+- `OLLAMA_CONNECT_TIMEOUT_SECONDS`
+- `OLLAMA_READ_TIMEOUT_SECONDS`
+
+Para ambiente local leve, o exemplo atual usa `smollm2:135m`.
+Para respostas mais fortes, a recomendacao e usar um host mais potente com modelo maior e manter o backend apenas consumindo esse endpoint remoto.
 
 ## Fundamentacao tecnica
 
