@@ -11,6 +11,7 @@ from app.services.chat_context_service import ChatContextService
 from app.services.chat_guardrails_service import ChatGuardrailsService
 from app.services.chat_math_service import ChatMathService
 from app.services.chat_memory_service import ChatMemoryService
+from app.services.chat_nlu_service import ChatNLUService
 from app.services.chat_router_service import ChatRouterService
 from app.services.ia_service import IAService
 from app.services.prompt_builder_service import PromptBuilderService
@@ -27,6 +28,7 @@ class ChatService:
         self.guardrails_service = ChatGuardrailsService()
         self.memory_service = ChatMemoryService(self.chat_repository)
         self.math_service = ChatMathService()
+        self.nlu_service = ChatNLUService(self.router_service)
         self.context_service = ChatContextService(db)
         self.retrieval_service = RetrievalService(db)
         self.prompt_builder = PromptBuilderService()
@@ -196,10 +198,11 @@ class ChatService:
                 knowledge_status="blocked",
             )
 
-        subject = self.router_service.detect_subject(message)
-        wants_teacher_help = self.router_service.wants_teacher_help(message)
+        nlu_result = await self.nlu_service.analyze(message)
+        subject = nlu_result.get("subject") or self.router_service.detect_subject(message)
+        wants_teacher_help = bool(nlu_result.get("wants_teacher_help"))
 
-        if self.router_service.is_greeting_only(message):
+        if nlu_result.get("is_greeting_only"):
             greeting = (
                 "Oi! Eu sou o assistente do AVA MJ. "
                 "Posso te ajudar com estudos, atividades, trilhas, desempenho e uso da plataforma. "
@@ -231,7 +234,7 @@ class ChatService:
                 ),
             )
 
-        message_type = self.router_service.classify(message)
+        message_type = nlu_result.get("message_type") or self.router_service.classify(message)
         context = self.context_service.build_context(user, message_type)
         math_answer = self.math_service.try_answer(message)
         if math_answer:
@@ -283,7 +286,7 @@ class ChatService:
 
         knowledge_status = "grounded"
         if (
-            self.router_service.is_question(message)
+            nlu_result.get("is_question")
             and not retrieved_chunks
             and self.ia_service.is_low_information_answer(ia_result.answer)
         ):

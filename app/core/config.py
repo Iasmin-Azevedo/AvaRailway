@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     CHAT_ENABLE_SEMANTIC_SEARCH: bool = False
     CHAT_EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     CHAT_SYSTEM_NAME: str = "AVA MJ"
+    CHAT_NLU_PROVIDER: str = "local"
+    WIT_AI_TOKEN: str | None = None
+    WIT_AI_BASE_URL: str = "https://api.wit.ai"
+    WIT_AI_API_VERSION: str = "20230416"
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod

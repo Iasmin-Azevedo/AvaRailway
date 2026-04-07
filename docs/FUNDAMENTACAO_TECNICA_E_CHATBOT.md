@@ -102,6 +102,7 @@ No contexto do AVA MJ, a abordagem mais consistente para o chatbot envolve:
 - devolver ações sugeridas para o frontend integrar escolha entre seguir no chat ou chamar o professor;
 - declarar de forma honesta quando o sistema ainda está em treinamento para aquela dúvida;
 - reduzir respostas genéricas por meio de verificação de baixa informação antes do retorno final.
+- permitir integração opcional com NLU externo para melhorar intenção e entidades sem depender exclusivamente de dados pedagógicos já existentes.
 
 ## Apoio para raciocínio matemático
 

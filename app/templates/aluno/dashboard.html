@@ -304,16 +304,72 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var helpRequestButtons = document.querySelectorAll('.chat-help-request');
     var initialGreeting = 'Olá! Eu sou seu tutor virtual. Como posso ajudar?';
 
-    function appendMessage(text, from) {
+    function appendMessage(text, from, actions) {
         var wrap = document.createElement('div');
         wrap.className = 'mb-2 d-flex ' + (from === 'user' ? 'justify-content-end' : 'justify-content-start');
+
+        var column = document.createElement('div');
+        column.style.maxWidth = '85%';
+
         var bubble = document.createElement('div');
         bubble.className = 'px-3 py-2 rounded-3 small ' + (from === 'user' ? 'bg-warning text-dark' : 'bg-light text-dark border');
-        bubble.style.maxWidth = '85%';
         bubble.textContent = text;
-        wrap.appendChild(bubble);
+        column.appendChild(bubble);
+
+        if (from !== 'user' && Array.isArray(actions) && actions.length) {
+            column.appendChild(buildActionButtons(actions));
+        }
+
+        wrap.appendChild(column);
         messages.appendChild(wrap);
         messages.scrollTop = messages.scrollHeight;
+    }
+
+    function buildActionButtons(actions) {
+        var actionsWrap = document.createElement('div');
+        actionsWrap.className = 'd-flex flex-wrap gap-2 mt-2';
+
+        actions.forEach(function(action) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-sm btn-outline-primary rounded-pill';
+            button.textContent = action.label || 'Selecionar';
+            button.addEventListener('click', function() {
+                handleSuggestedAction(action);
+            });
+            actionsWrap.appendChild(button);
+        });
+
+        return actionsWrap;
+    }
+
+    async function handleSuggestedAction(action) {
+        if (!action || !action.action) return;
+
+        if (action.action === 'request_teacher_help' && action.disciplina) {
+            try {
+                await createTeacherHelpRequest(action.disciplina);
+                appendMessage('Encaminhei sua solicitação para o professor responsável de ' + action.disciplina + '.', 'bot');
+            } catch (err) {
+                appendMessage('Não consegui encaminhar sua solicitação agora. Tente novamente em instantes.', 'bot');
+                console.error(err);
+            }
+            return;
+        }
+
+        if (action.action === 'continue_subject_chat' && action.disciplina) {
+            input.value = 'Quero continuar minha dúvida de ' + action.disciplina + ' com o chat.';
+            input.focus();
+            return;
+        }
+
+        if (action.action === 'rephrase_question') {
+            input.value = 'Vou reformular minha pergunta para você.';
+            input.focus();
+            return;
+        }
+
+        input.focus();
     }
 
     function appendTypingBubble() {
@@ -571,7 +627,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             if (!resp.ok) throw new Error('Falha ao enviar mensagem');
             const data = await resp.json();
             removeTypingBubble(typingNode);
-            appendMessage(data.assistant_message || 'Não consegui responder agora.', 'bot');
+            appendMessage(data.assistant_message || 'Não consegui responder agora.', 'bot', data.suggested_actions || []);
         } catch (err) {
             removeTypingBubble(typingNode);
             appendMessage('Não consegui conectar ao tutor agora. Tente novamente em instantes.', 'bot');

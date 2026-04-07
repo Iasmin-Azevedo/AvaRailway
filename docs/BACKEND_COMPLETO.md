@@ -123,6 +123,7 @@ Nada disso impede a entrega atual do backend, mas vale manter essa diferenca cla
 - retorno de opcoes para o aluno seguir com o chat ou solicitar apoio do professor da materia;
 - resposta explicita de que o sistema ainda esta em treinamento quando nao houver base suficiente;
 - reducao de respostas vagas ou repetitivas por meio de verificacao de baixa informacao.
+- camada NLU opcional para melhorar entendimento inicial da mensagem, com fallback local quando o provedor externo nao estiver configurado.
 
 ## Fundamentacao tecnica
 
