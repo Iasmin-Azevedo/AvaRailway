@@ -388,18 +388,38 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         bubble.style.maxWidth = '85%';
         bubble.style.minWidth = '56px';
 
+        var label = document.createElement('div');
+        label.className = 'small fw-semibold mb-1 text-secondary';
+        label.textContent = 'Estou pensando...';
+        bubble.appendChild(label);
+
         var dots = document.createElement('span');
         dots.className = 'chat-typing-dots';
         dots.innerHTML = '<span></span><span></span><span></span>';
         bubble.appendChild(dots);
+
+        var timer = document.createElement('div');
+        timer.className = 'small text-muted mt-1';
+        timer.textContent = '0s';
+        bubble.appendChild(timer);
+
         wrap.appendChild(bubble);
         messages.appendChild(wrap);
         messages.scrollTop = messages.scrollHeight;
+        var elapsed = 0;
+        var intervalId = window.setInterval(function() {
+            elapsed += 1;
+            timer.textContent = elapsed + 's';
+        }, 1000);
+        wrap._typingIntervalId = intervalId;
         return wrap;
     }
 
     function removeTypingBubble(node) {
         if (node && node.parentNode) {
+            if (node._typingIntervalId) {
+                window.clearInterval(node._typingIntervalId);
+            }
             node.parentNode.removeChild(node);
         }
     }
