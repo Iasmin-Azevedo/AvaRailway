@@ -13,6 +13,11 @@ LEVEL_THRESHOLDS: list[dict[str, Optional[int | str]]] = [
 # XP base por tipo de atividade H5P.
 XP_BASE_BY_TYPE: dict[str, int] = {
     "quiz": 80,
+    "multiple-choice": 78,
+    "fill-blanks": 75,
+    "interactive-book": 62,
+    "drag-words": 72,
+    "course-presentation": 58,
     "drag-drop": 70,
     "video": 50,
     "flashcards": 60,
@@ -26,6 +31,11 @@ XP_FIRST_COMPLETION_ONLY = True
 # Bonus maximo de score por tipo (score em 0..100).
 XP_MAX_SCORE_BONUS_BY_TYPE: dict[str, int] = {
     "quiz": 40,
+    "multiple-choice": 38,
+    "fill-blanks": 35,
+    "interactive-book": 26,
+    "drag-words": 34,
+    "course-presentation": 22,
     "drag-drop": 35,
     "video": 20,
     "flashcards": 25,

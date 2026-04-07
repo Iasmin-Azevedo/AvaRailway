@@ -1,0 +1,78 @@
+{# Tipos H5P: labels PT-BR, ícones Font Awesome (fas), sufixo CSS jornada-atividade-* --slug #}
+{% set _H5P_LABELS = {
+  'quiz': 'Quiz',
+  'multiple-choice': 'Múltipla escolha',
+  'fill-blanks': 'Preencher as lacunas',
+  'interactive-book': 'Livro interativo',
+  'drag-words': 'Arraste as palavras',
+  'course-presentation': 'Apresentação de curso',
+  'presentation': 'Apresentação',
+  'video': 'Vídeo interativo',
+  'drag-drop': 'Arrastar e soltar',
+  'flashcards': 'Flashcards',
+  'outro': 'Outro',
+} %}
+{% set _H5P_ICONS = {
+  'quiz': 'fa-clipboard-question',
+  'multiple-choice': 'fa-list-check',
+  'fill-blanks': 'fa-pen-to-square',
+  'interactive-book': 'fa-book-open',
+  'drag-words': 'fa-arrows-left-right',
+  'course-presentation': 'fa-chalkboard-user',
+  'presentation': 'fa-person-chalkboard',
+  'video': 'fa-circle-play',
+  'drag-drop': 'fa-up-down-left-right',
+  'flashcards': 'fa-layer-group',
+  'outro': 'fa-shapes',
+} %}
+{% set _H5P_CSS = {
+  'quiz': 'quiz',
+  'multiple-choice': 'multiple-choice',
+  'fill-blanks': 'fill-blanks',
+  'interactive-book': 'interactive-book',
+  'drag-words': 'drag-words',
+  'course-presentation': 'course-presentation',
+  'presentation': 'presentation',
+  'video': 'video',
+  'drag-drop': 'drag-drop',
+  'flashcards': 'flashcards',
+  'outro': 'outro',
+} %}
+{# Ordem no <select> (cadastro professor/admin); "outro" sempre por último #}
+{% set H5P_TIPO_SELECT_ORDER = [
+  'quiz',
+  'multiple-choice',
+  'fill-blanks',
+  'interactive-book',
+  'drag-words',
+  'course-presentation',
+  'presentation',
+  'video',
+  'drag-drop',
+  'flashcards',
+  'outro',
+] %}
+{% set H5P_TIPO_KNOWN_SLUGS = [
+  'quiz',
+  'multiple-choice',
+  'fill-blanks',
+  'interactive-book',
+  'drag-words',
+  'course-presentation',
+  'presentation',
+  'video',
+  'drag-drop',
+  'flashcards',
+] %}
+
+{% macro label(tipo) -%}
+{{- _H5P_LABELS.get(tipo, tipo) -}}
+{%- endmacro %}
+
+{% macro icon(tipo) -%}
+{{- _H5P_ICONS.get(tipo, 'fa-puzzle-piece') -}}
+{%- endmacro %}
+
+{% macro css(tipo) -%}
+{{- _H5P_CSS.get(tipo, 'outro') -}}
+{%- endmacro %}

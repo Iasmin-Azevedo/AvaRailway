@@ -16,30 +16,7 @@
 {% include "aluno/partials/aluno_offcanvas_info.html" %}
 {% endblock %}
 
-{% set tipo_labels = {
-    'quiz': 'Quiz',
-    'drag-drop': 'Arrastar e soltar',
-    'video': 'Vídeo interativo',
-    'flashcards': 'Flashcards',
-    'presentation': 'Apresentação',
-    'outro': 'Outro'
-} %}
-{% set tipo_icons = {
-    'quiz': 'fa-clipboard-question',
-    'drag-drop': 'fa-up-down-left-right',
-    'video': 'fa-circle-play',
-    'flashcards': 'fa-layer-group',
-    'presentation': 'fa-person-chalkboard',
-    'outro': 'fa-shapes'
-} %}
-{% set tipo_css = {
-    'quiz': 'quiz',
-    'drag-drop': 'drag-drop',
-    'video': 'video',
-    'flashcards': 'flashcards',
-    'presentation': 'presentation',
-    'outro': 'outro'
-} %}
+{% import 'partials/h5p_tipo_display.html' as h5p_tipo %}
 
 {% block main_content %}
 {% if request.query_params.get("ja_concluida") %}
@@ -185,7 +162,7 @@
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
                                     <div class="fw-bold text-mj-dark">{{ ap.titulo }}</div>
-                                    <div class="small text-mj-muted">{{ tipo_labels.get(ap.tipo, 'Outro') }}</div>
+                                    <div class="small text-mj-muted">{{ h5p_tipo.label(ap.tipo) }}</div>
                                 </div>
                                 {% if ap.id in atividades_professor_concluidas %}
                                 <span class="badge bg-success">Concluída</span>
@@ -246,15 +223,15 @@
                             {% for a in acts %}
                             <li id="atividade-{{ t.id }}-{{ a.id }}" class="card p-3 mb-3 border-0 shadow-sm rounded-4 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-3 transition-hover scroll-margin-top">
                                 
-                                <div class="jornada-atividade-icon--{{ tipo_css.get(a.tipo, 'outro') }} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
+                                <div class="jornada-atividade-icon--{{ h5p_tipo.css(a.tipo) }} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
                                      style="width: 50px; height: 50px;">
-                                    <i class="fas {{ tipo_icons.get(a.tipo, 'fa-puzzle-piece') }} fs-5"></i>
+                                    <i class="fas {{ h5p_tipo.icon(a.tipo) }} fs-5"></i>
                                 </div>
                         
                                 <div class="flex-grow-1 min-w-0 text-break">
                                     <div class="mb-1">
-                                        <span class="badge rounded-pill fw-medium px-2 py-1 small jornada-atividade-tipo-badge--{{ tipo_css.get(a.tipo, 'outro') }}" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                                            {{ tipo_labels.get(a.tipo, a.tipo) }}
+                                        <span class="badge rounded-pill fw-medium px-2 py-1 small jornada-atividade-tipo-badge--{{ h5p_tipo.css(a.tipo) }}" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                            {{ h5p_tipo.label(a.tipo) }}
                                         </span>
                                     </div>
                                     <h6 class="fw-bold text-dark mb-0 text-truncate" title="{{ a.titulo }}">

@@ -8,7 +8,7 @@ class AtividadeH5P(Base):
     __tablename__ = "atividades_h5p"
     id = Column(Integer, primary_key=True, index=True)
     titulo = Column(String(200), nullable=False)
-    tipo = Column(String(50), nullable=False)  # quiz, drag-drop, video, flashcards, etc.
+    tipo = Column(String(50), nullable=False)  # slug em partials/h5p_tipo_display.html
     path_ou_json = Column(String(500), nullable=False)  # path para pasta ou JSON
     trilha_id = Column(Integer, ForeignKey("trilhas.id"), nullable=True)
     descritor_id = Column(Integer, ForeignKey("saeb_descritores.id"), nullable=True)

@@ -10,6 +10,7 @@
 {% endblock %}
 
 {% block main_content %}
+{% import 'partials/h5p_tipo_display.html' as h5p_tipo %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <h4 class="fw-bold mb-0">Minhas Atividades H5P</h4>
   <a href="/professor/atividades/nova" class="btn btn-mj rounded-pill">Nova atividade</a>
@@ -36,7 +37,11 @@
         <tr>
           <td class="ps-3">{{ atividade.titulo }}</td>
           <td>{{ turma_nome }}</td>
-          <td><span class="badge bg-secondary">{{ atividade.tipo }}</span></td>
+          <td>
+            <span class="badge rounded-pill jornada-atividade-tipo-badge jornada-atividade-tipo-badge--{{ h5p_tipo.css(atividade.tipo) }} d-inline-flex align-items-center gap-1">
+              <i class="fas {{ h5p_tipo.icon(atividade.tipo) }}"></i> {{ h5p_tipo.label(atividade.tipo) }}
+            </span>
+          </td>
           <td>{% if atividade.ativo %}<span class="badge bg-success">Ativa</span>{% else %}<span class="badge bg-secondary">Inativa</span>{% endif %}</td>
           <td class="text-end pe-3">
             <form method="post" action="/professor/atividades/{{ atividade.id }}/deletar" class="d-inline" onsubmit="return confirm('Excluir atividade?');">

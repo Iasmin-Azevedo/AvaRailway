@@ -5,7 +5,7 @@ from datetime import datetime
 
 class AtividadeH5PBase(BaseModel):
     titulo: str
-    tipo: str  # quiz, drag-drop, video, flashcards, etc.
+    tipo: str  # quiz, multiple-choice, fill-blanks, interactive-book, drag-words, course-presentation, ...
     path_ou_json: str
     trilha_id: Optional[int] = None
     descritor_id: Optional[int] = None

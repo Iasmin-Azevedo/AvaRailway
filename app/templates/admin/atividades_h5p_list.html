@@ -15,6 +15,7 @@
 {% endblock %}
 
 {% block main_content %}
+{% import 'partials/h5p_tipo_display.html' as h5p_tipo %}
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h2 class="fw-bold text-mj-dark mb-0"><i class="fa-solid fa-puzzle-piece me-2 text-mj-primary"></i> Atividades H5P</h2>
     <div class="d-flex flex-wrap gap-2">
@@ -43,7 +44,11 @@
                     {% for a in atividades %}
                     <tr>
                         <td class="ps-4 fw-bold">{{ a.titulo }}</td>
-                        <td><span class="badge bg-info bg-opacity-25 text-info">{{ a.tipo }}</span></td>
+                        <td>
+                            <span class="badge rounded-pill jornada-atividade-tipo-badge jornada-atividade-tipo-badge--{{ h5p_tipo.css(a.tipo) }} d-inline-flex align-items-center gap-1">
+                                <i class="fas {{ h5p_tipo.icon(a.tipo) }}"></i> {{ h5p_tipo.label(a.tipo) }}
+                            </span>
+                        </td>
                         <td>{{ trilha_nomes.get(a.trilha_id, "—") if a.trilha_id else "—" }}</td>
                         <td>{{ a.ordem }}</td>
                         <td>

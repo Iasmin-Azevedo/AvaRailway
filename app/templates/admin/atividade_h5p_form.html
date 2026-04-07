@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block main_content %}
+{% import 'partials/h5p_tipo_display.html' as h5p_tipo %}
 <div class="mb-4">
     <a href="/admin/atividades-h5p" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Atividades H5P</a>
     <h2 class="fw-bold text-mj-dark mt-2">{{ "Editar Atividade H5P" if atividade else "Nova Atividade H5P" }}</h2>
@@ -22,12 +23,13 @@
             <div class="mb-3">
                 <label class="form-label fw-bold">Tipo</label>
                 <select name="tipo" class="form-select rounded-pill" required>
-                    <option value="quiz" {% if atividade and atividade.tipo == 'quiz' %}selected{% endif %}>Quiz</option>
-                    <option value="drag-drop" {% if atividade and atividade.tipo == 'drag-drop' %}selected{% endif %}>Arrastar e soltar</option>
-                    <option value="video" {% if atividade and atividade.tipo == 'video' %}selected{% endif %}>Vídeo interativo</option>
-                    <option value="flashcards" {% if atividade and atividade.tipo == 'flashcards' %}selected{% endif %}>Flashcards</option>
-                    <option value="presentation" {% if atividade and atividade.tipo == 'presentation' %}selected{% endif %}>Apresentação</option>
-                    <option value="outro" {% if atividade and atividade.tipo not in ['quiz','drag-drop','video','flashcards','presentation'] %}selected{% endif %}>Outro</option>
+                    {% for slug in h5p_tipo.H5P_TIPO_SELECT_ORDER %}
+                    <option value="{{ slug }}"
+                      {% if atividade and atividade.tipo == slug %}selected
+                      {% elif not atividade and slug == 'quiz' %}selected
+                      {% elif atividade and slug == 'outro' and atividade.tipo not in h5p_tipo.H5P_TIPO_KNOWN_SLUGS %}selected
+                      {% endif %}>{{ h5p_tipo.label(slug) }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="mb-3">
