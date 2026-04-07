@@ -1,0 +1,39 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Aula ao Vivo{% endblock %}
+{% block brand_link %}#{% endblock %}
+{% block menu_title %}Aula ao Vivo{% endblock %}
+
+{% block header_right %}
+<div class="text-end">
+    <div class="mission-user-name mb-0">{{ live_class.titulo }}</div>
+    <small class="text-mj-muted">{{ live_class.disciplina }} · {{ live_class.scheduled_at.strftime("%d/%m/%Y %H:%M") }}</small>
+</div>
+{% endblock %}
+
+{% block offcanvas_extra %}{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="{{ back_path }}">Voltar</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="{{ live_class.meeting_url }}" target="_blank" rel="noopener noreferrer">Abrir em nova aba</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="card dash-card">
+    <div class="dash-card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold mb-0 text-dark">{{ live_class.titulo }}</h5>
+            <small class="text-muted">{{ live_class.disciplina }} · Sala {{ live_class.room_name }}</small>
+        </div>
+        <a href="{{ live_class.meeting_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-mj-outline">Abrir em nova aba</a>
+    </div>
+    <div class="card-body p-0">
+        <iframe
+            src="{{ live_class.meeting_url }}#config.prejoinPageEnabled=false"
+            title="Aula ao vivo"
+            style="width: 100%; height: 78vh; border: 0;"
+            allow="camera; microphone; fullscreen; display-capture"
+            referrerpolicy="strict-origin-when-cross-origin">
+        </iframe>
+    </div>
+</div>
+{% endblock %}

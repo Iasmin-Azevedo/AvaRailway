@@ -9,6 +9,7 @@ from app.repositories.chat_repository import ChatRepository
 from app.schemas.chat_schema import ChatMessageRequest, ChatMessageResponse
 from app.services.chat_context_service import ChatContextService
 from app.services.chat_guardrails_service import ChatGuardrailsService
+from app.services.chat_math_service import ChatMathService
 from app.services.chat_memory_service import ChatMemoryService
 from app.services.chat_router_service import ChatRouterService
 from app.services.ia_service import IAService
@@ -25,6 +26,7 @@ class ChatService:
         self.router_service = ChatRouterService()
         self.guardrails_service = ChatGuardrailsService()
         self.memory_service = ChatMemoryService(self.chat_repository)
+        self.math_service = ChatMathService()
         self.context_service = ChatContextService(db)
         self.retrieval_service = RetrievalService(db)
         self.prompt_builder = PromptBuilderService()
@@ -145,6 +147,9 @@ class ChatService:
 
         message_type = self.router_service.classify(message)
         context = self.context_service.build_context(user, message_type)
+        math_answer = self.math_service.try_answer(message)
+        if math_answer:
+            return self._store_simple_response(session, message, math_answer, "math_guided")
         retrieved_chunks = self.retrieval_service.search(message, context=context)
         recent_history = self.chat_repository.get_recent_history(
             session.id,

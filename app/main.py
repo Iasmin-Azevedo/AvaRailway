@@ -33,6 +33,7 @@ from app.routers import (
     dashboard_router,
     h5p_router,
     ia_router,
+    live_support_router,
 )
 from app.models import (
     aluno,
@@ -44,6 +45,7 @@ from app.models import (
     gestao,
     h5p,
     interacao_ia,
+    live_support,
     relacoes,
     resposta,
     saeb,
@@ -183,6 +185,8 @@ app.include_router(admin_router.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(admin_pages_router.router, prefix="/admin", tags=["Admin Pages"])
 app.include_router(h5p_router.router, prefix="/api/h5p", tags=["H5P"])
 app.include_router(chat_router.router)
+app.include_router(live_support_router.router)
+app.include_router(live_support_router.page_router)
 
 
 @app.get("/login")
@@ -215,8 +219,10 @@ def professor_dashboard(
 ):
     from app.models.gestao import Turma
     from app.models.relacoes import ProfessorTurma
+    from app.services.live_support_service import LiveSupportService
 
     stats = DashboardService().get_professor_stats(db)
+    live_support = LiveSupportService(db)
     relacoes = (
         db.query(ProfessorTurma)
         .join(Turma, ProfessorTurma.turma_id == Turma.id)
@@ -244,6 +250,8 @@ def professor_dashboard(
             "professor_turmas": professor_turmas,
             "selected_turma_id": None,
             "avatar_iniciais": avatar_iniciais,
+            "upcoming_live_classes": live_support.list_live_classes_for_professor(current_user),
+            "teacher_help_requests": live_support.list_teacher_help_requests(current_user),
         },
     )
 

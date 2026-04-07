@@ -34,7 +34,20 @@ O modulo de chatbot foi estruturado para nao ser apenas um endpoint solto. Agora
 - contexto ligado ao perfil do usuario;
 - feedback de resposta;
 - suporte a Ollama quando o servico estiver disponivel;
-- fallback local quando o provedor de IA nao responder.
+- fallback local quando o provedor de IA nao responder;
+- fluxo guiado para duvidas de matematica;
+- atalhos para solicitar contato com professor;
+- registro de solicitacoes de apoio enviadas pelo chatbot.
+
+### Aulas ao vivo e agenda
+
+O backend tambem passou a contar com uma estrutura leve para aulas ao vivo:
+
+- agendamento de videoconferencias pelo professor;
+- armazenamento de titulo, disciplina, turma, horario e link externo;
+- exibicao da agenda para o aluno na propria plataforma;
+- visualizacao das proximas aulas ao vivo no painel do professor;
+- mecanismo de solicitacao de apoio ao professor a partir do chatbot.
 
 ### Operacao e ambiente
 
@@ -67,6 +80,13 @@ O modulo de chatbot foi estruturado para nao ser apenas um endpoint solto. Agora
 - `POST /api/v1/chat/sessions/{session_id}/feedback`
 - `DELETE /api/v1/chat/sessions/{session_id}`
 
+### Aulas ao vivo e suporte
+
+- `POST /api/v1/live-support/live-classes`
+- `GET /api/v1/live-support/live-classes/upcoming`
+- `POST /api/v1/live-support/teacher-help-requests`
+- `GET /api/v1/live-support/teacher-help-requests`
+
 ## Seguranca que ja esta no codigo
 
 - senhas com `bcrypt`;
@@ -91,6 +111,14 @@ Alguns itens do documento tecnico sao mais amplos e normalmente entram numa fase
 - consolidacao total dos relatorios pedagogicos previstos no documento.
 
 Nada disso impede a entrega atual do backend, mas vale manter essa diferenca clara: parte do que foi pedido no documento ja esta refletida no codigo, e parte ja ficou preparada para a proxima fase.
+
+## Atualizacoes recentes no chatbot
+
+- deteccao de saudacoes curtas e respostas mais naturais;
+- bloqueio de ofensas, discriminacao e pedidos de alteracao do sistema;
+- recuperacao de fontes e contexto pedagogico;
+- apoio especifico para perguntas matematicas com fluxo guiado;
+- atalho para escalar a conversa e encaminhar pedido ao professor.
 
 ## Fundamentacao tecnica
 

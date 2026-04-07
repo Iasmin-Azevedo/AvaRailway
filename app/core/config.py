@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     ENABLE_CHAT_FALLBACK: bool = True
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.1:8b"
+    JITSI_BASE_URL: str = "https://meet.jit.si"
     CHAT_MAX_HISTORY_MESSAGES: int = 10
     CHAT_MAX_USER_MESSAGE_LENGTH: int = 2000
     CHAT_MEMORY_SUMMARY_EVERY: int = 8

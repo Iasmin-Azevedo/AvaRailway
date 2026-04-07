@@ -119,9 +119,11 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
     """Tela inicial do aluno (dashboard)."""
     from app.models.aluno import Aluno
     from app.services.dashboard_service import DashboardService
+    from app.services.live_support_service import LiveSupportService
     aluno_nome = _get_aluno_nome(request, db)
     aluno_id = None
     aluno_ano = None
+    current_user = None
     token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
     if token:
         try:
@@ -130,6 +132,7 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
             if email:
                 user = user_repo.get_by_email(db, email)
                 if user:
+                    current_user = user
                     aluno = db.query(Aluno).filter(Aluno.usuario_id == user.id).first()
                     if aluno:
                         aluno_id = aluno.id
@@ -158,6 +161,10 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
             )
         )
 
+    upcoming_live_classes = []
+    if current_user:
+        upcoming_live_classes = LiveSupportService(db).list_live_classes_for_student(current_user)
+
     return templates.TemplateResponse(
         request,
         "aluno/dashboard.html",
@@ -168,6 +175,7 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
             "preview_trilha": preview_trilha,
             "preview_curso_nome": preview_curso_nome,
             "preview_atividades_total": preview_atividades_total,
+            "upcoming_live_classes": upcoming_live_classes,
         },
     )
 

@@ -95,6 +95,16 @@ No contexto do AVA MJ, a abordagem mais consistente para o chatbot envolve:
 - registrar fontes de apoio utilizadas na resposta;
 - preservar histórico e memória resumida para continuidade da conversa.
 
+## Apoio para raciocínio matemático
+
+Para perguntas matemáticas estruturadas, o backend pode combinar o fluxo geral do chatbot com resolução simbólica local. Isso reduz dependência exclusiva do modelo de linguagem em operações, expressões e equações simples.
+
+Como apoio técnico complementar, o projeto pode utilizar:
+
+- `SymPy`, para manipulação simbólica e resolução de expressões matemáticas;
+- recuperação de conteúdo pedagógico para explicações em linguagem adequada ao ano escolar;
+- LLM apenas na camada final de explicação, quando necessário.
+
 ## Síntese
 
 Com essa fundamentação, o backend e o chatbot deixam de ser apenas uma implementação funcional e passam a ter uma base técnica explícita, alinhada a literatura reconhecida de arquitetura de software, orientação a objetos, integração de dados e uso responsável de LLMs em contexto educacional.

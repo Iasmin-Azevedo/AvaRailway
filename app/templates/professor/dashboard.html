@@ -188,6 +188,29 @@
                 </div>
             </div>
         </div>
+
+        <div class="card dash-card mt-4">
+            <div class="dash-card-header d-flex align-items-center gap-2">
+                <i class="fa-solid fa-calendar-check text-mj-primary fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Próximas Aulas ao Vivo</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if upcoming_live_classes %}
+                <div class="list-group list-group-flush small">
+                    {% for item in upcoming_live_classes %}
+                    <div class="list-group-item p-3">
+                        <div class="fw-bold text-dark">{{ item.titulo }}</div>
+                        <div class="text-muted">{{ item.disciplina }} · {{ item.turma.nome if item.turma else "Turma" }}</div>
+                        <div class="text-muted">{{ item.scheduled_at.strftime("%d/%m/%Y %H:%M") }}</div>
+                        <a href="{{ item.join_path }}" class="btn btn-sm btn-mj-outline mt-2">Entrar na sala</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-3 small text-muted">Nenhuma aula ao vivo agendada no momento.</div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <div class="col-lg-4 d-flex flex-column gap-4">
@@ -226,11 +249,33 @@
             </div>
         </div>
 
+        <div class="card dash-card">
+            <div class="dash-card-header d-flex align-items-center gap-2">
+                <i class="fa-solid fa-bell text-warning fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Solicitações do Chatbot</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if teacher_help_requests %}
+                <div class="list-group list-group-flush small">
+                    {% for item in teacher_help_requests %}
+                    <div class="list-group-item p-3">
+                        <div class="fw-bold text-dark">{{ item.assunto }}</div>
+                        <div class="text-muted">{{ item.disciplina }} · {{ item.requester.nome if item.requester else "Aluno" }}</div>
+                        <div class="text-muted">{{ item.created_at.strftime("%d/%m/%Y %H:%M") }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-3 small text-muted">Nenhuma solicitação recente enviada pelo chatbot.</div>
+                {% endif %}
+            </div>
+        </div>
+
         <div class="card dash-card bg-light">
             <div class="card-body p-3">
                 <h6 class="fw-bold small text-muted text-uppercase mb-3">Ações Rápidas</h6>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-white border shadow-sm text-start fw-bold text-mj-primary"><i class="fa-solid fa-video me-2"></i> Agendar Live de Revisão</button>
+                    <button id="toggle-live-class-form" class="btn btn-white border shadow-sm text-start fw-bold text-mj-primary"><i class="fa-solid fa-video me-2"></i> Agendar Live de Revisão</button>
                     <button class="btn btn-white border shadow-sm text-start fw-bold text-success"><i class="fa-solid fa-medal me-2"></i> Enviar Medalha Coletiva</button>
                     <button class="btn btn-white border shadow-sm text-start fw-bold text-mj-muted"><i class="fa-solid fa-file-lines me-2"></i> Ver Dashboard Completo</button>
                 </div>
@@ -238,4 +283,79 @@
         </div>
     </div>
 </div>
+
+<div id="live-class-form-wrapper" class="card dash-card mt-4 d-none">
+    <div class="dash-card-header d-flex align-items-center gap-2">
+        <i class="fa-solid fa-video text-mj-primary fs-5"></i>
+        <h6 class="fw-bold mb-0 text-dark">Agendar Aula ao Vivo</h6>
+    </div>
+    <div class="card-body">
+        <form id="live-class-form" class="d-grid gap-2">
+            <select name="turma_id" class="form-select" required>
+                <option value="">Selecione a turma</option>
+                {% for t in professor_turmas %}
+                <option value="{{ t.id }}">{{ t.nome }} - {{ t.escola.nome if t.escola else "Sem escola" }}</option>
+                {% endfor %}
+            </select>
+            <select name="disciplina" class="form-select" required>
+                <option value="Matemática">Matemática</option>
+                <option value="Língua Portuguesa">Língua Portuguesa</option>
+            </select>
+            <input name="titulo" class="form-control" placeholder="Título da aula ao vivo" maxlength="150" required>
+            <input name="meeting_url" class="form-control" placeholder="Link externo da videoconferência (opcional)" maxlength="500">
+            <input name="scheduled_at" type="datetime-local" class="form-control" required>
+            <textarea name="descricao" class="form-control" rows="2" maxlength="1000" placeholder="Descrição opcional"></textarea>
+            <button type="submit" class="btn btn-mj fw-bold">Salvar agendamento</button>
+        </form>
+        <div id="live-class-feedback" class="small mt-2"></div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var toggleBtn = document.getElementById('toggle-live-class-form');
+    var formWrapper = document.getElementById('live-class-form-wrapper');
+    var form = document.getElementById('live-class-form');
+    var feedback = document.getElementById('live-class-feedback');
+
+    toggleBtn && toggleBtn.addEventListener('click', function(event) {
+        event.preventDefault();
+        if (!formWrapper) return;
+        formWrapper.classList.toggle('d-none');
+        formWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    form && form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        var formData = new FormData(form);
+        var payload = {
+            turma_id: Number(formData.get('turma_id')),
+            disciplina: String(formData.get('disciplina') || '').trim(),
+            titulo: String(formData.get('titulo') || '').trim(),
+            meeting_url: String(formData.get('meeting_url') || '').trim(),
+            scheduled_at: new Date(String(formData.get('scheduled_at') || '')).toISOString(),
+            descricao: String(formData.get('descricao') || '').trim(),
+            duration_minutes: 50
+        };
+
+        try {
+            var response = await fetch('/api/v1/live-support/live-classes', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            var body = await response.json();
+            if (!response.ok) throw new Error(body.mensagem_amigavel || 'Não foi possível salvar o agendamento.');
+            feedback.textContent = 'Aula ao vivo agendada com sucesso.';
+            feedback.className = 'small mt-2 text-success';
+            form.reset();
+            setTimeout(function() { window.location.reload(); }, 700);
+        } catch (error) {
+            feedback.textContent = error.message || 'Não foi possível salvar o agendamento.';
+            feedback.className = 'small mt-2 text-danger';
+        }
+    });
+})();
+</script>
 {% endblock %}
