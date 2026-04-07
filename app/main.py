@@ -848,9 +848,27 @@ def gestor_relatorios_export(
 @app.get("/admin")
 def admin_dashboard(
     request: Request,
+    db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin_redirect),
 ):
-    return templates.TemplateResponse(request, "admin/dashboard.html", {"request": request})
+    from app.models.support_ticket import SupportTicket
+
+    tickets_abertos = (
+        db.query(SupportTicket)
+        .filter(SupportTicket.status == "aberto")
+        .order_by(SupportTicket.updated_at.desc())
+        .limit(5)
+        .all()
+    )
+    return templates.TemplateResponse(
+        request,
+        "admin/dashboard.html",
+        {
+            "request": request,
+            "tickets_abertos": tickets_abertos,
+            "tickets_abertos_total": len(tickets_abertos),
+        },
+    )
 
 
 @app.get("/coordenador")

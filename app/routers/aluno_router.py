@@ -238,6 +238,46 @@ def aluno_missao_1(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@page_router.get("/aluno/configuracoes")
+def aluno_configuracoes(request: Request, db: Session = Depends(get_db)):
+    from app.services.dashboard_service import DashboardService
+
+    aluno_nome = _get_aluno_nome(request, db)
+    aluno_id = _get_aluno_id_from_request(request, db)
+    aluno_ano = None
+    if aluno_id:
+        from app.models.aluno import Aluno
+
+        aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+        aluno_ano = aluno.ano_escolar if aluno else None
+    stats = DashboardService().get_aluno_stats(db, aluno_id) if aluno_id else {}
+    return templates.TemplateResponse(
+        request,
+        "aluno/configuracoes.html",
+        {
+            "aluno_nome": aluno_nome,
+            "aluno_ano": aluno_ano,
+            "stats": stats,
+        },
+    )
+
+
+@page_router.get("/aluno/xp-resumo")
+def aluno_xp_resumo(request: Request, db: Session = Depends(get_db)):
+    from app.services.dashboard_service import DashboardService
+
+    aluno_id = _get_aluno_id_from_request(request, db)
+    if not aluno_id:
+        raise HTTPException(status_code=401, detail="Nao autenticado")
+    stats = DashboardService().get_aluno_stats(db, aluno_id)
+    return {
+        "xp_total": int(stats.get("xp_total") or 0),
+        "xp_atual_nivel": int(stats.get("xp_atual_nivel") or 0),
+        "xp_meta_nivel": int(stats.get("xp_meta_nivel") or 600),
+        "xp_pct_nivel": int(stats.get("xp_pct_nivel") or 0),
+    }
+
+
 @page_router.get("/aluno/trilhas")
 @page_router.get("/aluno/portugues")
 def aluno_trilhas(request: Request, db: Session = Depends(get_db)):
@@ -745,8 +785,67 @@ def aluno_atividade_professor(request: Request, id: int, db: Session = Depends(g
             "completion_token": "",
             "atividade_concluida": atividade_concluida,
             "completion_endpoint": f"/api/h5p/professor-atividades/{id}/concluir",
+            "manual_completion_enabled": True,
         },
     )
+
+
+@page_router.post("/aluno/atividade-professor/{id}")
+async def aluno_atividade_professor_post(id: int, request: Request, db: Session = Depends(get_db)):
+    from app.core.gamification_rules import calculate_xp_gain, get_level_progress
+    from app.models.aluno import Aluno, PontuacaoGamificacao
+    from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
+
+    aluno_id = _get_aluno_id_from_request(request, db)
+    if not aluno_id:
+        return RedirectResponse(url="/login", status_code=302)
+    aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+    atividade = db.query(ProfessorAtividadeH5P).filter(ProfessorAtividadeH5P.id == id, ProfessorAtividadeH5P.ativo).first()
+    if not aluno or not atividade or not aluno.turma_id or atividade.turma_id != aluno.turma_id:
+        return RedirectResponse(url="/aluno/portugues?acesso_negado_ano=1", status_code=302)
+
+    payload = None
+    try:
+        payload = await request.json()
+    except Exception:
+        try:
+            form = await request.form()
+            payload = dict(form)
+        except Exception:
+            payload = None
+    score = _extract_score_from_payload(payload)
+
+    progresso = db.query(ProfessorProgressoH5P).filter(
+        ProfessorProgressoH5P.aluno_id == aluno_id,
+        ProfessorProgressoH5P.atividade_id == id,
+    ).first()
+    primeira_conclusao = not (progresso and progresso.concluido)
+    if not progresso:
+        progresso = ProfessorProgressoH5P(aluno_id=aluno_id, atividade_id=id, tentativas=0)
+        db.add(progresso)
+    progresso.tentativas = int((progresso.tentativas or 0) + 1)
+    progresso.concluido = True
+    progresso.score = score
+    progresso.data_conclusao = datetime.utcnow()
+    db.commit()
+
+    if primeira_conclusao:
+        gamificacao = db.query(PontuacaoGamificacao).filter(PontuacaoGamificacao.aluno_id == aluno_id).first()
+        if not gamificacao:
+            gamificacao = PontuacaoGamificacao(aluno_id=aluno_id, xp_total=0, nivel="Novato")
+            db.add(gamificacao)
+            db.commit()
+            db.refresh(gamificacao)
+        ganho_xp = calculate_xp_gain(
+            activity_type=getattr(atividade, "tipo", "outro"),
+            score=score,
+            is_first_completion=True,
+        )
+        gamificacao.xp_total = int((gamificacao.xp_total or 0) + ganho_xp)
+        gamificacao.nivel = get_level_progress(gamificacao.xp_total)["nivel"]
+        db.commit()
+
+    return RedirectResponse(url=f"/aluno/atividade-professor/{id}", status_code=303)
 
 
 @page_router.post("/aluno")
@@ -807,6 +906,90 @@ async def criar_aluno_web(request: Request, db: Session = Depends(get_db)):
             except Exception:
                 db.rollback()
         return RedirectResponse(url="/cadastro?erro=falha_cadastro", status_code=303)
+
+
+@page_router.get("/aluno/suporte/chamado")
+def aluno_suporte_chamado_get(request: Request, db: Session = Depends(get_db)):
+    aluno_id = _get_aluno_id_from_request(request, db)
+    if not aluno_id:
+        return RedirectResponse(url="/login", status_code=302)
+    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
+    user = None
+    if token:
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            email = payload.get("sub")
+            if email:
+                user = user_repo.get_by_email(db, email)
+        except JWTError:
+            user = None
+
+    from app.services.dashboard_service import DashboardService
+    from app.models.aluno import Aluno
+
+    aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+    return templates.TemplateResponse(
+        request,
+        "aluno/suporte_chamado.html",
+        {
+            "aluno_nome": _get_aluno_nome(request, db),
+            "aluno_ano": (aluno.ano_escolar if aluno else None),
+            "stats": DashboardService().get_aluno_stats(db, aluno_id),
+            "email_default": (getattr(user, "email", "") or ""),
+            "erro": request.query_params.get("erro"),
+            "ok": request.query_params.get("ok"),
+        },
+    )
+
+
+@page_router.post("/aluno/suporte/chamado")
+async def aluno_suporte_chamado_post(request: Request, db: Session = Depends(get_db)):
+    from datetime import datetime
+    from app.models.support_ticket import SupportTicket, SupportTicketMessage
+
+    aluno_id = _get_aluno_id_from_request(request, db)
+    if not aluno_id:
+        return RedirectResponse(url="/login", status_code=302)
+    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
+    current_user = None
+    if token:
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            email = payload.get("sub")
+            if email:
+                current_user = user_repo.get_by_email(db, email)
+        except JWTError:
+            current_user = None
+
+    form = await request.form()
+    email = (form.get("email") or "").strip()
+    assunto = (form.get("assunto") or "").strip()
+    mensagem = (form.get("mensagem") or "").strip()
+    if current_user and getattr(current_user, "email", None):
+        email = email or current_user.email
+    if not email or not assunto or not mensagem:
+        return RedirectResponse(url="/aluno/suporte/chamado?erro=campos", status_code=303)
+
+    ticket = SupportTicket(
+        usuario_id=current_user.id if current_user else None,
+        email=email[:255],
+        assunto=assunto[:200],
+        status="aberto",
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    db.add(ticket)
+    db.flush()
+    db.add(
+        SupportTicketMessage(
+            ticket_id=ticket.id,
+            autor_role="usuario",
+            corpo=mensagem[:8000],
+            created_at=datetime.utcnow(),
+        )
+    )
+    db.commit()
+    return RedirectResponse(url="/aluno/suporte/chamado?ok=1", status_code=303)
 
 
 @router.post("/cadastro", response_model=UserResponse)

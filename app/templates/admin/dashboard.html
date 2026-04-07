@@ -30,8 +30,6 @@
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/descritores">Descritores SAEB</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/atividades-h5p">Atividades H5P</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/suporte">Chamados de suporte</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="#">Integrações</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="#">Logs</a>
 {% endblock %}
 
 {% block main_content %}
@@ -261,26 +259,22 @@
         <div class="card dash-card">
             <div class="dash-card-header d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0"><i class="fa-solid fa-headset text-danger me-2"></i> Suporte Técnico (Abertos)</h6>
-                <span class="badge bg-danger rounded-pill">3</span>
+                <span class="badge bg-danger rounded-pill">{{ tickets_abertos_total|default(0) }}</span>
             </div>
             <div class="card-body p-0">
                 <div class="list-group list-group-flush small">
-                    <div class="list-group-item p-3 dash-alert-item dash-alert-item--danger">
+                    {% for t in tickets_abertos %}
+                    <div class="list-group-item p-3 dash-alert-item {% if loop.first %}dash-alert-item--danger{% else %}dash-alert-item--warning{% endif %}">
                         <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold text-dark">Erro na Atividade H5P (Arrastar e Soltar)</span>
-                            <span class="small text-muted">Há 20 min</span>
+                            <span class="fw-bold text-dark">{{ t.assunto }}</span>
+                            <span class="small text-muted">{{ t.updated_at.strftime('%d/%m %H:%M') if t.updated_at else '' }}</span>
                         </div>
-                        <p class="text-muted mb-2" style="font-size: 0.8rem;">Relatado pelo Prof. Carlos. Atividade não carrega no polo rural.</p>
-                        <button class="btn btn-sm btn-danger py-0">Investigar Ticket</button>
+                        <p class="text-muted mb-2 text-break" style="font-size: 0.8rem;">{{ t.email }}</p>
+                        <a href="/admin/suporte/{{ t.id }}" class="btn btn-sm {% if loop.first %}btn-danger{% else %}btn-warning{% endif %} py-0 {% if not loop.first %}fw-bold{% endif %}">Investigar Ticket</a>
                     </div>
-                    <div class="list-group-item p-3 dash-alert-item dash-alert-item--warning">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold text-dark">Sincronização de Cadastro</span>
-                            <span class="small text-muted">Há 1 hora</span>
-                        </div>
-                        <p class="text-muted mb-2" style="font-size: 0.8rem;">3 alunos do 5º ano não constam no banco do Moodle.</p>
-                        <button class="btn btn-sm btn-warning py-0 fw-bold">Forçar Sync SGE</button>
-                    </div>
+                    {% else %}
+                    <div class="list-group-item p-3 text-muted">Sem chamados abertos no momento.</div>
+                    {% endfor %}
                 </div>
             </div>
         </div>

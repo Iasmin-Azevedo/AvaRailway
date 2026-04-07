@@ -63,6 +63,19 @@
         </div>
     </div>
 </div>
+{% if manual_completion_enabled %}
+<div class="mt-2">
+    <button type="button" id="manual-complete-btn" class="btn btn-mj-outline rounded-pill">
+        <i class="fas fa-check-circle me-1"></i> Marcar atividade como concluída
+    </button>
+</div>
+{% endif %}
+<div id="h5p-xp-toast" class="position-fixed bottom-0 end-0 m-4 d-none" style="z-index: 1095;">
+  <div class="bg-mj-dark text-white rounded-4 shadow p-3">
+    <div class="fw-bold"><i class="fas fa-star text-warning me-1"></i> Atividade concluída!</div>
+    <div class="small opacity-75" id="h5p-xp-toast-text">Seu XP foi atualizado.</div>
+  </div>
+</div>
 
 <link rel="stylesheet" href="/static/vendor/h5p-standalone/styles/h5p.css">
 <script>
@@ -149,9 +162,45 @@
     var sent = false;
     var completionToken = "{{ completion_token|default('') }}";
     var completionActions = document.getElementById('h5p-completion-actions');
+    var manualBtn = document.getElementById('manual-complete-btn');
+    var toast = document.getElementById('h5p-xp-toast');
+    var toastText = document.getElementById('h5p-xp-toast-text');
 
     function showCompletionActions() {
       if (completionActions) completionActions.classList.remove('d-none');
+    }
+    function showXpToast(score) {
+      if (!toast) return;
+      if (toastText) {
+        if (typeof score === 'number' && !isNaN(score)) {
+          toastText.textContent = 'Pontuação: ' + Math.round(score) + '% · XP atualizado.';
+        } else {
+          toastText.textContent = 'Seu XP foi atualizado.';
+        }
+      }
+      toast.classList.remove('d-none');
+      setTimeout(function() { toast.classList.add('d-none'); }, 2200);
+    }
+
+    function refreshAlunoXpHeader() {
+      fetch('/aluno/xp-resumo', { method: 'GET', credentials: 'same-origin' })
+        .then(function(resp) { return resp.ok ? resp.json() : null; })
+        .then(function(data) {
+          if (!data) return;
+          document.querySelectorAll('[data-xp-total]').forEach(function(el) {
+            el.textContent = String(data.xp_total || 0);
+          });
+          var xpText = (data.xp_atual_nivel || 0) + '/' + (data.xp_meta_nivel || 600) + ' XP';
+          document.querySelectorAll('[data-xp-text]').forEach(function(el) {
+            el.textContent = xpText;
+          });
+          var pct = Math.max(0, Math.min(100, Number(data.xp_pct_nivel || 0)));
+          document.querySelectorAll('[data-xp-progress]').forEach(function(el) {
+            el.style.width = pct + '%';
+            el.setAttribute('data-progress-width', String(pct));
+          });
+        })
+        .catch(function(){});
     }
 
     function getScoreFromText(txt) {
@@ -175,6 +224,7 @@
     function sendConcluded(score) {
       if (sent) return;
       sent = true;
+      showCompletionActions();
       var endpoint = '{{ completion_endpoint|default("/api/h5p/atividades/" ~ atividade.id ~ "/concluir") }}';
       var headers = { 'Content-Type': 'application/json' };
       if (completionToken) headers['X-H5P-Completion-Token'] = completionToken;
@@ -189,7 +239,8 @@
           console.warn('Conclusão não registrada. Status:', resp.status);
           return;
         }
-        showCompletionActions();
+        refreshAlunoXpHeader();
+        showXpToast(score);
       }).catch(function(err){
         sent = false;
         console.warn('Falha ao registrar conclusão (fallback):', err);
@@ -306,6 +357,11 @@
 
     var xapiBound = attachH5PXapiListener();
     attachIframeListeners();
+    if (manualBtn) {
+      manualBtn.addEventListener('click', function() {
+        sendConcluded(getScoreFromResult() || null);
+      });
+    }
 
     // Garantia extra: quando o resultado final da atividade aparece no documento atual.
     var observer = new MutationObserver(function() {

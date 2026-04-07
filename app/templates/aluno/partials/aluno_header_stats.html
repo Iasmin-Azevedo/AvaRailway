@@ -2,22 +2,52 @@
 {% set xp_pct = stats.xp_pct_nivel|default(0) %}
 {% set xp_atual_nivel = stats.xp_atual_nivel|default(0) %}
 {% set xp_meta_nivel = stats.xp_meta_nivel|default(600) %}
-<div class="d-none d-lg-flex align-items-center gap-3">
+{% set nivel_label = stats.nivel|default('LV 1') %}
+{% set streak_dias = stats.streak_dias|default(7) %}
+<div class="mission-profile-topbar-mj">
     <div class="mission-userbox-mj">
-        <span class="mission-user-avatar">{{ (stats.nivel|default('LV1'))[0:4] }}</span>
-        <div>
-            <div class="mission-user-name">{{ aluno_nome }}</div>
-            {% if aluno_ano %}
-            <div class="small text-mj-muted">Ano: {{ aluno_ano }}º ano</div>
-            {% endif %}
-            <div class="mission-xp-track"><span style="width: {{ xp_pct }}%"></span></div>
-            <div class="mission-user-xp">{{ xp_atual_nivel }}/{{ xp_meta_nivel }} XP</div>
+        <img
+            src="https://ui-avatars.com/api/?name={{ (aluno_nome|default('Aluno'))|replace(' ', '+') }}&amp;background=326F88&amp;color=fff"
+            class="mission-user-avatar-img"
+            width="45"
+            height="45"
+            alt="Avatar do aluno"
+            loading="lazy"
+        >
+        <div class="mission-user-meta-mj">
+            <div class="d-flex align-items-center gap-2">
+                <span class="mission-user-name">{{ aluno_nome }}</span>
+                {% if aluno_ano %}
+                <span class="badge mission-ano-badge-mj">{{ aluno_ano }}º Ano</span>
+                {% endif %}
+            </div>
+            <div class="mission-xp-track"><span data-progress-width="{{ xp_pct|int }}" data-xp-progress></span></div>
+            <div class="d-flex align-items-center justify-content-between gap-2">
+                <span class="badge mission-level-badge-mj">{{ nivel_label }}</span>
+                <small class="mission-user-xp" data-xp-text>{{ xp_atual_nivel }}/{{ xp_meta_nivel }} XP</small>
+            </div>
         </div>
     </div>
-    <span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2">
-        <i class="fas fa-star text-warning"></i> <span class="text-warning fw-bold">{{ stats.concluidos_h5p|default(0) * 25 }}</span>
-    </span>
-    <!-- <span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2">
-        <i class="fas fa-fire text-danger"></i> <span class="text-danger fw-bold">7 dias</span>
-    </span> -->
+
+    <div class="mission-kpis-pill-mj">
+        <div class="d-flex align-items-center me-3 text-warning">
+            <i class="fas fa-star me-2"></i>
+            <span class="fw-bold text-dark small" data-xp-total>{{ xp }}</span>
+        </div>
+        <div class="vr text-muted opacity-25"></div>
+        <div class="d-flex align-items-center ms-3 text-danger">
+            <i class="fas fa-fire me-2"></i>
+            <span class="fw-bold text-dark small">{{ streak_dias }} dias</span>
+        </div>
+    </div>
 </div>
+<script>
+    (function () {
+        var fills = document.querySelectorAll('.mission-xp-track span[data-progress-width]');
+        fills.forEach(function (el) {
+            var pct = Number(el.getAttribute('data-progress-width') || 0);
+            pct = Math.max(0, Math.min(100, pct));
+            el.style.width = pct + '%';
+        });
+    })();
+</script>

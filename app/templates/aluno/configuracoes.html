@@ -1,0 +1,160 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Configurações do Aluno{% endblock %}
+{% block brand_link %}/aluno{% endblock %}
+{% block menu_title %}Menu do Aluno{% endblock %}
+
+{% block header_right %}
+{% include "aluno/partials/aluno_header_stats.html" %}
+{% endblock %}
+
+{% block offcanvas_extra %}
+{% include "aluno/partials/aluno_offcanvas_info.html" %}
+{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/portugues">Trilhas</a>
+<a class="btn btn-mj w-100 rounded-pill" href="/aluno/configuracoes">Configurações</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <h4 class="fw-bold text-mj-dark mb-1">Configurações do aluno</h4>
+        <p class="small text-mj-muted mb-0">Personalize sua experiência no AVA MJ.</p>
+    </div>
+    <a href="/aluno" class="btn btn-mj-outline rounded-pill">
+        <i class="fa-solid fa-arrow-left me-1"></i> Voltar ao início
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card dash-card border-0 mb-4">
+            <div class="dash-card-header">
+                <h6 class="mb-0 fw-bold text-mj-dark">Perfil</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nome</label>
+                        <input class="form-control" value="{{ aluno_nome }}" disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Ano</label>
+                        <input class="form-control" value="{{ aluno_ano }}º ano" disabled>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Status da conta</label>
+                        <div class="alert alert-success py-2 mb-0">
+                            <i class="fa-solid fa-circle-check me-1"></i> Conta ativa e pronta para estudar
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- <div class="card dash-card border-0">
+            <div class="dash-card-header">
+                <h6 class="mb-0 fw-bold text-mj-dark">Preferências da plataforma</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" role="switch" id="cfg-notif-chat">
+                    <label class="form-check-label fw-semibold" for="cfg-notif-chat">Notificações do tutor virtual</label>
+                    <div class="small text-mj-muted">Avisos quando houver resposta nova no chat.</div>
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" role="switch" id="cfg-som">
+                    <label class="form-check-label fw-semibold" for="cfg-som">Sons de feedback</label>
+                    <div class="small text-mj-muted">Som ao concluir atividades e ganhar XP.</div>
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" role="switch" id="cfg-modo-compacto">
+                    <label class="form-check-label fw-semibold" for="cfg-modo-compacto">Modo compacto</label>
+                    <div class="small text-mj-muted">Reduz espaçamentos para ver mais conteúdo na tela.</div>
+                </div>
+
+                <button id="cfg-save-btn" type="button" class="btn btn-mj rounded-pill mt-2">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Salvar preferências
+                </button>
+                <span id="cfg-save-msg" class="small text-success ms-2 d-none">Preferências salvas.</span>
+            </div>
+        </div> -->
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card dash-card border-0 mb-4">
+            <div class="dash-card-header">
+                <h6 class="mb-0 fw-bold text-mj-dark">Privacidade e segurança</h6>
+            </div>
+            <div class="card-body p-4">
+                <ul class="list-unstyled mb-0 small">
+                    <li class="mb-2"><i class="fa-solid fa-shield-halved text-success me-2"></i> Seus dados seguem regras de segurança da plataforma.</li>
+                    <li class="mb-2"><i class="fa-solid fa-cookie-bite text-warning me-2"></i> Preferências desta tela são salvas no seu navegador.</li>
+                    <li><i class="fa-solid fa-circle-info text-info me-2"></i> Para alterar senha, fale com a equipe responsável da escola.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card dash-card border-0">
+            <div class="dash-card-header">
+                <h6 class="mb-0 fw-bold text-mj-dark">Ações rápidas</h6>
+            </div>
+            <div class="card-body p-4 d-grid gap-2">
+                <a class="btn btn-mj-outline rounded-pill" href="/aluno/portugues">
+                    <i class="fa-solid fa-route me-1"></i> Ir para trilhas de Português
+                </a>
+                <a class="btn btn-mj-outline rounded-pill" href="/aluno/matematica">
+                    <i class="fa-solid fa-calculator me-1"></i> Ir para trilhas de Matemática
+                </a>
+                <a class="btn btn-mj-outline rounded-pill" href="/aluno/suporte/chamado">
+                    <i class="fa-solid fa-headset me-1"></i> Abrir chamado de suporte
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        var keys = {
+            chat: 'aluno_cfg_notif_chat',
+            sound: 'aluno_cfg_sound',
+            compact: 'aluno_cfg_compact'
+        };
+        var elChat = document.getElementById('cfg-notif-chat');
+        var elSound = document.getElementById('cfg-som');
+        var elCompact = document.getElementById('cfg-modo-compacto');
+        var saveBtn = document.getElementById('cfg-save-btn');
+        var saveMsg = document.getElementById('cfg-save-msg');
+        if (!elChat || !elSound || !elCompact || !saveBtn || !saveMsg) return;
+
+        function readBool(key, fallback) {
+            var v = localStorage.getItem(key);
+            if (v === null) return fallback;
+            return v === '1';
+        }
+        function applyCompact(enabled) {
+            document.body.classList.toggle('a11y-compact-mode', !!enabled);
+        }
+        elChat.checked = readBool(keys.chat, true);
+        elSound.checked = readBool(keys.sound, true);
+        elCompact.checked = readBool(keys.compact, false);
+        applyCompact(elCompact.checked);
+
+        saveBtn.addEventListener('click', function () {
+            localStorage.setItem(keys.chat, elChat.checked ? '1' : '0');
+            localStorage.setItem(keys.sound, elSound.checked ? '1' : '0');
+            localStorage.setItem(keys.compact, elCompact.checked ? '1' : '0');
+            applyCompact(elCompact.checked);
+            saveMsg.classList.remove('d-none');
+            setTimeout(function () { saveMsg.classList.add('d-none'); }, 1800);
+        });
+    })();
+</script>
+{% endblock %}

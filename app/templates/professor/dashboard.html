@@ -274,6 +274,35 @@
     </div>
 </div>
 
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card dash-card">
+            <div class="dash-card-header">
+                <h6 class="mb-0 fw-bold">Descritores com Menor Proficiência</h6>
+            </div>
+            <div class="card-body">
+                {% set descritores_chart = descritores_rows[:5] if descritores_rows else [] %}
+                {% if descritores_chart %}
+                <div class="row text-center small">
+                    {% for d in descritores_chart %}
+                    {% set pct = d.taxa_pct|default(0)|int %}
+                    <div class="col">
+                        <p class="mb-1 text-muted text-truncate" title="{{ d.codigo }} - {{ d.descricao }}">{{ d.codigo }}</p>
+                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
+                            <div class="progress-bar {% if pct < 45 %}bg-danger{% elif pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="height: {{ pct }}%"></div>
+                        </div>
+                        <span class="fw-bold">{{ pct }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="small text-muted mb-0">Sem dados suficientes para gerar o gráfico de descritores.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function() {
     var toggleBtn = document.getElementById('toggle-live-class-form');

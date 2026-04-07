@@ -4,51 +4,17 @@
 {% block menu_title %}Menu do Aluno{% endblock %}
 
 {% block header_right %}
-{% set xp = stats.xp_total|default(0) %}
-{% set xp_pct = stats.xp_pct_nivel|default(0) %}
-{% set xp_atual_nivel = stats.xp_atual_nivel|default(0) %}
-{% set xp_meta_nivel = stats.xp_meta_nivel|default(600) %}
-<div class="mission-userbox-mj">
-    <span class="mission-user-avatar">{{ (stats.nivel|default('LV5'))[0:4] }}</span>
-    <div>
-        <div class="mission-user-name">{{ aluno_nome }}</div>
-        {% if aluno_ano %}
-        <div class="small text-mj-muted">Ano: {{ aluno_ano }}º ano</div>
-        {% endif %}
-        <div class="mission-xp-track"><span data-progress-width="{{ xp_pct }}"></span></div>
-        <div class="mission-user-xp">{{ xp_atual_nivel }}/{{ xp_meta_nivel }} XP</div>
-    </div>
-</div>
-<span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2"><i class="fas fa-star text-warning"></i> <span class="text-warning fw-bold">450</span></span>
-<span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2"><i class="fas fa-fire text-danger"></i> <span class="text-danger fw-bold">7 dias</span></span>
+{% include "aluno/partials/aluno_header_stats.html" %}
 {% endblock %}
 
 {% block offcanvas_extra %}
-{% set xp = stats.xp_total|default(0) %}
-{% set xp_pct = stats.xp_pct_nivel|default(0) %}
-{% set xp_atual_nivel = stats.xp_atual_nivel|default(0) %}
-{% set xp_meta_nivel = stats.xp_meta_nivel|default(600) %}
-<div class="mission-userbox-mj">
-    <span class="mission-user-avatar">{{ (stats.nivel|default('LV5'))[0:4] }}</span>
-    <div>
-        <div class="mission-user-name">{{ aluno_nome }}</div>
-        {% if aluno_ano %}
-        <div class="small text-mj-muted">Ano: {{ aluno_ano }}º ano</div>
-        {% endif %}
-        <div class="mission-xp-track"><span data-progress-width="{{ xp_pct }}"></span></div>
-        <div class="mission-user-xp">{{ xp_atual_nivel }}/{{ xp_meta_nivel }} XP</div>
-    </div>
-</div>
-<div class="d-flex gap-2">
-    <span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2"><i class="fas fa-star text-warning"></i> <span class="text-warning fw-bold">450</span></span>
-    <span class="bg-secondary bg-opacity-10 border border-muted rounded-pill px-3 py-2"><i class="fas fa-fire text-danger"></i> <span class="text-danger fw-bold">Mestre SAEB</span></span>
-</div>
+{% include "aluno/partials/aluno_offcanvas_info.html" %}
 {% endblock %}
 
 {% block offcanvas_links %}
 <a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno">Início</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/portugues">Trilhas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="#">Configurações</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/aluno/configuracoes">Configurações</a>
 {% endblock %}
 
 {% block main_content %}
@@ -139,9 +105,9 @@
                 </article>
             </div>
             <div class="col-md-6">
-                <article class="gm-card h-100 hover-lift border-bottom border-mj-primary border-3">
+                <article class="gm-card h-100 hover-lift border-bottom border-danger border-3">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="gm-circle gm-circle--orange"><i class="fas fa-chalkboard-teacher"></i></span>
+                        <span class="gm-circle gm-circle--red"><i class="fas fa-chalkboard-teacher"></i></span>
                         <span class="mission-chip-mj">Turma</span>
                     </div>
                     <h5 class="gm-card__title">Atividades da sua turma</h5>
@@ -154,7 +120,7 @@
                     <div class="gm-progress mb-4">
                         <span class="gm-progress__fill" data-progress-width="{{ turma_pct|round|int }}"></span>
                     </div>
-                    <a href="/aluno/portugues#atividades-turma" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Abrir atividades da turma</a>
+                    <a href="/aluno/portugues#atividades-turma" class="btn gm-btn gm-btn--red w-100 text-center text-decoration-none">Abrir atividades da turma</a>
                 </article>
             </div>
         </div>

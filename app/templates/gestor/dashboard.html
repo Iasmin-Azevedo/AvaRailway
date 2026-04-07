@@ -158,43 +158,23 @@
                 <h6 class="mb-0 fw-bold">Descritores com Menor Proficiência</h6>
             </div>
             <div class="card-body">
+                {% set descritores_chart = descritores_resumo[:5] if descritores_resumo else [] %}
+                {% if descritores_chart %}
                 <div class="row text-center small">
+                    {% for d in descritores_chart %}
+                    {% set pct = d.taxa_pct|default(0)|int %}
                     <div class="col">
-                        <p class="mb-1 text-muted">D3 - Inferência</p>
+                        <p class="mb-1 text-muted text-truncate" title="{{ d.codigo }} - {{ d.descricao }}">{{ d.codigo }}</p>
                         <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
-                            <div class="progress-bar bg-danger" style="height: 35%"></div>
+                            <div class="progress-bar {% if pct < 45 %}bg-danger{% elif pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="height: {{ pct }}%"></div>
                         </div>
-                        <span class="fw-bold">35%</span>
+                        <span class="fw-bold">{{ pct }}%</span>
                     </div>
-                    <div class="col">
-                        <p class="mb-1 text-muted">D12 - Geometria</p>
-                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
-                            <div class="progress-bar bg-danger" style="height: 42%"></div>
-                        </div>
-                        <span class="fw-bold">42%</span>
-                    </div>
-                    <div class="col">
-                        <p class="mb-1 text-muted">D1 - Loc. Info</p>
-                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
-                            <div class="progress-bar bg-warning" style="height: 58%"></div>
-                        </div>
-                        <span class="fw-bold">58%</span>
-                    </div>
-                    <div class="col">
-                        <p class="mb-1 text-muted">D9 - Operações</p>
-                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
-                            <div class="progress-bar bg-success" style="height: 75%"></div>
-                        </div>
-                        <span class="fw-bold">75%</span>
-                    </div>
-                    <div class="col">
-                        <p class="mb-1 text-muted">D21 - Tabelas</p>
-                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
-                            <div class="progress-bar bg-success" style="height: 88%"></div>
-                        </div>
-                        <span class="fw-bold">88%</span>
-                    </div>
+                    {% endfor %}
                 </div>
+                {% else %}
+                <p class="small text-muted mb-0">Sem dados suficientes para gerar o gráfico de descritores.</p>
+                {% endif %}
             </div>
         </div>
     </div>
