@@ -302,7 +302,15 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var sessionsCache = [];
     var quickActionButtons = document.querySelectorAll('.chat-quick-action');
     var helpRequestButtons = document.querySelectorAll('.chat-help-request');
-    var initialGreeting = 'Olá! Eu sou seu tutor virtual. Como posso ajudar?';
+    var initialGreeting = 'Olá! Eu sou seu tutor virtual. Escolha uma opção para eu te atender de forma mais objetiva.';
+    var initialActions = [
+        { label: 'Dúvida de Matemática', action: 'send_message', kind: 'chat', message: 'Tenho uma dúvida de Matemática. Pode me explicar com passos simples?' },
+        { label: 'Dúvida de Português', action: 'send_message', kind: 'chat', message: 'Tenho uma dúvida de Língua Portuguesa. Pode me explicar com exemplos?' },
+        { label: 'Dúvida sobre atividade', action: 'send_message', kind: 'chat', message: 'Preciso de ajuda com uma atividade.' },
+        { label: 'Aula ao vivo', action: 'send_message', kind: 'chat', message: 'Quero ajuda com minha aula ao vivo.' },
+        { label: 'Uso da plataforma', action: 'send_message', kind: 'chat', message: 'Preciso de ajuda para usar a plataforma.' },
+        { label: 'Falar com professor', action: 'choose_teacher_subject', kind: 'teacher_help' }
+    ];
 
     function appendMessage(text, from, actions) {
         var wrap = document.createElement('div');
@@ -357,6 +365,23 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             return;
         }
 
+        if (action.action === 'choose_teacher_subject') {
+            appendMessage(
+                'Escolha a disciplina para eu encaminhar sua dúvida ao professor.',
+                'bot',
+                [
+                    { label: 'Professor de Matemática', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Matemática' },
+                    { label: 'Professor de Português', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Língua Portuguesa' }
+                ]
+            );
+            return;
+        }
+
+        if (action.action === 'send_message' && action.message) {
+            await sendChatMessage(action.message);
+            return;
+        }
+
         if (action.action === 'continue_subject_chat' && action.disciplina) {
             input.value = 'Quero continuar minha dúvida de ' + action.disciplina + ' com o chat.';
             input.focus();
@@ -366,6 +391,15 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         if (action.action === 'rephrase_question') {
             input.value = 'Vou reformular minha pergunta para você.';
             input.focus();
+            return;
+        }
+
+        if (action.action === 'focus_live_classes') {
+            panel.classList.add('d-none');
+            var liveCard = document.querySelector('.fa-video');
+            if (liveCard && liveCard.closest('.card')) {
+                liveCard.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
 
@@ -428,11 +462,32 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
 
     function resetToGreeting() {
         messages.innerHTML = '';
-        var hello = document.createElement('div');
-        hello.className = 'small text-muted';
-        hello.textContent = initialGreeting;
-        messages.appendChild(hello);
-        messages.scrollTop = messages.scrollHeight;
+        appendMessage(initialGreeting, 'bot', initialActions);
+    }
+
+    async function sendChatMessage(text) {
+        var normalized = String(text || '').trim();
+        if (!normalized) return;
+        appendMessage(normalized, 'user');
+        if (input) input.value = '';
+        var typingNode = appendTypingBubble();
+        try {
+            const sid = await ensureSession();
+            const resp = await fetch('/api/v1/chat/message', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sid, message: normalized })
+            });
+            if (!resp.ok) throw new Error('Falha ao enviar mensagem');
+            const data = await resp.json();
+            removeTypingBubble(typingNode);
+            appendMessage(data.assistant_message || 'Não consegui responder agora.', 'bot', data.suggested_actions || []);
+        } catch (err) {
+            removeTypingBubble(typingNode);
+            appendMessage('Não consegui conectar ao tutor agora. Tente novamente em instantes.', 'bot');
+            console.error(err);
+        }
     }
 
     async function createNewSession() {
@@ -613,26 +668,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         e.preventDefault();
         var text = (input.value || '').trim();
         if (!text) return;
-        appendMessage(text, 'user');
-        input.value = '';
-        var typingNode = appendTypingBubble();
-        try {
-            const sid = await ensureSession();
-            const resp = await fetch('/api/v1/chat/message', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: sid, message: text })
-            });
-            if (!resp.ok) throw new Error('Falha ao enviar mensagem');
-            const data = await resp.json();
-            removeTypingBubble(typingNode);
-            appendMessage(data.assistant_message || 'Não consegui responder agora.', 'bot', data.suggested_actions || []);
-        } catch (err) {
-            removeTypingBubble(typingNode);
-            appendMessage('Não consegui conectar ao tutor agora. Tente novamente em instantes.', 'bot');
-            console.error(err);
-        }
+        await sendChatMessage(text);
     });
 })();
 </script>

@@ -261,6 +261,44 @@ class BackendFlowTestCase(unittest.TestCase):
         self.assertIn("continuar comigo", body["assistant_message"])
         self.assertTrue(any(item["action"] == "request_teacher_help" for item in body["suggested_actions"]))
 
+    def test_chat_asks_teacher_subject_when_missing(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        token = login.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = self.client.post(
+            "/api/v1/chat/message",
+            json={"message": "Quero falar com o professor"},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["message_type"], "teacher_guidance")
+        self.assertIn("Escolha a disciplina", body["assistant_message"])
+        self.assertGreaterEqual(len(body["suggested_actions"]), 2)
+
+    def test_chat_guides_activity_help(self):
+        login = self.client.post(
+            "/auth/login",
+            json={"email": "aluno@avamj.com", "senha": "123456"},
+        )
+        token = login.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = self.client.post(
+            "/api/v1/chat/message",
+            json={"message": "Preciso de ajuda com uma atividade"},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["message_type"], "activity_guidance")
+        self.assertIn("atividade", body["assistant_message"].lower())
+        self.assertTrue(any(item["action"] == "request_teacher_help" for item in body["suggested_actions"]))
+
     def test_chat_admits_when_still_in_training(self):
         login = self.client.post(
             "/auth/login",

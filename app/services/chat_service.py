@@ -92,13 +92,7 @@ class ChatService:
         wants_teacher_help: bool = False,
         knowledge_status: str = "grounded",
     ) -> list[dict]:
-        actions = [
-            {
-                "label": "Continuar no chat",
-                "action": "continue_chat",
-                "kind": "chat",
-            }
-        ]
+        actions = [{"label": "Continuar no chat", "action": "continue_chat", "kind": "chat"}]
 
         role = getattr(user.role, "value", user.role)
         if role == "aluno" and subject:
@@ -133,6 +127,122 @@ class ChatService:
             )
 
         return actions
+
+    def _build_main_menu_actions(self, user: Usuario) -> list[dict]:
+        actions = [
+            {
+                "label": "Dúvida de Matemática",
+                "action": "send_message",
+                "kind": "chat",
+                "message": "Tenho uma dúvida de Matemática. Pode me explicar com passos simples?",
+            },
+            {
+                "label": "Dúvida de Português",
+                "action": "send_message",
+                "kind": "chat",
+                "message": "Tenho uma dúvida de Língua Portuguesa. Pode me explicar com exemplos?",
+            },
+            {
+                "label": "Dúvida sobre atividade",
+                "action": "send_message",
+                "kind": "chat",
+                "message": "Preciso de ajuda com uma atividade.",
+            },
+            {
+                "label": "Aula ao vivo",
+                "action": "send_message",
+                "kind": "chat",
+                "message": "Quero ajuda com minha aula ao vivo.",
+            },
+            {
+                "label": "Uso da plataforma",
+                "action": "send_message",
+                "kind": "chat",
+                "message": "Preciso de ajuda para usar a plataforma.",
+            },
+        ]
+        role = getattr(user.role, "value", user.role)
+        if role == "aluno":
+            actions.append(
+                {
+                    "label": "Falar com professor",
+                    "action": "choose_teacher_subject",
+                    "kind": "teacher_help",
+                }
+            )
+        return actions
+
+    def _build_teacher_choice_actions(self) -> list[dict]:
+        return [
+            {
+                "label": "Professor de Matemática",
+                "action": "request_teacher_help",
+                "kind": "teacher_help",
+                "disciplina": "Matemática",
+                "endpoint": "/api/v1/live-support/teacher-help-requests",
+            },
+            {
+                "label": "Professor de Português",
+                "action": "request_teacher_help",
+                "kind": "teacher_help",
+                "disciplina": "Língua Portuguesa",
+                "endpoint": "/api/v1/live-support/teacher-help-requests",
+            },
+        ]
+
+    def _build_operational_actions(self, topic: str) -> list[dict]:
+        if topic == "atividade":
+            return [
+                {
+                    "label": "Explicar atividade no chat",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Quero explicar melhor minha dúvida sobre a atividade.",
+                },
+                {
+                    "label": "Chamar professor de Matemática",
+                    "action": "request_teacher_help",
+                    "kind": "teacher_help",
+                    "disciplina": "Matemática",
+                    "endpoint": "/api/v1/live-support/teacher-help-requests",
+                },
+                {
+                    "label": "Chamar professor de Português",
+                    "action": "request_teacher_help",
+                    "kind": "teacher_help",
+                    "disciplina": "Língua Portuguesa",
+                    "endpoint": "/api/v1/live-support/teacher-help-requests",
+                },
+            ]
+        if topic == "aula_ao_vivo":
+            return [
+                {
+                    "label": "Ver agenda de aulas",
+                    "action": "focus_live_classes",
+                    "kind": "navigation",
+                },
+                {
+                    "label": "Falar com professor",
+                    "action": "choose_teacher_subject",
+                    "kind": "teacher_help",
+                },
+            ]
+        if topic == "plataforma":
+            return [
+                {
+                    "label": "Perguntar sobre trilhas",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Quero ajuda para encontrar minhas trilhas.",
+                },
+                {
+                    "label": "Perguntar sobre desempenho",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Quero ajuda para ver meu desempenho.",
+                },
+            ]
+        return []
 
     def _store_simple_response(
         self,
@@ -201,19 +311,33 @@ class ChatService:
         nlu_result = await self.nlu_service.analyze(message)
         subject = nlu_result.get("subject") or self.router_service.detect_subject(message)
         wants_teacher_help = bool(nlu_result.get("wants_teacher_help"))
+        support_topic = self.router_service.detect_support_topic(message)
 
         if nlu_result.get("is_greeting_only"):
             greeting = (
                 "Oi! Eu sou o assistente do AVA MJ. "
                 "Posso te ajudar com estudos, atividades, trilhas, desempenho e uso da plataforma. "
-                "Se a dúvida for de Matemática ou Língua Portuguesa, você pode continuar comigo ou chamar o professor."
+                "Escolha uma das opções abaixo para eu te atender de forma mais objetiva."
             )
             return self._store_simple_response(
                 session,
                 message,
                 greeting,
                 "greeting",
-                suggested_actions=self._build_suggested_actions(user, subject),
+                suggested_actions=self._build_main_menu_actions(user),
+            )
+
+        if wants_teacher_help and not subject:
+            guidance = (
+                "Posso encaminhar sua dúvida para um professor. "
+                "Escolha a disciplina para eu enviar a solicitação corretamente."
+            )
+            return self._store_simple_response(
+                session,
+                message,
+                guidance,
+                "teacher_guidance",
+                suggested_actions=self._build_teacher_choice_actions(),
             )
 
         if wants_teacher_help and subject:
@@ -232,6 +356,44 @@ class ChatService:
                     subject,
                     wants_teacher_help=True,
                 ),
+            )
+
+        if support_topic == "atividade":
+            guidance = (
+                "Posso te ajudar com a atividade de duas formas: explicar pelo chat ou encaminhar para o professor da disciplina."
+            )
+            return self._store_simple_response(
+                session,
+                message,
+                guidance,
+                "activity_guidance",
+                suggested_actions=self._build_operational_actions("atividade"),
+            )
+
+        if support_topic == "aula_ao_vivo":
+            guidance = (
+                "Para aula ao vivo, você pode consultar sua agenda no painel e entrar pela própria plataforma. "
+                "Se quiser, também posso te orientar ou encaminhar sua dúvida ao professor."
+            )
+            return self._store_simple_response(
+                session,
+                message,
+                guidance,
+                "live_class_guidance",
+                suggested_actions=self._build_operational_actions("aula_ao_vivo"),
+            )
+
+        if support_topic == "plataforma":
+            guidance = (
+                "Posso te orientar sobre trilhas, desempenho, medalhas e navegação pela plataforma. "
+                "Escolha uma opção para eu seguir de forma mais direta."
+            )
+            return self._store_simple_response(
+                session,
+                message,
+                guidance,
+                "platform_guidance",
+                suggested_actions=self._build_operational_actions("plataforma"),
             )
 
         message_type = nlu_result.get("message_type") or self.router_service.classify(message)

@@ -65,6 +65,34 @@ class ChatRouterService:
         r"\bprofessor dessa materia\b",
         r"\bpreciso do professor\b",
     ]
+    ACTIVITY_PATTERNS = [
+        r"\batividade\b",
+        r"\bexercicio\b",
+        r"\btarefa\b",
+        r"\bquestao\b",
+        r"\bquestoes\b",
+        r"\bprova\b",
+        r"\bsimulado\b",
+    ]
+    LIVE_CLASS_PATTERNS = [
+        r"\baula ao vivo\b",
+        r"\bao vivo\b",
+        r"\bvideoconferencia\b",
+        r"\breuniao\b",
+        r"\bmeet\b",
+        r"\bjitsi\b",
+        r"\bchamada\b",
+    ]
+    PLATFORM_PATTERNS = [
+        r"\bplataforma\b",
+        r"\bsistema\b",
+        r"\btrilha\b",
+        r"\bdesempenho\b",
+        r"\bmedalha\b",
+        r"\bpontuacao\b",
+        r"\bdashboard\b",
+        r"\blogin\b",
+    ]
 
     def _normalize(self, text: str) -> str:
         value = unicodedata.normalize("NFKD", text.lower().strip())
@@ -118,3 +146,14 @@ class ChatRouterService:
         """Detecta quando o usuário quer encaminhamento para um professor."""
         value = self._normalize(text)
         return any(re.search(pattern, value) for pattern in self.TEACHER_HELP_PATTERNS)
+
+    def detect_support_topic(self, text: str) -> str | None:
+        """Identifica temas operacionais para respostas guiadas."""
+        value = self._normalize(text)
+        if any(re.search(pattern, value) for pattern in self.ACTIVITY_PATTERNS):
+            return "atividade"
+        if any(re.search(pattern, value) for pattern in self.LIVE_CLASS_PATTERNS):
+            return "aula_ao_vivo"
+        if any(re.search(pattern, value) for pattern in self.PLATFORM_PATTERNS):
+            return "plataforma"
+        return None
