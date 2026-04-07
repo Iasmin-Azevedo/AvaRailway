@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 
 from fastapi import HTTPException, status
@@ -40,6 +40,14 @@ class LiveSupportService:
         base_url = settings.JITSI_BASE_URL.rstrip("/")
         return "jitsi", f"{base_url}/{room_name}"
 
+    def _to_naive_utc(self, value: datetime) -> datetime:
+        """
+        Normaliza datetime para UTC sem timezone (naive), compatível com a coluna DateTime atual.
+        """
+        if value.tzinfo is None:
+            return value
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
+
     def _serialize_live_class(self, item):
         return {
             "id": item.id,
@@ -74,7 +82,8 @@ class LiveSupportService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="A turma informada nao esta vinculada ao professor autenticado.",
             )
-        if payload.scheduled_at <= datetime.utcnow():
+        scheduled_at = self._to_naive_utc(payload.scheduled_at)
+        if scheduled_at <= datetime.utcnow():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="A aula ao vivo precisa ser agendada para uma data futura.",
@@ -94,7 +103,7 @@ class LiveSupportService:
                 "meeting_provider": meeting_provider,
                 "room_name": room_name,
                 "meeting_url": meeting_url,
-                "scheduled_at": payload.scheduled_at,
+                "scheduled_at": scheduled_at,
                 "duration_minutes": payload.duration_minutes,
                 "ativa": True,
             },
