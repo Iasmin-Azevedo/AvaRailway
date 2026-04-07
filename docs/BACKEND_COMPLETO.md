@@ -144,7 +144,7 @@ Variaveis principais:
 - `OLLAMA_CONNECT_TIMEOUT_SECONDS`
 - `OLLAMA_READ_TIMEOUT_SECONDS`
 
-Para ambiente local leve, o exemplo atual usa `smollm2:135m`.
+Para ambiente local leve, o exemplo atual usa `qwen2.5:0.5b` com contexto reduzido.
 Para respostas mais fortes, a recomendacao e usar um host mais potente com modelo maior e manter o backend apenas consumindo esse endpoint remoto.
 
 ## Fundamentacao tecnica

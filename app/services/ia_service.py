@@ -1,5 +1,7 @@
 import asyncio
 import json
+import re
+import unicodedata
 
 import httpx
 
@@ -22,6 +24,11 @@ class IAService:
         "se voce quiser",
         "eu respondo de forma objetiva",
     )
+    STOPWORDS = {
+        "o", "a", "os", "as", "um", "uma", "de", "da", "do", "das", "dos", "e",
+        "é", "em", "para", "por", "com", "que", "como", "qual", "quais", "me",
+        "te", "se", "eu", "voce", "você", "isso", "isto", "sobre",
+    }
 
     def gerar_feedback(self, acertos: int, total: int):
         percentual = (acertos / total) * 100 if total else 0
@@ -36,11 +43,14 @@ class IAService:
             payload = IAChatPayload(**payload)
 
         result = None
-        if settings.CHAT_USE_LANGCHAIN and ChatOllama is not None:
-            result = await self._chat_with_langchain(payload)
+        result = await self._chat_with_httpx(payload)
+        if result and self.is_weak_answer(payload.question, result.answer):
+            result = None
 
-        if not result:
-            result = await self._chat_with_httpx(payload)
+        if not result and settings.CHAT_USE_LANGCHAIN and ChatOllama is not None:
+            result = await self._chat_with_langchain(payload)
+            if result and self.is_weak_answer(payload.question, result.answer):
+                result = None
 
         if not result:
             result = self._fallback_answer(payload)
@@ -61,7 +71,8 @@ class IAService:
                 base_url=settings.OLLAMA_BASE_URL,
                 model=settings.OLLAMA_MODEL,
                 temperature=0.1,
-                num_predict=180,
+                num_predict=settings.OLLAMA_NUM_PREDICT,
+                num_ctx=settings.OLLAMA_CONTEXT_LENGTH,
             )
             messages = [SystemMessage(content=payload.system_prompt)]
             for item in payload.history:
@@ -99,7 +110,11 @@ class IAService:
             "model": settings.OLLAMA_MODEL,
             "messages": messages,
             "stream": True,
-            "options": {"temperature": 0.1, "num_predict": 180},
+            "options": {
+                "temperature": 0.1,
+                "num_predict": settings.OLLAMA_NUM_PREDICT,
+                "num_ctx": settings.OLLAMA_CONTEXT_LENGTH,
+            },
         }
 
         try:
@@ -143,6 +158,24 @@ class IAService:
         if len(normalized) < 40:
             return True
         return any(marker in normalized for marker in self.GENERIC_MARKERS)
+
+    def is_weak_answer(self, question: str, answer: str) -> bool:
+        if self.is_low_information_answer(answer):
+            return True
+
+        question_terms = self._extract_terms(question)
+        if not question_terms:
+            return False
+
+        answer_terms = self._extract_terms(answer)
+        overlap = question_terms.intersection(answer_terms)
+        return len(overlap) == 0
+
+    def _extract_terms(self, text: str) -> set[str]:
+        normalized = unicodedata.normalize("NFKD", text.lower())
+        normalized = normalized.encode("ascii", "ignore").decode("ascii")
+        terms = set(re.findall(r"[a-z0-9]{4,}", normalized))
+        return {term for term in terms if term not in self.STOPWORDS}
 
     def _fallback_answer(self, payload: IAChatPayload) -> IAChatResult:
         if payload.retrieved_chunks:

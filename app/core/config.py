@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.1:8b"
     CHAT_USE_LANGCHAIN: bool = True
+    OLLAMA_CONTEXT_LENGTH: int = 256
+    OLLAMA_NUM_PREDICT: int = 180
     OLLAMA_CONNECT_TIMEOUT_SECONDS: int = 10
     OLLAMA_READ_TIMEOUT_SECONDS: int = 45
     JITSI_BASE_URL: str = "https://meet.jit.si"
