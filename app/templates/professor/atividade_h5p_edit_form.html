@@ -1,0 +1,74 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Editar Atividade H5P{% endblock %}
+{% block brand_link %}/professor{% endblock %}
+{% block menu_title %}Menu do Professor{% endblock %}
+
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/atividades">Minhas Atividades H5P</a>
+<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/descritores">Descritores</a>
+{% endblock %}
+
+{% block main_content %}
+{% import 'partials/h5p_tipo_display.html' as h5p_tipo %}
+<div class="mb-4">
+  <a href="/professor/atividades" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Minhas atividades</a>
+  <h2 class="fw-bold text-mj-dark mt-2">Editar atividade H5P</h2>
+</div>
+<div class="card dash-card border-0">
+  <div class="card-body p-4">
+    <form method="post" action="{% if scope == 'trilha_geral' %}/professor/atividades/trilha-geral/{{ atividade.id }}/editar{% else %}/professor/atividades/{{ atividade.id }}/editar{% endif %}" enctype="multipart/form-data">
+      <div class="row g-3">
+        <div class="col-md-8">
+          <label class="form-label fw-bold">Título</label>
+          <input class="form-control" type="text" name="titulo" required value="{{ atividade.titulo }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Tipo</label>
+          <select class="form-select" name="tipo" required>
+            {% for slug in h5p_tipo.H5P_TIPO_SELECT_ORDER %}
+            <option value="{{ slug }}"
+              {% if atividade.tipo == slug %}selected
+              {% elif slug == 'outro' and atividade.tipo not in h5p_tipo.H5P_TIPO_KNOWN_SLUGS %}selected
+              {% endif %}>{{ h5p_tipo.label(slug) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if scope == 'trilha_geral' %}
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Trilha</label>
+          <select class="form-select" name="trilha_id">
+            {% for tr in trilhas %}
+            <option value="{{ tr.id }}" {% if atividade.trilha_id == tr.id %}selected{% endif %}>{{ tr.nome }} ({{ tr.ano_escolar }} ano)</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Descritor (opcional)</label>
+          <select class="form-select" name="descritor_id">
+            <option value="">Sem descritor</option>
+            {% for d in descritores %}
+            <option value="{{ d.id }}" {% if atividade.descritor_id == d.id %}selected{% endif %}>{{ d.codigo }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Substituir arquivo .h5p (opcional)</label>
+          <input class="form-control" type="file" accept=".h5p" name="arquivo_h5p">
+        </div>
+        <div class="col-md-6 d-flex align-items-end">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="ativo" value="true" {% if atividade.ativo %}checked{% endif %}>
+            <label class="form-check-label">Ativa</label>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4">
+        <button class="btn btn-mj rounded-pill" type="submit">Salvar alterações</button>
+        <a href="/professor/atividades" class="btn btn-mj-outline rounded-pill ms-2">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

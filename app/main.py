@@ -518,6 +518,8 @@ def professor_atividades_list(
         return current_user
     from app.models.professor_h5p import ProfessorAtividadeH5P
     from app.models.gestao import Turma
+    from app.models.h5p import AtividadeH5P
+    from app.models.gestao import Trilha
 
     atividades = (
         db.query(ProfessorAtividadeH5P, Turma.nome)
@@ -526,6 +528,21 @@ def professor_atividades_list(
         .order_by(ProfessorAtividadeH5P.created_at.desc())
         .all()
     )
+    atividades_trilha_geral = []
+    if bool(getattr(current_user, "permite_cadastro_trilha_geral", False)):
+        professor_turmas = _professor_turmas_list(db, current_user.id)
+        anos_permitidos = sorted({t.ano_escolar for t in professor_turmas if t.ano_escolar is not None})
+        if anos_permitidos:
+            atividades_trilha_geral = (
+                db.query(AtividadeH5P, Trilha.nome)
+                .join(Trilha, Trilha.id == AtividadeH5P.trilha_id)
+                .filter(
+                    AtividadeH5P.ativo,
+                    Trilha.ano_escolar.in_(anos_permitidos),
+                )
+                .order_by(AtividadeH5P.created_at.desc())
+                .all()
+            )
     professor_turmas = _professor_turmas_list(db, current_user.id)
     return templates.TemplateResponse(
         request,
@@ -535,6 +552,7 @@ def professor_atividades_list(
             "current_user": current_user,
             "professor_turmas": professor_turmas,
             "atividades": atividades,
+            "atividades_trilha_geral": atividades_trilha_geral,
             "permite_trilha_geral": bool(getattr(current_user, "permite_cadastro_trilha_geral", False)),
         },
     )
@@ -658,6 +676,8 @@ def professor_atividades_deletar(
     if isinstance(current_user, RedirectResponse):
         return current_user
     from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
+    from app.routers.admin_pages_router import _resolve_h5p_storage_target
+    import shutil
 
     obj = (
         db.query(ProfessorAtividadeH5P)
@@ -665,10 +685,302 @@ def professor_atividades_deletar(
         .first()
     )
     if obj:
+        target = _resolve_h5p_storage_target(obj.path_ou_json or "")
+        if target and target.exists():
+            if target.is_dir():
+                shutil.rmtree(target, ignore_errors=True)
+            else:
+                target.unlink(missing_ok=True)
         db.query(ProfessorProgressoH5P).filter(ProfessorProgressoH5P.atividade_id == obj.id).delete()
         db.delete(obj)
         db.commit()
     return RedirectResponse(url="/professor/atividades", status_code=303)
+
+
+@app.get("/professor/atividades/{id}/editar")
+def professor_atividade_editar_form(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.models.professor_h5p import ProfessorAtividadeH5P
+    from app.repositories.saeb_repository import DescritorRepository
+
+    atividade = (
+        db.query(ProfessorAtividadeH5P)
+        .filter(ProfessorAtividadeH5P.id == id, ProfessorAtividadeH5P.professor_id == current_user.id)
+        .first()
+    )
+    if not atividade:
+        return RedirectResponse(url="/professor/atividades?erro=nao_encontrada", status_code=303)
+    descritores = DescritorRepository().listar(db)
+    return templates.TemplateResponse(
+        request,
+        "professor/atividade_h5p_edit_form.html",
+        {
+            "request": request,
+            "atividade": atividade,
+            "descritores": descritores,
+            "scope": "turma",
+        },
+    )
+
+
+@app.post("/professor/atividades/{id}/editar")
+async def professor_atividade_editar(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.models.professor_h5p import ProfessorAtividadeH5P
+    from app.routers.admin_pages_router import _resolve_h5p_storage_target
+    from app.services.h5p_upload_service import save_h5p_upload
+    import shutil
+
+    atividade = (
+        db.query(ProfessorAtividadeH5P)
+        .filter(ProfessorAtividadeH5P.id == id, ProfessorAtividadeH5P.professor_id == current_user.id)
+        .first()
+    )
+    if not atividade:
+        return RedirectResponse(url="/professor/atividades?erro=nao_encontrada", status_code=303)
+
+    form = await request.form()
+    atividade.titulo = (form.get("titulo") or atividade.titulo).strip() or atividade.titulo
+    atividade.tipo = (form.get("tipo") or atividade.tipo).strip() or atividade.tipo
+    desc_raw = form.get("descritor_id")
+    atividade.descritor_id = int(str(desc_raw)) if desc_raw and str(desc_raw).strip() else None
+    atividade.ativo = (form.get("ativo") or "").lower() == "true"
+    arquivo_h5p = form.get("arquivo_h5p")
+    if arquivo_h5p and getattr(arquivo_h5p, "filename", ""):
+        old_target = _resolve_h5p_storage_target(atividade.path_ou_json or "")
+        atividade.path_ou_json = save_h5p_upload(db, arquivo_h5p, atividade.titulo, turma_id=atividade.turma_id)
+        if old_target and old_target.exists():
+            if old_target.is_dir():
+                shutil.rmtree(old_target, ignore_errors=True)
+            else:
+                old_target.unlink(missing_ok=True)
+    db.commit()
+    return RedirectResponse(url="/professor/atividades?ok=editado", status_code=303)
+
+
+@app.get("/professor/atividades/trilha-geral/{id}/editar")
+def professor_atividade_trilha_editar_form(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    if not bool(getattr(current_user, "permite_cadastro_trilha_geral", False)):
+        return RedirectResponse(url="/professor/atividades?erro=sem_permissao", status_code=303)
+    from app.models.h5p import AtividadeH5P
+    from app.models.gestao import Trilha
+    from app.repositories.gestao_repository import TrilhaRepository
+    from app.repositories.saeb_repository import DescritorRepository
+
+    atividade = db.query(AtividadeH5P).filter(AtividadeH5P.id == id).first()
+    if not atividade or not atividade.trilha_id:
+        return RedirectResponse(url="/professor/atividades?erro=nao_encontrada", status_code=303)
+
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    anos_permitidos = {t.ano_escolar for t in professor_turmas if t.ano_escolar is not None}
+    trilha = db.query(Trilha).filter(Trilha.id == atividade.trilha_id).first()
+    if not trilha or trilha.ano_escolar not in anos_permitidos:
+        return RedirectResponse(url="/professor/atividades?erro=sem_permissao", status_code=303)
+
+    trilhas = []
+    for ano in sorted(anos_permitidos):
+        trilhas.extend(TrilhaRepository().listar(db, ano_escolar=ano))
+    descritores = DescritorRepository().listar(db)
+    return templates.TemplateResponse(
+        request,
+        "professor/atividade_h5p_edit_form.html",
+        {
+            "request": request,
+            "atividade": atividade,
+            "descritores": descritores,
+            "trilhas": trilhas,
+            "scope": "trilha_geral",
+        },
+    )
+
+
+@app.post("/professor/atividades/trilha-geral/{id}/editar")
+async def professor_atividade_trilha_editar(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    if not bool(getattr(current_user, "permite_cadastro_trilha_geral", False)):
+        return RedirectResponse(url="/professor/atividades?erro=sem_permissao", status_code=303)
+    from app.models.h5p import AtividadeH5P
+    from app.models.gestao import Trilha
+    from app.routers.admin_pages_router import _resolve_h5p_storage_target
+    from app.services.h5p_upload_service import save_h5p_upload
+    import shutil
+
+    atividade = db.query(AtividadeH5P).filter(AtividadeH5P.id == id).first()
+    if not atividade or not atividade.trilha_id:
+        return RedirectResponse(url="/professor/atividades?erro=nao_encontrada", status_code=303)
+
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    anos_permitidos = {t.ano_escolar for t in professor_turmas if t.ano_escolar is not None}
+    trilha_atual = db.query(Trilha).filter(Trilha.id == atividade.trilha_id).first()
+    if not trilha_atual or trilha_atual.ano_escolar not in anos_permitidos:
+        return RedirectResponse(url="/professor/atividades?erro=sem_permissao", status_code=303)
+
+    form = await request.form()
+    atividade.titulo = (form.get("titulo") or atividade.titulo).strip() or atividade.titulo
+    atividade.tipo = (form.get("tipo") or atividade.tipo).strip() or atividade.tipo
+    desc_raw = form.get("descritor_id")
+    atividade.descritor_id = int(str(desc_raw)) if desc_raw and str(desc_raw).strip() else None
+    atividade.ativo = (form.get("ativo") or "").lower() == "true"
+    trilha_raw = form.get("trilha_id")
+    if trilha_raw and str(trilha_raw).strip():
+        nova_trilha_id = int(str(trilha_raw))
+        nova_trilha = db.query(Trilha).filter(Trilha.id == nova_trilha_id).first()
+        if nova_trilha and nova_trilha.ano_escolar in anos_permitidos:
+            atividade.trilha_id = nova_trilha_id
+    arquivo_h5p = form.get("arquivo_h5p")
+    if arquivo_h5p and getattr(arquivo_h5p, "filename", ""):
+        old_target = _resolve_h5p_storage_target(atividade.path_ou_json or "")
+        atividade.path_ou_json = save_h5p_upload(db, arquivo_h5p, atividade.titulo, trilha_id=atividade.trilha_id)
+        if old_target and old_target.exists():
+            if old_target.is_dir():
+                shutil.rmtree(old_target, ignore_errors=True)
+            else:
+                old_target.unlink(missing_ok=True)
+    db.commit()
+    return RedirectResponse(url="/professor/atividades?ok=editado", status_code=303)
+
+
+@app.post("/professor/atividades/trilha-geral/{id}/deletar")
+def professor_atividade_trilha_deletar(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    if not bool(getattr(current_user, "permite_cadastro_trilha_geral", False)):
+        return RedirectResponse(url="/professor/atividades?erro=sem_permissao", status_code=303)
+    from app.models.h5p import AtividadeH5P
+    from app.models.gestao import Trilha
+    from app.routers.admin_pages_router import _remove_atividade_h5p_com_arquivos
+
+    atividade = db.query(AtividadeH5P).filter(AtividadeH5P.id == id).first()
+    if not atividade or not atividade.trilha_id:
+        return RedirectResponse(url="/professor/atividades?erro=nao_encontrada", status_code=303)
+    trilha = db.query(Trilha).filter(Trilha.id == atividade.trilha_id).first()
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    anos_permitidos = {t.ano_escolar for t in professor_turmas if t.ano_escolar is not None}
+    if not trilha or trilha.ano_escolar not in anos_permitidos:
+        return RedirectResponse(url="/professor/atividades?erro=sem_permissao", status_code=303)
+    _remove_atividade_h5p_com_arquivos(db, id)
+    return RedirectResponse(url="/professor/atividades?ok=deletado", status_code=303)
+
+
+@app.get("/professor/descritores")
+def professor_descritores_list(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.repositories.saeb_repository import DescritorRepository
+
+    descritores = DescritorRepository().listar(db)
+    return templates.TemplateResponse(
+        request,
+        "professor/descritores_list.html",
+        {"request": request, "descritores": descritores},
+    )
+
+
+@app.get("/professor/descritores/novo")
+def professor_descritores_novo(
+    request: Request,
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    return templates.TemplateResponse(
+        request,
+        "professor/descritor_form.html",
+        {"request": request, "descritor": None},
+    )
+
+
+@app.get("/professor/descritores/{id}/editar")
+def professor_descritores_editar(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.repositories.saeb_repository import DescritorRepository
+
+    descritor = DescritorRepository().get(db, id)
+    if not descritor:
+        return RedirectResponse(url="/professor/descritores", status_code=302)
+    return templates.TemplateResponse(
+        request,
+        "professor/descritor_form.html",
+        {"request": request, "descritor": descritor},
+    )
+
+
+@app.post("/professor/descritores/novo")
+async def professor_descritores_criar(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.repositories.saeb_repository import DescritorRepository
+
+    form = await request.form()
+    codigo = (form.get("codigo") or "").strip()
+    descricao = (form.get("descricao") or "").strip()
+    disciplina = (form.get("disciplina") or "LP").strip().upper()
+    if codigo and descricao and disciplina in {"LP", "MAT"}:
+        DescritorRepository().create(db, codigo, descricao, disciplina)
+    return RedirectResponse(url="/professor/descritores", status_code=303)
+
+
+@app.post("/professor/descritores/{id}/editar")
+async def professor_descritores_atualizar(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+    from app.repositories.saeb_repository import DescritorRepository
+
+    form = await request.form()
+    codigo = (form.get("codigo") or "").strip()
+    descricao = (form.get("descricao") or "").strip()
+    disciplina = (form.get("disciplina") or "LP").strip().upper()
+    if codigo and descricao and disciplina in {"LP", "MAT"}:
+        DescritorRepository().update(db, id, codigo=codigo, descricao=descricao, disciplina=disciplina)
+    return RedirectResponse(url="/professor/descritores", status_code=303)
 
 
 def _gestor_escola_ids(db: Session, gestor_user_id: int) -> list[int]:
