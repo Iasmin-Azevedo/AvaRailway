@@ -268,14 +268,15 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var sessionsCache = [];
     var quickActionButtons = document.querySelectorAll('.chat-quick-action');
     var helpRequestButtons = document.querySelectorAll('.chat-help-request');
-    var initialGreeting = 'Olá! Eu sou seu tutor virtual. Escolha uma opção para eu te atender de forma mais objetiva.';
+    var initialGreeting = 'Oi. Escolha uma opção:';
     var initialActions = [
         { label: 'Dúvida de Matemática', action: 'send_message', kind: 'chat', message: 'Tenho uma dúvida de Matemática. Pode me explicar com passos simples?' },
         { label: 'Dúvida de Português', action: 'send_message', kind: 'chat', message: 'Tenho uma dúvida de Língua Portuguesa. Pode me explicar com exemplos?' },
         { label: 'Dúvida sobre atividade', action: 'send_message', kind: 'chat', message: 'Preciso de ajuda com uma atividade.' },
         { label: 'Aula ao vivo', action: 'send_message', kind: 'chat', message: 'Quero ajuda com minha aula ao vivo.' },
         { label: 'Uso da plataforma', action: 'send_message', kind: 'chat', message: 'Preciso de ajuda para usar a plataforma.' },
-        { label: 'Falar com professor', action: 'choose_teacher_subject', kind: 'teacher_help' }
+        { label: 'Falar com professor', action: 'choose_teacher_subject', kind: 'teacher_help' },
+        { label: 'Sair', action: 'close_chat_panel', kind: 'system' }
     ];
 
     function appendMessage(text, from, actions) {
@@ -340,6 +341,11 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
                     { label: 'Professor de Português', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Língua Portuguesa' }
                 ]
             );
+            return;
+        }
+
+        if (action.action === 'close_chat_panel') {
+            panel.classList.add('d-none');
             return;
         }
 

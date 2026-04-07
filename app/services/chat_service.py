@@ -92,7 +92,10 @@ class ChatService:
         wants_teacher_help: bool = False,
         knowledge_status: str = "grounded",
     ) -> list[dict]:
-        actions = [{"label": "Continuar no chat", "action": "continue_chat", "kind": "chat"}]
+        actions = [
+            {"label": "Continuar no chat", "action": "continue_chat", "kind": "chat"},
+            {"label": "Sair", "action": "close_chat_panel", "kind": "system"},
+        ]
 
         role = getattr(user.role, "value", user.role)
         if role == "aluno" and subject:
@@ -159,6 +162,11 @@ class ChatService:
                 "action": "send_message",
                 "kind": "chat",
                 "message": "Preciso de ajuda para usar a plataforma.",
+            },
+            {
+                "label": "Sair",
+                "action": "close_chat_panel",
+                "kind": "system",
             },
         ]
         role = getattr(user.role, "value", user.role)
@@ -314,11 +322,7 @@ class ChatService:
         support_topic = self.router_service.detect_support_topic(message)
 
         if nlu_result.get("is_greeting_only"):
-            greeting = (
-                "Oi! Eu sou o assistente do AVA MJ. "
-                "Posso te ajudar com estudos, atividades, trilhas, desempenho e uso da plataforma. "
-                "Escolha uma das opções abaixo para eu te atender de forma mais objetiva."
-            )
+            greeting = "Oi. Escolha uma opção abaixo."
             return self._store_simple_response(
                 session,
                 message,
@@ -456,6 +460,8 @@ class ChatService:
                 "Ainda não encontrei base suficiente para responder essa pergunta com segurança. "
                 "Estou em treinamento para esse tipo de dúvida e prefiro não improvisar uma resposta sem contexto confiável."
             )
+            knowledge_status = "training"
+        elif "estou em treinamento" in ia_result.answer.lower():
             knowledge_status = "training"
 
         assistant_message = self.chat_repository.add_message(

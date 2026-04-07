@@ -3,6 +3,13 @@ import httpx
 from app.core.config import settings
 from app.schemas.chat_schema import IAChatPayload, IAChatResult
 
+try:
+    from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+    from langchain_ollama import ChatOllama
+except Exception:  # pragma: no cover - dependencia opcional
+    AIMessage = HumanMessage = SystemMessage = None
+    ChatOllama = None
+
 
 class IAService:
     GENERIC_MARKERS = (
@@ -25,6 +32,48 @@ class IAService:
         if isinstance(payload, dict):
             payload = IAChatPayload(**payload)
 
+        answer = None
+        if settings.CHAT_USE_LANGCHAIN and ChatOllama is not None:
+            answer = await self._chat_with_langchain(payload)
+
+        if not answer:
+            answer = await self._chat_with_httpx(payload)
+
+        if not answer:
+            answer = self._fallback_answer(payload)
+
+        if not answer:
+            answer = "Nao consegui responder agora. Tente reformular sua pergunta."
+
+        return IAChatResult(
+            answer=answer,
+            used_context=[chunk["title"] for chunk in payload.retrieved_chunks],
+        )
+
+    async def _chat_with_langchain(self, payload: IAChatPayload) -> str | None:
+        try:
+            model = ChatOllama(
+                base_url=settings.OLLAMA_BASE_URL,
+                model=settings.OLLAMA_MODEL,
+                temperature=0.2,
+                num_predict=400,
+            )
+            messages = [SystemMessage(content=payload.system_prompt)]
+            for item in payload.history:
+                if item["sender"] == "assistant":
+                    messages.append(AIMessage(content=item["message_text"]))
+                else:
+                    messages.append(HumanMessage(content=item["message_text"]))
+            messages.append(HumanMessage(content=payload.question))
+            response = await model.ainvoke(messages)
+            content = getattr(response, "content", "")
+            if isinstance(content, list):
+                content = " ".join(str(item) for item in content)
+            return str(content).strip() or None
+        except Exception:
+            return None
+
+    async def _chat_with_httpx(self, payload: IAChatPayload) -> str | None:
         messages = [{"role": "system", "content": payload.system_prompt}]
         for item in payload.history:
             role = "assistant" if item["sender"] == "assistant" else "user"
@@ -35,7 +84,7 @@ class IAService:
             "model": settings.OLLAMA_MODEL,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": 0.3, "num_predict": 500},
+            "options": {"temperature": 0.2, "num_predict": 400},
         }
 
         try:
@@ -46,17 +95,9 @@ class IAService:
                 )
                 response.raise_for_status()
                 data = response.json()
-            answer = data.get("message", {}).get("content", "").strip()
+            return data.get("message", {}).get("content", "").strip() or None
         except Exception:
-            answer = self._fallback_answer(payload)
-
-        if not answer:
-            answer = "Nao consegui gerar uma resposta agora. Tente reformular a pergunta."
-
-        return IAChatResult(
-            answer=answer,
-            used_context=[chunk["title"] for chunk in payload.retrieved_chunks],
-        )
+            return None
 
     def is_low_information_answer(self, answer: str) -> bool:
         normalized = " ".join(answer.lower().split())
@@ -68,26 +109,13 @@ class IAService:
         if payload.retrieved_chunks:
             top = payload.retrieved_chunks[0]
             response = f"{top['content']}"
-            if payload.context.get("pedagogical", {}).get("aproveitamento_pct") is not None:
-                response += (
-                    f" No seu contexto atual, o sistema registra aproveitamento de "
-                    f"{payload.context['pedagogical'].get('aproveitamento_pct', 0)}%."
-                )
-            response += " Se quiser, posso explicar isso em etapas mais simples ou relacionar com uma atividade do sistema."
+            response += " Se quiser, eu posso explicar isso em passos curtos."
             return response
-
-        pedagogical = payload.context.get("pedagogical", {})
-        if pedagogical.get("aproveitamento_pct") is not None:
-            return (
-                "Posso te ajudar com base no seu contexto atual. "
-                f"Seu aproveitamento registrado esta em {pedagogical.get('aproveitamento_pct', 0)}%. "
-                "Se me disser a duvida, eu explico de forma objetiva."
-            )
 
         if "?" in payload.question:
             return (
                 "Ainda nao encontrei base suficiente para responder essa pergunta com seguranca. "
-                "Estou em treinamento e prefiro nao improvisar uma resposta sem contexto confiavel."
+                "Estou em treinamento e prefiro nao inventar uma resposta."
             )
 
-        return "Pode me dizer sua duvida de forma mais direta para eu tentar te ajudar melhor?"
+        return "Escreva sua duvida em uma frase curta que eu tento te ajudar."

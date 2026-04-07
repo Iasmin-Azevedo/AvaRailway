@@ -235,11 +235,11 @@ class RetrievalService:
         query_terms = self._tokenize(query)
         scored = []
         for item in corpus:
-            text = self._normalize(f'{item["title"]} {item["content"]}')
-            score = sum(2 for term in query_terms if term in text)
-            if item["source"] == "contexto_aluno" and any(term in text for term in query_terms):
+            item_terms = set(self._tokenize(f'{item["title"]} {item["content"]}'))
+            score = sum(2 for term in query_terms if term in item_terms)
+            if item["source"] == "contexto_aluno" and any(term in item_terms for term in query_terms):
                 score += 3
-            if item["source"] in {"descritor", "atividade", "trilha"} and any(term in text for term in query_terms):
+            if item["source"] in {"descritor", "atividade", "trilha"} and any(term in item_terms for term in query_terms):
                 score += 1
             if score > 0:
                 scored.append((score, item))

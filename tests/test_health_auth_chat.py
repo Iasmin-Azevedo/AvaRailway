@@ -221,7 +221,7 @@ class BackendFlowTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["message_type"], "greeting")
         self.assertEqual(response.json()["retrieval_count"], 0)
-        self.assertIn("Eu sou o assistente do AVA MJ", response.json()["assistant_message"])
+        self.assertIn("Escolha", response.json()["assistant_message"])
         self.assertIn("suggested_actions", response.json())
 
     def test_chat_returns_used_sources_details(self):
