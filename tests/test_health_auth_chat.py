@@ -5,6 +5,9 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///./test_suite.db")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("MOODLE_URL", "https://moodle.local")
 os.environ.setdefault("MOODLE_TOKEN", "test-token")
+os.environ["CHAT_USE_LANGCHAIN"] = "false"
+os.environ["CHAT_NLU_PROVIDER"] = "local"
+os.environ["OLLAMA_BASE_URL"] = "http://127.0.0.1:9"
 
 from fastapi.testclient import TestClient
 

@@ -93,7 +93,7 @@ class ChatService:
         knowledge_status: str = "grounded",
     ) -> list[dict]:
         actions = [
-            {"label": "Continuar no chat", "action": "continue_chat", "kind": "chat"},
+            {"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"},
             {"label": "Sair", "action": "close_chat_panel", "kind": "system"},
         ]
 
@@ -122,10 +122,9 @@ class ChatService:
             actions.insert(
                 0,
                 {
-                    "label": f"Seguir com o chat sobre {subject}",
-                    "action": "continue_subject_chat",
+                    "label": "Falar com o chat",
+                    "action": "focus_chat_input",
                     "kind": "chat",
-                    "disciplina": subject,
                 }
             )
 
@@ -134,34 +133,9 @@ class ChatService:
     def _build_main_menu_actions(self, user: Usuario) -> list[dict]:
         actions = [
             {
-                "label": "Dúvida de Matemática",
-                "action": "send_message",
+                "label": "Falar com o chat",
+                "action": "focus_chat_input",
                 "kind": "chat",
-                "message": "Tenho uma dúvida de Matemática. Pode me explicar com passos simples?",
-            },
-            {
-                "label": "Dúvida de Português",
-                "action": "send_message",
-                "kind": "chat",
-                "message": "Tenho uma dúvida de Língua Portuguesa. Pode me explicar com exemplos?",
-            },
-            {
-                "label": "Dúvida sobre atividade",
-                "action": "send_message",
-                "kind": "chat",
-                "message": "Preciso de ajuda com uma atividade.",
-            },
-            {
-                "label": "Aula ao vivo",
-                "action": "send_message",
-                "kind": "chat",
-                "message": "Quero ajuda com minha aula ao vivo.",
-            },
-            {
-                "label": "Uso da plataforma",
-                "action": "send_message",
-                "kind": "chat",
-                "message": "Preciso de ajuda para usar a plataforma.",
             },
             {
                 "label": "Sair",
@@ -171,7 +145,8 @@ class ChatService:
         ]
         role = getattr(user.role, "value", user.role)
         if role == "aluno":
-            actions.append(
+            actions.insert(
+                1,
                 {
                     "label": "Falar com professor",
                     "action": "choose_teacher_subject",
@@ -202,10 +177,9 @@ class ChatService:
         if topic == "atividade":
             return [
                 {
-                    "label": "Explicar atividade no chat",
-                    "action": "send_message",
+                    "label": "Falar com o chat",
+                    "action": "focus_chat_input",
                     "kind": "chat",
-                    "message": "Quero explicar melhor minha dúvida sobre a atividade.",
                 },
                 {
                     "label": "Chamar professor de Matemática",
@@ -225,9 +199,9 @@ class ChatService:
         if topic == "aula_ao_vivo":
             return [
                 {
-                    "label": "Ver agenda de aulas",
-                    "action": "focus_live_classes",
-                    "kind": "navigation",
+                    "label": "Falar com o chat",
+                    "action": "focus_chat_input",
+                    "kind": "chat",
                 },
                 {
                     "label": "Falar com professor",
@@ -238,16 +212,9 @@ class ChatService:
         if topic == "plataforma":
             return [
                 {
-                    "label": "Perguntar sobre trilhas",
-                    "action": "send_message",
+                    "label": "Falar com o chat",
+                    "action": "focus_chat_input",
                     "kind": "chat",
-                    "message": "Quero ajuda para encontrar minhas trilhas.",
-                },
-                {
-                    "label": "Perguntar sobre desempenho",
-                    "action": "send_message",
-                    "kind": "chat",
-                    "message": "Quero ajuda para ver meu desempenho.",
                 },
             ]
         return []

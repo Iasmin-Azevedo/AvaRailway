@@ -1,3 +1,6 @@
+import asyncio
+import json
+
 import httpx
 
 from app.core.config import settings
@@ -12,6 +15,7 @@ except Exception:  # pragma: no cover - dependencia opcional
 
 
 class IAService:
+    OLLAMA_TIMEOUT_SECONDS = 45
     GENERIC_MARKERS = (
         "estou pronto para ajudar",
         "mande a pergunta em uma frase",
@@ -55,8 +59,8 @@ class IAService:
             model = ChatOllama(
                 base_url=settings.OLLAMA_BASE_URL,
                 model=settings.OLLAMA_MODEL,
-                temperature=0.2,
-                num_predict=400,
+                temperature=0.1,
+                num_predict=180,
             )
             messages = [SystemMessage(content=payload.system_prompt)]
             for item in payload.history:
@@ -65,7 +69,10 @@ class IAService:
                 else:
                     messages.append(HumanMessage(content=item["message_text"]))
             messages.append(HumanMessage(content=payload.question))
-            response = await model.ainvoke(messages)
+            response = await asyncio.wait_for(
+                model.ainvoke(messages),
+                timeout=self.OLLAMA_TIMEOUT_SECONDS,
+            )
             content = getattr(response, "content", "")
             if isinstance(content, list):
                 content = " ".join(str(item) for item in content)
@@ -83,19 +90,32 @@ class IAService:
         request_body = {
             "model": settings.OLLAMA_MODEL,
             "messages": messages,
-            "stream": False,
-            "options": {"temperature": 0.2, "num_predict": 400},
+            "stream": True,
+            "options": {"temperature": 0.1, "num_predict": 180},
         }
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
+            chunks: list[str] = []
+            timeout = httpx.Timeout(connect=10.0, read=self.OLLAMA_TIMEOUT_SECONDS, write=30.0, pool=10.0)
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                async with client.stream(
+                    "POST",
                     f"{settings.OLLAMA_BASE_URL}/api/chat",
                     json=request_body,
-                )
-                response.raise_for_status()
-                data = response.json()
-            return data.get("message", {}).get("content", "").strip() or None
+                ) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        data = json.loads(line)
+                        message = data.get("message", {}) or {}
+                        content = message.get("content")
+                        if content:
+                            chunks.append(str(content))
+                        if data.get("done"):
+                            break
+            answer = "".join(chunks).strip()
+            return answer or None
         except Exception:
             return None
 

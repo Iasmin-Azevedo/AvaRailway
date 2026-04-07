@@ -228,10 +228,8 @@
     <div class="px-3 py-2 border-bottom bg-white">
         <div class="small text-muted mb-2">Atalhos do tutor</div>
         <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill chat-quick-action" data-chat-fill="Tenho uma dúvida de Matemática. Pode me explicar com passos simples?">Dúvida de Matemática</button>
-            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill chat-quick-action" data-chat-fill="Tenho uma dúvida de Língua Portuguesa. Pode me explicar com exemplos?">Dúvida de Português</button>
-            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill chat-help-request" data-disciplina="Matemática">Chamar professor de Matemática</button>
-            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill chat-help-request" data-disciplina="Língua Portuguesa">Chamar professor de Português</button>
+            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill chat-quick-action" data-chat-focus="1">Falar com o chat</button>
+            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill chat-open-teacher-options">Falar com professor</button>
         </div>
     </div>
     <div id="chat-messages" class="p-3" style="height: 360px; overflow-y: auto; background: #fafbfc;">
@@ -268,13 +266,10 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var sessionsCache = [];
     var quickActionButtons = document.querySelectorAll('.chat-quick-action');
     var helpRequestButtons = document.querySelectorAll('.chat-help-request');
+    var teacherOptionButtons = document.querySelectorAll('.chat-open-teacher-options');
     var initialGreeting = 'Oi. Escolha uma opção:';
     var initialActions = [
-        { label: 'Dúvida de Matemática', action: 'send_message', kind: 'chat', message: 'Tenho uma dúvida de Matemática. Pode me explicar com passos simples?' },
-        { label: 'Dúvida de Português', action: 'send_message', kind: 'chat', message: 'Tenho uma dúvida de Língua Portuguesa. Pode me explicar com exemplos?' },
-        { label: 'Dúvida sobre atividade', action: 'send_message', kind: 'chat', message: 'Preciso de ajuda com uma atividade.' },
-        { label: 'Aula ao vivo', action: 'send_message', kind: 'chat', message: 'Quero ajuda com minha aula ao vivo.' },
-        { label: 'Uso da plataforma', action: 'send_message', kind: 'chat', message: 'Preciso de ajuda para usar a plataforma.' },
+        { label: 'Falar com o chat', action: 'focus_chat_input', kind: 'chat' },
         { label: 'Falar com professor', action: 'choose_teacher_subject', kind: 'teacher_help' },
         { label: 'Sair', action: 'close_chat_panel', kind: 'system' }
     ];
@@ -354,8 +349,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             return;
         }
 
-        if (action.action === 'continue_subject_chat' && action.disciplina) {
-            input.value = 'Quero continuar minha dúvida de ' + action.disciplina + ' com o chat.';
+        if (action.action === 'focus_chat_input') {
             input.focus();
             return;
         }
@@ -593,9 +587,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
 
     quickActionButtons.forEach(function(button) {
         button.addEventListener('click', function() {
-            var text = String(button.getAttribute('data-chat-fill') || '').trim();
-            if (!text || !input) return;
-            input.value = text;
+            if (!input) return;
             input.focus();
         });
     });
@@ -611,6 +603,12 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
                 appendMessage('Não consegui encaminhar sua solicitação agora. Tente novamente em instantes.', 'bot');
                 console.error(err);
             }
+        });
+    });
+
+    teacherOptionButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            handleSuggestedAction({ action: 'choose_teacher_subject', kind: 'teacher_help' });
         });
     });
 
