@@ -241,6 +241,7 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
     from app.models.aluno import Aluno
     from app.services.dashboard_service import DashboardService
     from app.services.live_support_service import LiveSupportService
+    from app.services.medalha_service import MedalhaService
 
     ident = _aluno_identity_bundle(request, db)
     aluno_nome = ident["aluno_nome"]
@@ -272,6 +273,8 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
     missoes_extras_concluidas = 0
     atividades_turma_itens: list[dict] = []
     missoes_extras_itens: list[dict] = []
+    medalhas_mural: list[dict] = []
+    medalhas_total = 0
 
     trilhas_prev = TrilhaRepository().listar(db)
     if trilhas_prev:
@@ -294,6 +297,9 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
     upcoming_live_classes = []
     if current_user:
         upcoming_live_classes = LiveSupportService(db).list_live_classes_for_student(current_user)
+    if aluno_id:
+        medalhas_mural = MedalhaService().list_mural_aluno(db, aluno_id, limit=6)
+        medalhas_total = MedalhaService().count_mural_aluno(db, aluno_id)
     if aluno_id:
         from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
         from app.models.professor_h5p import ProfessorAtividadeH5PAluno
@@ -393,6 +399,8 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
             "missoes_extras_concluidas": missoes_extras_concluidas,
             "atividades_turma_itens": atividades_turma_itens,
             "missoes_extras_itens": missoes_extras_itens,
+            "medalhas_mural": medalhas_mural,
+            "medalhas_total": medalhas_total,
         },
     )
 

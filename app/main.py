@@ -53,6 +53,7 @@ from app.models import (
     resposta,
     saeb,
     professor_h5p,
+    medalhas,
     support_ticket,
     user,
 )
@@ -267,12 +268,23 @@ def seed_default_users() -> None:
         db.close()
 
 
+def seed_default_medal_types() -> None:
+    from app.services.medalha_service import MedalhaService
+
+    db = SessionLocal()
+    try:
+        MedalhaService().ensure_default_tipos(db)
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 def on_startup():
     try:
         _ensure_runtime_schema()
         Base.metadata.create_all(bind=engine)
         seed_default_users()
+        seed_default_medal_types()
         logger.info("Banco sincronizado e seed executado.")
     except Exception as exc:
         logger.error(f"Erro no startup: {exc}")
@@ -552,6 +564,7 @@ def professor_dashboard(
 ):
     from app.services.live_support_service import LiveSupportService
     from app.services.descriptor_performance_service import DescriptorPerformanceService
+    from app.services.medalha_service import MedalhaService
 
     stats = DashboardService().get_professor_stats(db)
     professor_turmas = _professor_turmas_list(db, current_user.id)
@@ -577,6 +590,12 @@ def professor_dashboard(
         chat_duvidas = dsvc.top_chat_questions_for_turma(db, selected_turma_id, limit=8)
     pior = descritores_rows[0] if descritores_rows else None
     ia_alerta_ativo = bool(pior and pior["taxa_pct"] < 50 and pior["alunos_elegiveis"] > 0)
+    medalha_service = MedalhaService()
+    medalha_tipos = medalha_service.list_tipos_ativos(db)
+    turma_ids_scope = turma_ids_prof if turma_all else ([selected_turma_id] if selected_turma_id else [])
+    medalha_alunos = medalha_service.list_alunos_para_turmas(db, turma_ids_scope)
+    flash_ok = (request.query_params.get("ok") or "").strip()
+    flash_err = (request.query_params.get("err") or "").strip()
 
     from app.services import moodle_assignment_service as moodle_assign_svc
 
@@ -613,6 +632,122 @@ def professor_dashboard(
             "moodle_cursos": moodle_cursos,
             "moodle_aviso": moodle_aviso,
             "MOODLE_URL": settings.MOODLE_URL.rstrip("/"),
+            "medalha_tipos": medalha_tipos,
+            "medalha_alunos": medalha_alunos,
+            "flash_ok": flash_ok,
+            "flash_err": flash_err,
+        },
+    )
+
+
+@app.post("/professor/medalhas/enviar")
+async def professor_medalhas_enviar(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    from urllib.parse import quote
+
+    from app.services.medalha_service import MedalhaService
+
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    selected_turma_id, turma_all = _resolve_professor_turma_selection(
+        professor_turmas, request.query_params.get("turma_id")
+    )
+    turma_ids_prof = [t.id for t in professor_turmas]
+    turma_query_suffix = _professor_turma_query_suffix(
+        bool(professor_turmas), turma_all, selected_turma_id
+    )
+    form = await request.form()
+    try:
+        medalha_tipo_id = int(form.get("medalha_tipo_id") or 0)
+    except (TypeError, ValueError):
+        medalha_tipo_id = 0
+    alvo = (form.get("alvo") or "turma").strip().lower()
+    aluno_id_raw = (form.get("aluno_id") or "").strip()
+    mensagem = (form.get("mensagem") or "").strip() or None
+    aluno_id = int(aluno_id_raw) if aluno_id_raw.isdigit() else None
+    if not medalha_tipo_id:
+        sep = "&" if turma_query_suffix else "?"
+        return RedirectResponse(
+            url=f"/professor{turma_query_suffix}{sep}err={quote('Selecione um tipo de medalha.')}",
+            status_code=303,
+        )
+    turma_ids_alvo = turma_ids_prof if turma_all else ([selected_turma_id] if selected_turma_id else [])
+    if alvo == "aluno" and not aluno_id:
+        sep = "&" if turma_query_suffix else "?"
+        return RedirectResponse(
+            url=f"/professor{turma_query_suffix}{sep}err={quote('Selecione um aluno para envio individual.')}",
+            status_code=303,
+        )
+    ok, msg, total = MedalhaService().enviar_medalha(
+        db,
+        professor_usuario_id=current_user.id,
+        medalha_tipo_id=medalha_tipo_id,
+        turma_ids_alvo=turma_ids_alvo,
+        aluno_id=aluno_id if alvo == "aluno" else None,
+        mensagem=mensagem,
+    )
+    sep = "&" if turma_query_suffix else "?"
+    if not ok:
+        return RedirectResponse(
+            url=f"/professor{turma_query_suffix}{sep}err={quote(msg)}",
+            status_code=303,
+        )
+    return RedirectResponse(
+        url=f"/professor{turma_query_suffix}{sep}ok={quote(f'medalha_{total}')}",
+        status_code=303,
+    )
+
+
+@app.get("/professor/dashboard-completo")
+def professor_dashboard_completo(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
+    from app.services.live_support_service import LiveSupportService
+    from app.services.medalha_service import MedalhaService
+
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    selected_turma_id, turma_all = _resolve_professor_turma_selection(
+        professor_turmas, request.query_params.get("turma_id")
+    )
+    turma_ids_prof = [t.id for t in professor_turmas]
+    turma_query_suffix = _professor_turma_query_suffix(
+        bool(professor_turmas), turma_all, selected_turma_id
+    )
+    turma_ids_scope = turma_ids_prof if turma_all else ([selected_turma_id] if selected_turma_id else [])
+    dsvc = DescriptorPerformanceService()
+    if turma_all:
+        aluno_ids = dsvc.aluno_ids_for_turmas(db, turma_ids_prof)
+        descritores_rows = dsvc.aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
+        radar_alunos = dsvc.radar_alunos_turmas(db, turma_ids_prof)
+    else:
+        aluno_ids = dsvc.aluno_ids_for_turma(db, selected_turma_id)
+        descritores_rows = dsvc.aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
+        radar_alunos = dsvc.radar_alunos_turma(db, selected_turma_id)
+    medalhas = MedalhaService().dashboard_completo_professor(
+        db, professor_usuario_id=current_user.id, turma_ids=turma_ids_scope
+    )
+    stats = DashboardService().get_professor_stats(db)
+    live_support = LiveSupportService(db)
+    return templates.TemplateResponse(
+        request,
+        "professor/dashboard_completo.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "professor_turmas": professor_turmas,
+            "selected_turma_id": selected_turma_id,
+            "turma_all": turma_all,
+            "turma_query_suffix": turma_query_suffix,
+            "stats": stats,
+            "descritores_preview": descritores_rows[:8],
+            "radar_alunos": radar_alunos[:20],
+            "upcoming_live_classes": live_support.list_live_classes_for_professor(current_user),
+            "medalhas": medalhas,
         },
     )
 

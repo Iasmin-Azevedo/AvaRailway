@@ -25,6 +25,7 @@ from app.models import (
     chat_feedback,
     chat_memory,
     moodle_gestao,
+    medalhas,
 )
 
 config = context.config

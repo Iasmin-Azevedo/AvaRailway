@@ -22,6 +22,14 @@
     </div>
 </div>
 {% endif %}
+{% if flash_err %}
+<div class="alert alert-danger border-0 shadow-sm rounded-3 mb-3">{{ flash_err }}</div>
+{% endif %}
+{% if flash_ok.startswith('medalha_') %}
+<div class="alert alert-success border-0 shadow-sm rounded-3 mb-3">
+    Medalha enviada com sucesso para {{ flash_ok.replace('medalha_', '') }} aluno(s).
+</div>
+{% endif %}
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
@@ -276,8 +284,8 @@
                 <h6 class="fw-bold small text-muted text-uppercase mb-3">Ações Rápidas</h6>
                 <div class="d-grid gap-2">
                     <button id="toggle-live-class-form" class="btn btn-white border shadow-sm text-start fw-bold text-mj-primary"><i class="fa-solid fa-video me-2"></i> Agendar Live</button>
-                    <button class="btn btn-white border shadow-sm text-start fw-bold text-success"><i class="fa-solid fa-medal me-2"></i> Enviar Medalha Coletiva</button>
-                    <button class="btn btn-white border shadow-sm text-start fw-bold text-mj-muted"><i class="fa-solid fa-file-lines me-2"></i> Ver Dashboard Completo</button>
+                    <button id="toggle-medalha-form" class="btn btn-white border shadow-sm text-start fw-bold text-success"><i class="fa-solid fa-medal me-2"></i> Enviar Medalha</button>
+                    <a href="/professor/dashboard-completo{{ turma_query_suffix }}" class="btn btn-white border shadow-sm text-start fw-bold text-mj-muted"><i class="fa-solid fa-file-lines me-2"></i> Ver Dashboard Completo</a>
                 </div>
             </div>
         </div>
@@ -310,12 +318,58 @@
     </div>
 </div>
 
+<div id="medalha-form-wrapper" class="card dash-card mt-4 d-none">
+    <div class="dash-card-header d-flex align-items-center gap-2">
+        <i class="fa-solid fa-medal text-success fs-5"></i>
+        <h6 class="fw-bold mb-0 text-dark">Enviar Medalha</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" action="/professor/medalhas/enviar{{ turma_query_suffix }}" class="d-grid gap-2">
+            <div>
+                <label class="form-label small fw-bold mb-1">Tipo de medalha</label>
+                <select class="form-select" name="medalha_tipo_id" required>
+                    <option value="">— Selecione —</option>
+                    {% for tipo in medalha_tipos %}
+                    <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label small fw-bold mb-1">Enviar para</label>
+                <select class="form-select" id="medalha-alvo-select" name="alvo">
+                    <option value="turma">Turma atual</option>
+                    <option value="aluno">Aluno específico</option>
+                </select>
+            </div>
+            <div id="medalha-aluno-wrap" class="d-none">
+                <label class="form-label small fw-bold mb-1">Aluno</label>
+                <select class="form-select" id="medalha-aluno-id" name="aluno_id">
+                    <option value="">— Selecione um aluno —</option>
+                    {% for a in medalha_alunos %}
+                    <option value="{{ a.aluno_id }}">{{ a.nome }}{% if a.turma_nome %} ({{ a.turma_nome }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label small fw-bold mb-1">Mensagem (opcional)</label>
+                <input type="text" class="form-control" name="mensagem" maxlength="255" placeholder="Ex.: Excelente dedicação nesta semana!">
+            </div>
+            <button type="submit" class="btn btn-mj fw-bold">Confirmar envio</button>
+        </form>
+    </div>
+</div>
+
 <script>
 (function() {
     var toggleBtn = document.getElementById('toggle-live-class-form');
     var formWrapper = document.getElementById('live-class-form-wrapper');
     var form = document.getElementById('live-class-form');
     var feedback = document.getElementById('live-class-feedback');
+    var toggleMedalhaBtn = document.getElementById('toggle-medalha-form');
+    var medalhaFormWrapper = document.getElementById('medalha-form-wrapper');
+    var medalhaAlvoSelect = document.getElementById('medalha-alvo-select');
+    var medalhaAlunoWrap = document.getElementById('medalha-aluno-wrap');
+    var medalhaAlunoInput = document.getElementById('medalha-aluno-id');
 
     toggleBtn && toggleBtn.addEventListener('click', function(event) {
         event.preventDefault();
@@ -323,6 +377,23 @@
         formWrapper.classList.toggle('d-none');
         formWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+
+    toggleMedalhaBtn && toggleMedalhaBtn.addEventListener('click', function(event) {
+        event.preventDefault();
+        if (!medalhaFormWrapper) return;
+        medalhaFormWrapper.classList.toggle('d-none');
+        medalhaFormWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    function syncMedalhaAlvo() {
+        if (!medalhaAlvoSelect || !medalhaAlunoWrap || !medalhaAlunoInput) return;
+        var isAluno = medalhaAlvoSelect.value === 'aluno';
+        medalhaAlunoWrap.classList.toggle('d-none', !isAluno);
+        medalhaAlunoInput.required = isAluno;
+        if (!isAluno) medalhaAlunoInput.value = '';
+    }
+    medalhaAlvoSelect && medalhaAlvoSelect.addEventListener('change', syncMedalhaAlvo);
+    syncMedalhaAlvo();
 
     form && form.addEventListener('submit', async function(event) {
         event.preventDefault();
