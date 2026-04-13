@@ -23,6 +23,8 @@ class Usuario(Base):
     )
     ativo = Column(Boolean, default=True)
     permite_cadastro_trilha_geral = Column(Boolean, default=False)
+    avatar_url = Column(String(500), nullable=True)
+    moodle_user_id = Column(String(32), nullable=True)
 
     aluno_perfil = relationship("Aluno", back_populates="usuario", uselist=False)
     logs = relationship("AuditLog", back_populates="usuario")

@@ -1,37 +1,31 @@
-{% extends "base_dashboard.html" %}
+{% extends "professor/base_professor.html" %}
 {% block page_title %}Radar de alunos{% endblock %}
 {% block brand_link %}/professor{% endblock %}
 {% block menu_title %}Professor{% endblock %}
-{% block header_right %}
-<div class="w-100 w-lg-auto mw-100">
-    {% include "professor/partials/turma_selector.html" %}
-</div>
-{% endblock %}
 {% block offcanvas_links %}
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/desempenho-descritores">Desempenho</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/radar-alunos">Radar de Alunos</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/chat-duvidas">Dúvidas Chatbot</a>
+{% include "professor/partials/professor_menu_links.html" %}
 {% endblock %}
 {% block main_content %}
 <div class="mb-3">
-    <a href="/professor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao painel</a>
+    <a href="/professor{{ turma_query_suffix }}" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao painel</a>
 </div>
 <h1 class="h4 fw-bold text-mj-dark mb-3">Radar de acompanhamento</h1>
-<div class="table-responsive rounded-4 border bg-white shadow-sm">
-    <table class="table table-hover align-middle mb-0 small">
+<div class="table-responsive mj-table-horizontal-scroll rounded-4 border bg-white shadow-sm">
+    <table class="table table-hover align-middle mb-0 small mj-table-min-wide">
         <thead class="table-light text-uppercase text-muted">
             <tr>
-                <th class="ps-3">Aluno</th>
-                <th>Risco</th>
-                <th>Atividades H5P concluídas</th>
-                <th class="text-end pe-3">Progresso estimado</th>
+                <th class="ps-3" style="min-width: 10rem;">Aluno</th>
+                {% if turma_all %}<th style="min-width: 6rem;">Turma</th>{% endif %}
+                <th style="min-width: 5.5rem;">Risco</th>
+                <th style="min-width: 12rem;">Atividades H5P concluídas</th>
+                <th class="text-end pe-3" style="min-width: 7rem;">Progresso estimado</th>
             </tr>
         </thead>
         <tbody>
             {% for a in radar_alunos %}
             <tr>
                 <td class="ps-3 fw-bold">{{ a.nome }}</td>
+                {% if turma_all %}<td class="text-muted small">{{ a.turma_nome }}</td>{% endif %}
                 <td>
                     {% if a.nivel_risco == 'BAIXO' %}
                     <span class="badge bg-success bg-opacity-25 text-success">Baixo</span>
@@ -45,7 +39,7 @@
                 <td class="text-end pe-3">{{ a.progresso_pct }}%</td>
             </tr>
             {% else %}
-            <tr><td colspan="4" class="text-center text-muted py-4">Nenhum aluno nesta turma.</td></tr>
+            <tr><td colspan="{% if turma_all %}5{% else %}4{% endif %}" class="text-center text-muted py-4">Nenhum aluno nesta seleção.</td></tr>
             {% endfor %}
         </tbody>
     </table>

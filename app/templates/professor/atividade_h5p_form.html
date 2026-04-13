@@ -1,36 +1,80 @@
-{% extends "base_dashboard.html" %}
+{% extends "professor/base_professor.html" %}
 {% block page_title %}Nova Atividade H5P{% endblock %}
 {% block brand_link %}/professor{% endblock %}
 {% block menu_title %}Menu do Professor{% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/atividades">Minhas Atividades H5P</a>
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor/atividades/nova">Nova atividade</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/descritores">Descritores</a>
+{% include "professor/partials/professor_menu_links.html" %}
 {% endblock %}
 
 {% block main_content %}
 {% import 'partials/h5p_tipo_display.html' as h5p_tipo %}
-<h4 class="fw-bold mb-3">Cadastrar atividade H5P</h4>
+<h4 class="fw-bold mb-3">Cadastrar atividade</h4>
 {% if request.query_params.get('erro') %}
 <div class="alert alert-warning">Não foi possível salvar: {{ request.query_params.get('erro') }}</div>
 {% endif %}
 <div class="card dash-card border-0">
   <div class="card-body">
-    <form method="post" action="/professor/atividades/nova" enctype="multipart/form-data">
+    <form method="post" action="/professor/atividades/nova" enctype="multipart/form-data" id="form-nova-atividade">
+      <fieldset class="mb-4">
+        <legend class="form-label fw-bold mb-3">Onde esta atividade será aplicada?</legend>
+        <div class="row g-3 professor-destino-cards">
+          <div class="col-md-4">
+            <label class="professor-destino-card d-block h-100 mb-0">
+              <input type="radio" name="destino_tipo" value="trilha" class="professor-destino-radio d-none"
+                {% if not permite_trilha_geral %}disabled{% endif %}>
+              <span class="professor-destino-card-inner">
+                <span class="professor-destino-card-title"><i class="fas fa-route me-1 text-mj-primary"></i> Trilha geral</span>
+                <span class="professor-destino-card-desc">Publica na jornada H5P da trilha (ano alinhado à turma de referência).</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-md-4">
+            <label class="professor-destino-card d-block h-100 mb-0">
+              <input type="radio" name="destino_tipo" value="turma_toda" class="professor-destino-radio d-none" checked>
+              <span class="professor-destino-card-inner">
+                <span class="professor-destino-card-title"><i class="fas fa-users me-1 text-mj-primary"></i> Turma inteira</span>
+                <span class="professor-destino-card-desc">Todos os alunos da turma veem a atividade.</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-md-4">
+            <label class="professor-destino-card d-block h-100 mb-0">
+              <input type="radio" name="destino_tipo" value="alunos" class="professor-destino-radio d-none">
+              <span class="professor-destino-card-inner">
+                <span class="professor-destino-card-title"><i class="fas fa-user-check me-1 text-mj-primary"></i> Alunos específicos</span>
+                <span class="professor-destino-card-desc">Escolha quem recebe a atividade na turma.</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        {% if not permite_trilha_geral %}
+        <p class="small text-muted mt-2 mb-0">A opção trilha geral não está disponível para sua conta.</p>
+        {% endif %}
+      </fieldset>
+
       <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">Turma</label>
-          <select class="form-select" name="turma_id" required>
+        <div class="col-md-6" id="panel-turma">
+          <label class="form-label fw-bold">Turma</label>
+          <select class="form-select" name="turma_id" id="turma_id_select" required>
             <option value="">Selecione</option>
             {% for t in turmas %}
-            <option value="{{ t.id }}">{{ t.nome }} ({{ t.ano_escolar }} ano)</option>
+            <option value="{{ t.id }}" data-ano="{{ t.ano_escolar or '' }}">{{ t.nome }} ({{ t.ano_escolar }}º ano)</option>
+            {% endfor %}
+          </select>
+          <small class="text-muted d-block mt-1" id="turma-help-trilha" style="display: none;">Usada para permissão e para conferir o ano com a trilha.</small>
+        </div>
+        <div class="col-md-6" id="panel-trilha-select" style="display: none;">
+          <label class="form-label fw-bold">Trilha</label>
+          <select class="form-select" name="trilha_id" id="trilha_id_select">
+            <option value="">Selecione</option>
+            {% for tr in trilhas %}
+            <option value="{{ tr.id }}" data-ano="{{ tr.ano_escolar or '' }}">{{ tr.nome }} ({{ tr.ano_escolar }}º ano)</option>
             {% endfor %}
           </select>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Tipo</label>
+          <label class="form-label fw-bold">Tipo</label>
           <select class="form-select" name="tipo" required>
             {% for slug in h5p_tipo.H5P_TIPO_SELECT_ORDER %}
             <option value="{{ slug }}"
@@ -41,12 +85,16 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-8">
-          <label class="form-label">Título</label>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Upload .h5p</label>
+          <input class="form-control" type="file" accept=".h5p" name="arquivo_h5p" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Título</label>
           <input class="form-control" type="text" name="titulo" required>
         </div>
-        <div class="col-md-4">
-          <label class="form-label">Descritor (opcional)</label>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Descritor (opcional)</label>
           <select class="form-select" name="descritor_id">
             <option value="">Sem descritor</option>
             {% for d in descritores %}
@@ -54,34 +102,102 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-6">
-          <label class="form-label">Upload .h5p</label>
-          <input class="form-control" type="file" accept=".h5p" name="arquivo_h5p" required>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Modo</label>
-          <select class="form-select" name="modo" id="modo-select">
-            <option value="personalizada_turma">Atividade personalizada da turma</option>
-            <option value="trilha_geral" {% if not permite_trilha_geral %}disabled{% endif %}>Publicar na trilha geral</option>
-          </select>
-          {% if not permite_trilha_geral %}
-          <small class="text-muted">Sem permissão para publicar em trilha geral.</small>
-          {% endif %}
-        </div>
-        <div class="col-12" id="trilha-box">
-          <label class="form-label">Trilha geral (quando modo for trilha geral)</label>
-          <select class="form-select" name="trilha_id">
-            <option value="">Selecione</option>
-            {% for tr in trilhas %}
-            <option value="{{ tr.id }}">{{ tr.nome }} ({{ tr.ano_escolar }} ano)</option>
+        <div class="col-12" id="panel-alunos-picker" style="display: none;">
+          <label class="form-label fw-bold">Alunos</label>
+          <p class="small text-muted mb-2">Marque um ou mais alunos da turma selecionada.</p>
+          <div class="aluno-picker-grid" id="aluno-picker-grid">
+            {% for a in alunos_destino %}
+            <label class="aluno-picker-item" data-turma-id="{{ a.turma_id }}">
+              <span class="aluno-picker-face">
+                {% if a.avatar_url %}
+                <img src="{{ a.avatar_url }}" alt="" class="aluno-picker-avatar" width="44" height="44">
+                {% else %}
+                <span class="aluno-picker-avatar aluno-picker-avatar--fallback">{{ a.iniciais }}</span>
+                {% endif %}
+                <input type="checkbox" name="aluno_ids" hidden value="{{ a.id }}" class="form-check-input aluno-picker-cb flex-shrink-0" aria-label="Selecionar {{ a.nome }}">
+                <span class="aluno-picker-text">
+                  <span class="aluno-picker-name">{{ a.nome }}</span>
+                  <span class="aluno-picker-meta">{{ a.ano_escolar }}º ano</span>
+                </span>
+              </span>
+            </label>
             {% endfor %}
-          </select>
+          </div>
         </div>
       </div>
-      <div class="mt-3">
+      <div class="mt-4">
         <button class="btn btn-mj rounded-pill" type="submit">Salvar</button>
       </div>
     </form>
   </div>
 </div>
+<script>
+(function () {
+  var form = document.getElementById('form-nova-atividade');
+  if (!form) return;
+  var radios = form.querySelectorAll('input[name="destino_tipo"]');
+  var turmaSel = document.getElementById('turma_id_select');
+  var trilhaSel = document.getElementById('trilha_id_select');
+  var panelTrilha = document.getElementById('panel-trilha-select');
+  var panelAlunos = document.getElementById('panel-alunos-picker');
+  var turmaHelpTrilha = document.getElementById('turma-help-trilha');
+
+  function currentDestino() {
+    var r = form.querySelector('input[name="destino_tipo"]:checked');
+    return r ? r.value : 'turma_toda';
+  }
+
+  function filterTrilhasByTurmaAno() {
+    if (!turmaSel || !trilhaSel) return;
+    var optTurma = turmaSel.options[turmaSel.selectedIndex];
+    var ano = optTurma ? String(optTurma.getAttribute('data-ano') || '').trim() : '';
+    for (var i = 0; i < trilhaSel.options.length; i++) {
+      var o = trilhaSel.options[i];
+      if (!o.value) { o.hidden = false; continue; }
+      var ta = String(o.getAttribute('data-ano') || '').trim();
+      o.hidden = !!(ano && ta && ta !== ano);
+    }
+    var sel = trilhaSel.options[trilhaSel.selectedIndex];
+    if (sel && sel.hidden) trilhaSel.value = '';
+  }
+
+  function syncAlunoRows() {
+    var tid = turmaSel ? turmaSel.value : '';
+    form.querySelectorAll('.aluno-picker-item').forEach(function (el) {
+      var match = !tid || el.getAttribute('data-turma-id') === tid;
+      el.style.display = match ? '' : 'none';
+      if (!match) {
+        var c = el.querySelector('.aluno-picker-cb');
+        if (c) c.checked = false;
+      }
+    });
+  }
+
+  function applyDestinoUI() {
+    var d = currentDestino();
+    var trilha = d === 'trilha';
+    var alunos = d === 'alunos';
+    if (panelTrilha) panelTrilha.style.display = trilha ? '' : 'none';
+    if (panelAlunos) panelAlunos.style.display = alunos ? '' : 'none';
+    if (turmaHelpTrilha) turmaHelpTrilha.style.display = trilha ? '' : 'none';
+    if (trilhaSel) {
+      trilhaSel.required = trilha;
+      if (!trilha) trilhaSel.value = '';
+    }
+    document.querySelectorAll('.professor-destino-card').forEach(function (card) {
+      var inp = card.querySelector('.professor-destino-radio');
+      card.classList.toggle('professor-destino-card--active', inp && inp.checked && !inp.disabled);
+    });
+    if (trilha) filterTrilhasByTurmaAno();
+    if (alunos) syncAlunoRows();
+  }
+
+  radios.forEach(function (r) { r.addEventListener('change', applyDestinoUI); });
+  if (turmaSel) turmaSel.addEventListener('change', function () {
+    filterTrilhasByTurmaAno();
+    syncAlunoRows();
+  });
+  applyDestinoUI();
+})();
+</script>
 {% endblock %}

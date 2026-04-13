@@ -1,0 +1,60 @@
+{# Corpo timbrado do relatório (toolbar + tabela). Variáveis: back_href, generated_at, report_kicker, report_title, report_subtitle, report_author_label, report_author_name, column_labels, rows #}
+<div class="report-print-toolbar py-2 px-2 no-print">
+    <div class="report-print-wrap d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-mj rounded-pill" onclick="window.print()">
+                <i class="fas fa-print me-1"></i> Imprimir / PDF
+            </button>
+            <a class="btn btn-sm btn-mj-outline rounded-pill" href="{{ back_href|default('/') }}">Voltar</a>
+        </div>
+        <span class="small text-muted">{{ generated_at }}</span>
+    </div>
+</div>
+
+<div class="report-print-wrap">
+    <div class="report-print-sheet">
+        <header class="report-print-brand d-flex flex-wrap align-items-center gap-2 gap-md-3">
+            <img src="/static/img/logo.png" alt="AVA MJ" class="flex-shrink-0">
+            <div class="flex-grow-1 min-w-0">
+                <div class="text-uppercase small fw-bold text-mj-primary mb-0" style="font-size: 0.7rem;">{{ report_kicker|default('AVA MJ — Relatório') }}</div>
+                <h1 class="h5 fw-bold text-mj-dark mb-0 mt-1">{{ report_title }}</h1>
+                <p class="text-muted small mb-0 mt-1" style="font-size: 0.8rem;">{{ report_subtitle }}</p>
+                <p class="text-muted small mb-0 mt-1" style="font-size: 0.78rem;">
+                    Gerado em {{ generated_at }}
+                    {% if report_author_name %}
+                    · {{ report_author_label|default('Emitido por') }}: {{ report_author_name }}
+                    {% endif %}
+                </p>
+            </div>
+        </header>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm report-print-table">
+                <thead>
+                    <tr>
+                        {% for h in column_labels %}
+                        <th>{{ h }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        {% for cell in row %}
+                        <td>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{{ column_labels|length }}" class="text-center text-muted py-3">Nenhum registro.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <footer class="report-print-footer">
+            Documento gerado pelo sistema AVA MJ — uso interno.
+        </footer>
+    </div>
+</div>

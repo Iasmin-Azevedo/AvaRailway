@@ -1,43 +1,77 @@
 {% extends "base_dashboard.html" %}
-{% block page_title %}Relatórios da Coordenação{% endblock %}
+{% block page_title %}{% if modo_impressao %}{{ report_title }} — Imprimir{% else %}Relatórios da Coordenação{% endif %}{% endblock %}
 {% block brand_link %}/coordenador{% endblock %}
 {% block menu_title %}Menu do Coordenador{% endblock %}
+{% block body_extra_class %}{% if modo_impressao %} relatorio-embed-print-active{% endif %}{% endblock %}
+
+{% block main_a11y_attrs %}{% if modo_impressao %}data-a11y-caption="Relatório timbrado para impressão ou PDF. Use Voltar para regressar à central de relatórios. O diálogo de impressão pode abrir sozinho ao carregar."{% else %}data-a11y-caption="Central de relatórios da coordenação: monitoramento por turma e mapa de risco. Ver relatório mostra a folha timbrada nesta mesma página; CSV exporta para planilha."{% endif %}{% endblock %}
+
+{% block header_right %}
+{% include "coordenador/partials/coordenador_header_right.html" %}
+{% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/coordenador">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/coordenador/relatorios">Relatórios</a>
+{% include "coordenador/partials/coordenador_menu_links.html" %}
 {% endblock %}
 
 {% block main_content %}
-<div class="mb-3">
-    <a href="/coordenador" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao painel</a>
+{% if modo_impressao %}
+<div class="relatorio-embed-root">
+    {% include "shared/partials/relatorio_sheet.html" %}
 </div>
+{% else %}
+<div class="relatorios-lista-normal no-print">
+    <div class="mb-3">
+        <a href="/coordenador" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao painel</a>
+    </div>
 
-<h2 class="fw-bold text-mj-dark mb-3">Central de relatórios da coordenação</h2>
-<p class="text-mj-muted small mb-4">Exports CSV com dados reais da escola vinculada ao coordenador.</p>
+    <h2 class="fw-bold text-mj-dark mb-2">Central de relatórios</h2>
+    <p class="text-mj-muted small mb-4"><strong>Ver relatório</strong> abre a folha timbrada <strong>nesta mesma página</strong> (impressão automática). Use CSV para planilhas.</p>
 
-<div class="row g-3">
-    <div class="col-md-6">
-        <div class="card dash-card border-0 h-100">
-            <div class="card-body">
-                <h6 class="fw-bold text-mj-dark">Monitoramento por turma</h6>
-                <p class="small text-muted mb-3">Adesão, professor responsável e status de cada turma.</p>
-                <a class="btn btn-mj rounded-pill" href="/coordenador/relatorios/export.csv?tipo=monitoramento_turmas">
-                    <i class="fas fa-download me-1"></i> Baixar CSV
-                </a>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card dash-card border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <h6 class="fw-bold text-mj-dark">Monitoramento por turma</h6>
+                    <p class="small text-muted mb-3 flex-grow-1">Adesão, professor responsável e status de cada turma.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-mj rounded-pill" href="/coordenador/relatorios?imprimir=1&amp;tipo=monitoramento_turmas">
+                            <i class="fas fa-file-alt me-1"></i> Ver relatório
+                        </a>
+                        <a class="btn btn-mj-outline rounded-pill" href="/coordenador/relatorios/export.csv?tipo=monitoramento_turmas">
+                            <i class="fas fa-download me-1"></i> CSV
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card dash-card border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <h6 class="fw-bold text-mj-dark">Mapa de risco por turma</h6>
+                    <p class="small text-muted mb-3 flex-grow-1">Quantidade e percentual de alunos em risco por turma.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-mj rounded-pill" href="/coordenador/relatorios?imprimir=1&amp;tipo=risco_turmas">
+                            <i class="fas fa-file-alt me-1"></i> Ver relatório
+                        </a>
+                        <a class="btn btn-mj-outline rounded-pill" href="/coordenador/relatorios/export.csv?tipo=risco_turmas">
+                            <i class="fas fa-download me-1"></i> CSV
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card dash-card border-0 h-100">
-            <div class="card-body">
-                <h6 class="fw-bold text-mj-dark">Mapa de risco por turma</h6>
-                <p class="small text-muted mb-3">Quantidade e percentual de alunos em risco por turma.</p>
-                <a class="btn btn-mj rounded-pill" href="/coordenador/relatorios/export.csv?tipo=risco_turmas">
-                    <i class="fas fa-download me-1"></i> Baixar CSV
-                </a>
-            </div>
-        </div>
-    </div>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if modo_impressao %}
+<script>
+    window.addEventListener("load", function () {
+        setTimeout(function () { window.print(); }, 350);
+    });
+</script>
+{% endif %}
 {% endblock %}

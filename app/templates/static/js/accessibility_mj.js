@@ -95,9 +95,22 @@
 
   function toggleCaptionsVisible() {
     var panel = document.getElementById('a11y-caption-panel');
+    var btnCaption = document.getElementById('a11y-toggle-captions');
     if (!panel) return;
     updateCaptionPanel();
+    var willShow = panel.classList.contains('d-none');
     panel.classList.toggle('d-none');
+    if (btnCaption) {
+      btnCaption.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+    }
+    if (willShow) {
+      var capBody = document.getElementById('a11y-caption-body');
+      if (capBody) {
+        try {
+          capBody.focus({ preventScroll: true });
+        } catch (e) {}
+      }
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -130,6 +143,8 @@
       btnRead.addEventListener('click', toggleReadAloud);
     }
     if (btnCaption) {
+      btnCaption.setAttribute('aria-expanded', 'false');
+      btnCaption.setAttribute('aria-controls', 'a11y-caption-panel');
       btnCaption.addEventListener('click', toggleCaptionsVisible);
     }
 

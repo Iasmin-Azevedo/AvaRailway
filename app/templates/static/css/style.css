@@ -20,7 +20,6 @@
     --mj-primary-light: var(--mj-blue-400);
     --mj-primary-dark: var(--mj-blue-800);
     /* CTA / gm-orange (.gm-btn--orange, .gm-circle--orange) — antes faltava e o fundo virava transparente */
-    --mj-orange: var(--mj-primary);
     --mj-dark: #1a1d29;
     --mj-dark-soft: #2d3142;
     --mj-white: #ffffff;
@@ -114,10 +113,12 @@ body {
 .bg-mj-soft { background: var(--mj-gradient-soft) !important; }
 .bg-mj-light { background-color: var(--mj-blue-100) !important; }
 
+.bg-mj-blue { background-color: var(--mj-blue) !important; }
 .bg-mj-red { background-color: var(--mj-red) !important; }
 .bg-mj-green { background-color: var(--mj-green) !important; }
 .bg-mj-orange { background-color: var(--mj-orange) !important; }
 
+.border-mj-red { border-color: var(--mj-red) !important; }
 .border-mj-red { border-color: var(--mj-red) !important; }
 .border-mj-green { border-color: var(--mj-green) !important; }
 .border-mj-orange { border-color: var(--mj-orange) !important; }
@@ -571,14 +572,14 @@ body {
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--mj-primary-dark);
-    background: rgba(210, 116, 13, 0.08); /* mj-blue-600 */
+    background: rgba(13, 121, 210, 0.08); 
     border: 1px solid var(--mj-border-color-soft);
     border-radius: 999px;
     padding: 0.45rem 0.85rem;
 }
 
 .mission-reading-box {
-    background: rgba(210, 116, 13, 0.06); /* mj-blue-600 */
+    background: rgba(13, 75, 210, 0.06); /* mj-blue-600 */
     border: 1px dashed var(--mj-border-color);
     border-radius: 0.75rem;
     padding: 0.9rem 1rem;
@@ -673,8 +674,8 @@ body {
     --gm-blue-dark: rgba(2, 135, 157, 1); /* var derivada de --mj-blue */
     --gm-red: var(--mj-red);
     --gm-red-dark: rgba(214, 60, 58, 1); /* var derivada de --mj-red */
-    --gm-orange: var(--mj-blue-500);
-    --gm-orange-dark: var(--mj-blue-600);
+    --gm-orange: var(--mj-orange);
+    --gm-orange-dark: rgba(214, 120, 58, 1);
     --gm-cream: var(--mj-blue-100);
     --gm-cream-dark: var(--mj-blue-200);
     --gm-surface: #f7f8fb;
@@ -756,7 +757,7 @@ body {
     height: 1rem;
     border-radius: 999px;
     padding: 0.15rem;
-    background: #ead9c3;
+    background: #dbeef2;
     box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 .gm-progress__fill {
@@ -977,6 +978,15 @@ body.login-page-mj #a11y-caption-panel:not(.d-none) {
     flex: 1 1 100%;
     width: 100%;
 }
+
+/* Legenda (dashboard e demais áreas com base_dashboard) */
+body.mission-page-mj #a11y-caption-panel:not(.d-none) {
+    background: linear-gradient(180deg, #f4f7fb 0%, #eef2f7 100%);
+    border-bottom: 1px solid rgba(17, 41, 90, 0.1);
+}
+body.mission-page-mj #a11y-caption-panel .a11y-caption-panel-inner {
+    border-width: 2px;
+}
 .mission-utilbar-mj .container.d-flex {
     flex-direction: row;
     align-items: center;
@@ -996,6 +1006,53 @@ body.login-page-mj #a11y-caption-panel:not(.d-none) {
 }
 .mission-topbar-mj {
     background: #fff;
+}
+.mission-topbar-logo {
+    max-width: min(200px, 55vw);
+    width: auto;
+    height: auto;
+}
+/* Colunas Bootstrap em .row são flex items; min-width:auto + sem teto de largura
+   faz a coluna crescer com a tabela e o scroll horizontal nunca “encaixa” (mobile e simuladores). */
+#main-content .row > [class*="col-"] {
+    min-width: 0;
+    max-width: 100%;
+}
+/* Coluna em coluna flex (ex.: col-lg-8 d-flex flex-column): os cards são flex items e
+   também herdam min-width:auto no eixo horizontal. */
+#main-content .d-flex.flex-column > .dash-card,
+#main-content .d-flex.flex-column > .card.dash-card {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    align-self: stretch;
+}
+/* overflow:hidden do .dash-card cortava o eixo de scroll em alguns casos (cartão + tabela). */
+.dash-card:has(.mj-table-horizontal-scroll) {
+    overflow: visible;
+}
+.mj-table-horizontal-scroll {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+}
+.mj-table-min-wide {
+    min-width: 640px;
+}
+@media (max-width: 576px) {
+    .mj-table-min-wide {
+        min-width: 560px;
+    }
+}
+@media (max-width: 991.98px) {
+    .professor-offcanvas-turma .form-select.form-select-sm {
+        min-height: 2.75rem;
+        font-size: 1rem;
+    }
 }
 .mission-subnav-mj {
     background: #ffffff;
@@ -1050,7 +1107,7 @@ body.login-page-mj #a11y-caption-panel:not(.d-none) {
     gap: 0.95rem;
 }
 .mission-user-meta-mj {
-    min-width: 210px;
+    min-width: 0;
 }
 .mission-user-avatar-img {
     width: 45px;
@@ -1752,9 +1809,353 @@ body.a11y-high-contrast .btn:focus-visible {
     outline: 3px solid var(--mj-primary);
     outline-offset: 2px;
 }
+body.a11y-high-contrast .text-mj-dark,
+body.a11y-high-contrast .text-dark,
+body.a11y-high-contrast h1,
+body.a11y-high-contrast h2,
+body.a11y-high-contrast h3,
+body.a11y-high-contrast h4,
+body.a11y-high-contrast h5,
+body.a11y-high-contrast h6 {
+    color: var(--mj-dark) !important;
+}
+body.a11y-high-contrast .text-mj-primary {
+    color: var(--mj-primary-dark) !important;
+}
+body.a11y-high-contrast .mission-topbar-mj,
+body.a11y-high-contrast .mission-subnav-mj {
+    background: #fff !important;
+    border-bottom: 2px solid var(--mj-dark);
+}
+body.a11y-high-contrast .mission-subnav-mj a {
+    color: var(--mj-dark) !important;
+    font-weight: 600;
+}
+body.a11y-high-contrast .table,
+body.a11y-high-contrast .table th,
+body.a11y-high-contrast .table td {
+    border-color: rgba(0, 0, 0, 0.35) !important;
+}
+body.a11y-high-contrast .table thead th {
+    background: #dde5eb !important;
+    color: var(--mj-dark) !important;
+}
+body.a11y-high-contrast .btn-mj {
+    border: 2px solid var(--mj-primary-dark) !important;
+    font-weight: 700;
+}
+body.a11y-high-contrast .list-group-item {
+    border-color: rgba(0, 0, 0, 0.25) !important;
+    background: #fff !important;
+    color: var(--mj-dark) !important;
+}
+body.a11y-high-contrast .form-control,
+body.a11y-high-contrast .form-select {
+    border: 2px solid rgba(0, 0, 0, 0.35) !important;
+    background: #fff !important;
+    color: var(--mj-dark) !important;
+}
+body.a11y-high-contrast .progress {
+    border: 1px solid rgba(0, 0, 0, 0.25);
+}
+body.a11y-high-contrast .badge {
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+body.a11y-high-contrast #a11y-caption-panel .alert,
+body.a11y-high-contrast #a11y-caption-panel .a11y-caption-panel-inner {
+    background: #fff !important;
+    border: 2px solid var(--mj-dark) !important;
+    color: var(--mj-dark) !important;
+}
+body.a11y-high-contrast .border,
+body.a11y-high-contrast .border-bottom,
+body.a11y-high-contrast hr {
+    border-color: rgba(0, 0, 0, 0.35) !important;
+}
+body.a11y-high-contrast .offcanvas {
+    background: #fff !important;
+    color: var(--mj-dark) !important;
+}
 
 a:focus-visible,
 button:focus-visible {
     outline: 2px solid var(--mj-primary);
     outline-offset: 2px;
+}
+
+@media (min-width: 992px) {
+    .professor-header-turma-wrap .professor-turma-select {
+        min-width: 14rem;
+        max-width: 22rem;
+    }
+}
+
+/* ========== Professor: cabeçalho (avatar docente) ========== */
+.professor-header-avatar {
+    width: 56px;
+    height: 56px;
+}
+.professor-header-avatar--fallback {
+    font-size: 1.1rem;
+}
+
+/* ========== Professor: destino da atividade H5P (cards) ========== */
+.professor-destino-card {
+    cursor: pointer;
+}
+.professor-destino-card-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    height: 100%;
+    padding: 1rem 1.1rem;
+    border-radius: 14px;
+    border: 2px solid rgba(13, 110, 253, 0.18);
+    background: #fff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.professor-destino-card:hover .professor-destino-card-inner {
+    border-color: rgba(13, 110, 253, 0.35);
+    box-shadow: 0 4px 16px rgba(13, 110, 253, 0.08);
+}
+.professor-destino-card--active .professor-destino-card-inner {
+    border-color: var(--mj-primary, #0d6efd);
+    background: linear-gradient(145deg, rgba(13, 110, 253, 0.07) 0%, #fff 55%);
+    box-shadow: 0 4px 18px rgba(13, 110, 253, 0.12);
+}
+.professor-destino-card .professor-destino-radio:disabled + .professor-destino-card-inner {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+.professor-destino-card-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--mj-dark, #1a2230);
+}
+.professor-destino-card-desc {
+    font-size: 0.8rem;
+    color: var(--mj-muted, #6c757d);
+    line-height: 1.35;
+}
+
+/* ========== Professor: seletor de alunos (checkbox + avatar) ========== */
+.aluno-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.65rem;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 0.35rem;
+    border-radius: 12px;
+    border: 1px solid rgba(13, 110, 253, 0.12);
+    background: rgba(240, 244, 248, 0.5);
+}
+.aluno-picker-grid--edit {
+    max-height: 360px;
+}
+.aluno-picker-item {
+    display: block;
+    margin: 0;
+    cursor: pointer;
+}
+.aluno-picker-face {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background: #fff;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.aluno-picker-cb {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0 !important;
+    cursor: pointer;
+    accent-color: var(--mj-primary, #0d6efd);
+}
+.aluno-picker-item:hover .aluno-picker-face {
+    border-color: rgba(13, 110, 253, 0.2);
+}
+.aluno-picker-face:has(.aluno-picker-cb:focus-visible) {
+    outline: 2px solid var(--mj-primary, #0d6efd);
+    outline-offset: 2px;
+}
+.aluno-picker-face:has(.aluno-picker-cb:checked) {
+    border-color: var(--mj-primary, #0d6efd);
+    box-shadow: 0 2px 10px rgba(13, 110, 253, 0.12);
+    background: rgba(13, 110, 253, 0.04);
+}
+.aluno-picker-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid rgba(13, 110, 253, 0.15);
+}
+.aluno-picker-avatar--fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--mj-primary, #0d6efd);
+    background: rgba(13, 110, 253, 0.1);
+}
+.aluno-picker-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    text-align: left;
+}
+.aluno-picker-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--mj-dark, #1a2230);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.aluno-picker-meta {
+    font-size: 0.78rem;
+    color: var(--mj-muted, #6c757d);
+}
+
+/* Lista de atividades (turma / extras) no dashboard do aluno */
+.aluno-missao-atividade-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* ========== Relatórios timbrados (standalone + embutido professor) ========== */
+@page {
+    margin: 10mm 12mm;
+}
+body.report-print-body {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    background: #e8eef3;
+    margin: 0;
+}
+.report-print-toolbar {
+    background: #fff;
+    border-bottom: 1px solid rgba(13, 110, 253, 0.15);
+}
+.report-print-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0.5rem 0.75rem 1rem;
+}
+.report-print-sheet {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid rgba(13, 110, 253, 0.14);
+    box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+    padding: 0.75rem 1rem 1rem;
+}
+.report-print-brand {
+    border-bottom: 2px solid var(--mj-primary, #0d6efd);
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 0%, #fff 70%);
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    margin-bottom: 0.65rem;
+}
+.report-print-brand img {
+    height: 44px;
+    width: auto;
+}
+.report-print-table {
+    font-size: 0.82rem;
+    margin-bottom: 0;
+}
+.report-print-table thead th {
+    background: rgba(13, 110, 253, 0.1);
+    color: #0b3d6d;
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 0.35rem 0.5rem;
+    white-space: nowrap;
+}
+.report-print-table td {
+    vertical-align: middle;
+    padding: 0.3rem 0.5rem;
+}
+.report-print-footer {
+    margin-top: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 0.72rem;
+    color: #6c757d;
+    text-align: center;
+}
+@media print {
+    /* VLibras e widget de acessibilidade externo não devem aparecer na folha */
+    div[vw],
+    [data-a11y-vlibras],
+    [vw-access-button],
+    .vw-plugin-wrapper,
+    .vw-plugin-top-wrapper {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+    }
+
+    body.report-print-body {
+        background: #fff;
+    }
+    body.report-print-body .report-print-toolbar {
+        display: none !important;
+    }
+    body.report-print-body .report-print-wrap {
+        padding: 0;
+        max-width: none;
+    }
+    body.report-print-body .report-print-sheet {
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+    }
+    body.report-print-body .report-print-brand {
+        break-inside: avoid;
+    }
+
+    /* Relatório embutido (professor / gestor / coordenador) — esconder chrome do dashboard e VLibras */
+    body.relatorio-embed-print-active .mission-utilbar-mj,
+    body.relatorio-embed-print-active .mission-topbar-mj,
+    body.relatorio-embed-print-active .mission-subnav-mj,
+    body.relatorio-embed-print-active .offcanvas,
+    body.relatorio-embed-print-active .relatorios-lista-normal,
+    body.relatorio-embed-print-active #a11y-caption-panel,
+    body.relatorio-embed-print-active div[vw],
+    body.relatorio-embed-print-active [data-a11y-vlibras] {
+        display: none !important;
+    }
+    body.relatorio-embed-print-active #main-content {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+    body.relatorio-embed-print-active .report-print-toolbar {
+        display: none !important;
+    }
+    body.relatorio-embed-print-active .report-print-wrap {
+        padding: 0;
+        max-width: none;
+    }
+    body.relatorio-embed-print-active .report-print-sheet {
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+    }
+    body.relatorio-embed-print-active {
+        background: #fff !important;
+    }
 }

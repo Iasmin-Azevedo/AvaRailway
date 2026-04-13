@@ -100,7 +100,9 @@ def _resolve_h5p_storage_target(path_ou_json: str) -> Optional[Path]:
     raw = (path_ou_json or "").strip().replace("\\", "/").strip("/")
     if not raw:
         return None
-    base_dir = Path(settings.H5P_CONTENT_DIR).resolve()
+    from app.core.media_urls import h5p_content_root
+
+    base_dir = h5p_content_root()
     candidate = (base_dir / raw).resolve()
     try:
         candidate.relative_to(base_dir)
@@ -865,6 +867,10 @@ async def usuarios_criar(
 
     if user.role == UserRole.PROFESSOR:
         _set_professor_turmas(db, user.id, prof_turma_ids)
+        u = UserRepository().get_by_id(db, user.id)
+        if u:
+            u.moodle_user_id = (form.get("moodle_user_id") or "").strip() or None
+            db.commit()
     elif user.role == UserRole.GESTOR:
         _set_gestor_escolas(db, user.id, gestor_escola_ids)
     elif user.role == UserRole.COORDENADOR:
@@ -911,6 +917,10 @@ async def usuarios_atualizar(
     )
     if not user:
         return RedirectResponse(url="/admin/usuarios", status_code=302)
+
+    if role_enum == UserRole.PROFESSOR:
+        user.moodle_user_id = (form.get("moodle_user_id") or "").strip() or None
+        db.commit()
 
     prof_turma_ids = _parse_int_list(professor_turmas_raw)
     gestor_escola_ids = _parse_int_list(gestor_escolas_raw)

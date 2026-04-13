@@ -20,6 +20,12 @@ class DescriptorPerformanceService:
         rows = db.query(Aluno.id).filter(Aluno.turma_id == turma_id).all()
         return [r[0] for r in rows]
 
+    def aluno_ids_for_turmas(self, db: Session, turma_ids: Sequence[int]) -> list[int]:
+        if not turma_ids:
+            return []
+        rows = db.query(Aluno.id).filter(Aluno.turma_id.in_(list(turma_ids))).distinct().all()
+        return [r[0] for r in rows]
+
     def aluno_ids_all(self, db: Session) -> list[int]:
         rows = db.query(Aluno.id).all()
         return [r[0] for r in rows]
@@ -150,6 +156,57 @@ class DescriptorPerformanceService:
             )
         return result
 
+    def radar_alunos_turmas(self, db: Session, turma_ids: Sequence[int]) -> list[dict[str, Any]]:
+        """Radar agregando várias turmas; cada linha inclui nome da turma."""
+        if not turma_ids:
+            return []
+
+        from app.models.gestao import Turma
+        from app.models.user import Usuario
+
+        rows = (
+            db.query(Aluno, Usuario.nome, Turma.nome)
+            .join(Usuario, Aluno.usuario_id == Usuario.id)
+            .join(Turma, Aluno.turma_id == Turma.id)
+            .filter(Aluno.turma_id.in_(list(turma_ids)))
+            .order_by(Turma.nome, Usuario.nome)
+            .all()
+        )
+
+        total_atividades = (
+            db.query(func.count(AtividadeH5P.id))
+            .filter(AtividadeH5P.ativo == True)
+            .scalar()
+            or 0
+        )
+
+        result: list[dict[str, Any]] = []
+        for aluno, nome, turma_nome in rows:
+            concluidas = (
+                db.query(func.count(ProgressoH5P.id))
+                .filter(
+                    ProgressoH5P.aluno_id == aluno.id,
+                    ProgressoH5P.concluido == True,
+                )
+                .scalar()
+                or 0
+            )
+            denom = max(1, int(total_atividades))
+            pct = min(100, round((concluidas / denom) * 100, 1))
+            risco = (aluno.nivel_risco or "BAIXO").upper()
+            result.append(
+                {
+                    "aluno_id": aluno.id,
+                    "nome": nome or "Aluno",
+                    "turma_nome": turma_nome or "",
+                    "concluidas": int(concluidas),
+                    "total_atividades": int(total_atividades),
+                    "progresso_pct": pct,
+                    "nivel_risco": risco,
+                }
+            )
+        return result
+
     def top_chat_questions_for_turma(
         self, db: Session, turma_id: int | None, limit: int = 8
     ) -> list[dict[str, Any]]:
@@ -161,6 +218,35 @@ class DescriptorPerformanceService:
 
         aluno_user_ids = (
             db.query(Aluno.usuario_id).filter(Aluno.turma_id == turma_id).all()
+        )
+        uids = [r[0] for r in aluno_user_ids if r[0]]
+        if not uids:
+            return []
+
+        q = (
+            db.query(ChatMessage.message_text, func.count(ChatMessage.id).label("cnt"))
+            .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+            .filter(
+                ChatSession.user_id.in_(uids),
+                ChatMessage.sender == "user",
+            )
+            .group_by(ChatMessage.message_text)
+            .order_by(func.count(ChatMessage.id).desc())
+            .limit(limit)
+        )
+        return [{"texto": row[0][:200], "vezes": int(row[1])} for row in q.all()]
+
+    def top_chat_questions_for_turmas(
+        self, db: Session, turma_ids: Sequence[int], limit: int = 8
+    ) -> list[dict[str, Any]]:
+        if not turma_ids:
+            return []
+
+        from app.models.chat_session import ChatSession
+        from app.models.chat_message import ChatMessage
+
+        aluno_user_ids = (
+            db.query(Aluno.usuario_id).filter(Aluno.turma_id.in_(list(turma_ids))).all()
         )
         uids = [r[0] for r in aluno_user_ids if r[0]]
         if not uids:

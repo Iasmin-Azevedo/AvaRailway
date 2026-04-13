@@ -1,9 +1,11 @@
 {% if professor_turmas %}
+{% set _tsid = turma_select_id|default('selTurmaProf') %}
 <form method="get" action="{{ form_action|default('') }}" class="d-flex flex-wrap align-items-center gap-2 w-100 mw-100">
-    <label class="small fw-bold text-mj-dark mb-0 flex-shrink-0" for="selTurmaProf">Turma</label>
-    <select name="turma_id" id="selTurmaProf" class="form-select form-select-sm flex-grow-1" style="min-width: 0; max-width: 100%;" onchange="this.form.submit()">
+    <label class="small fw-bold text-mj-dark mb-0 flex-shrink-0" for="{{ _tsid }}">Turma</label>
+    <select name="turma_id" id="{{ _tsid }}" class="form-select form-select-sm flex-grow-1 professor-turma-select" style="min-width: 0; max-width: 100%;" onchange="this.form.submit()">
+        <option value="all" {% if turma_all %}selected{% endif %}>Todas as turmas</option>
         {% for t in professor_turmas %}
-        <option value="{{ t.id }}" {% if selected_turma_id == t.id %}selected{% endif %}>
+        <option value="{{ t.id }}" {% if not turma_all and selected_turma_id == t.id %}selected{% endif %}>
             {{ t.nome }}{% if t.escola %} — {{ t.escola.nome }}{% endif %}
         </option>
         {% endfor %}

@@ -100,6 +100,11 @@
                         Permitir cadastro em trilha geral
                     </label>
                 </div>
+                <div class="mt-3">
+                    <label class="form-label fw-bold">ID do usuário no Moodle</label>
+                    <input type="text" name="moodle_user_id" class="form-control rounded-pill" maxlength="20" inputmode="numeric" pattern="[0-9]*" placeholder="Ex.: 42" value="{% if usuario and usuario.moodle_user_id %}{{ usuario.moodle_user_id }}{% endif %}">
+                    <small class="text-muted">Opcional. Usado para exibir os cursos do professor no painel (webservice Moodle).</small>
+                </div>
             </div>
             <div id="gestor-fields" class="mb-3 d-none">
                 <label class="form-label fw-bold">Escolas que o Gestor Administra</label>

@@ -1,44 +1,77 @@
 {% extends "base_dashboard.html" %}
-{% block page_title %}Relatórios CSV{% endblock %}
+{% block page_title %}{% if modo_impressao %}{{ report_title }} — Imprimir{% else %}Relatórios{% endif %}{% endblock %}
 {% block brand_link %}/gestor{% endblock %}
-{% block menu_title %}Gestor{% endblock %}
-{% block offcanvas_links %}
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/gestor">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/proficiencia">Proficiência</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/alertas">Alertas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/gestor/relatorios">Relatórios</a>
+{% block menu_title %}Menu do Gestor{% endblock %}
+{% block body_extra_class %}{% if modo_impressao %} relatorio-embed-print-active{% endif %}{% endblock %}
+
+{% block main_a11y_attrs %}{% if modo_impressao %}data-a11y-caption="Relatório timbrado para impressão ou guardar em PDF. Use Voltar para regressar à lista. O navegador pode abrir o diálogo de impressão automaticamente."{% else %}data-a11y-caption="Relatórios estratégicos do gestor: progresso por escola, desempenho por descritor SAEB e alunos em risco. Ver relatório abre a folha timbrada nesta mesma página; CSV transfere dados para folha de cálculo."{% endif %}{% endblock %}
+
+{% block header_right %}
+{% include "gestor/partials/gestor_header_right.html" %}
 {% endblock %}
+
+{% block offcanvas_links %}
+{% include "gestor/partials/gestor_menu_links.html" %}
+{% endblock %}
+
 {% block main_content %}
-<div class="mb-3"><a href="/gestor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Painel</a></div>
-<h1 class="h4 fw-bold text-mj-dark mb-3">Exportação de relatórios</h1>
-<!-- <p class="text-mj-muted small mb-4">Arquivos CSV com separador ponto e vírgula, codificação UTF-8 (compatível com Excel).</p> -->
-<div class="row g-3">
-    <div class="col-md-6">
-        <div class="card dash-card border-0 h-100">
-            <div class="card-body">
-                <h2 class="h6 fw-bold text-mj-dark">Progresso por escola</h2>
-                <p class="small text-muted">Engajamento e média de conclusões de atividades H5P.</p>
-                <a class="btn btn-mj rounded-pill" href="/gestor/relatorios/export.csv?tipo=progresso_escolas"><i class="fas fa-download me-1"></i> Baixar Relatório</a>
+{% if modo_impressao %}
+<div class="relatorio-embed-root">
+    {% include "shared/partials/relatorio_sheet.html" %}
+</div>
+{% else %}
+<div class="relatorios-lista-normal no-print">
+    <div class="mb-3"><a href="/gestor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Painel</a></div>
+    <h1 class="h4 fw-bold text-mj-dark mb-2">Relatórios</h1>
+    <p class="small text-muted mb-4">Use <strong>Ver relatório</strong> para abrir a visualização timbrada <strong>nesta mesma página</strong> (impressão automática). Use o CSV para planilhas.</p>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card dash-card border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h6 fw-bold text-mj-dark">Progresso por escola</h2>
+                    <p class="small text-muted flex-grow-1">Engajamento e média de conclusões de atividades H5P.</p>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <a class="btn btn-mj rounded-pill" href="/gestor/relatorios?imprimir=1&amp;tipo=progresso_escolas"><i class="fas fa-file-alt me-1"></i> Ver relatório</a>
+                        <a class="btn btn-mj-outline rounded-pill" href="/gestor/relatorios/export.csv?tipo=progresso_escolas"><i class="fas fa-download me-1"></i> CSV</a>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card dash-card border-0 h-100">
-            <div class="card-body">
-                <h2 class="h6 fw-bold text-mj-dark">Desempenho por descritor</h2>
-                <p class="small text-muted">Taxa de conclusão e score médio por código SAEB.</p>
-                <a class="btn btn-mj rounded-pill" href="/gestor/relatorios/export.csv?tipo=descritores"><i class="fas fa-download me-1"></i> Baixar Relatório</a>
+        <div class="col-md-6">
+            <div class="card dash-card border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h6 fw-bold text-mj-dark">Desempenho por descritor</h2>
+                    <p class="small text-muted flex-grow-1">Taxa de conclusão e score médio por código SAEB.</p>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <a class="btn btn-mj rounded-pill" href="/gestor/relatorios?imprimir=1&amp;tipo=descritores"><i class="fas fa-file-alt me-1"></i> Ver relatório</a>
+                        <a class="btn btn-mj-outline rounded-pill" href="/gestor/relatorios/export.csv?tipo=descritores"><i class="fas fa-download me-1"></i> CSV</a>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card dash-card border-0 h-100">
-            <div class="card-body">
-                <h2 class="h6 fw-bold text-mj-dark">Alunos em risco</h2>
-                <p class="small text-muted">Alunos com nível de risco diferente de baixo.</p>
-                <a class="btn btn-mj rounded-pill" href="/gestor/relatorios/export.csv?tipo=risco_alunos"><i class="fas fa-download me-1"></i> Baixar Relatório</a>
+        <div class="col-md-6">
+            <div class="card dash-card border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h6 fw-bold text-mj-dark">Alunos em risco</h2>
+                    <p class="small text-muted flex-grow-1">Alunos com nível de risco diferente de baixo.</p>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <a class="btn btn-mj rounded-pill" href="/gestor/relatorios?imprimir=1&amp;tipo=risco_alunos"><i class="fas fa-file-alt me-1"></i> Ver relatório</a>
+                        <a class="btn btn-mj-outline rounded-pill" href="/gestor/relatorios/export.csv?tipo=risco_alunos"><i class="fas fa-download me-1"></i> CSV</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if modo_impressao %}
+<script>
+    window.addEventListener("load", function () {
+        setTimeout(function () { window.print(); }, 350);
+    });
+</script>
+{% endif %}
 {% endblock %}

@@ -4,8 +4,19 @@
 {% set xp_meta_nivel = stats.xp_meta_nivel|default(600) %}
 {% set nivel_label = stats.nivel|default('LV 1') %}
 {% set streak_dias = stats.streak_dias|default(7) %}
+{% set _av = aluno_avatar_url|default('') %}
 <div class="mission-profile-topbar-mj">
     <div class="mission-userbox-mj">
+        {% if _av %}
+        <img
+            src="{{ _av }}"
+            class="mission-user-avatar-img rounded-circle border border-2 border-white object-fit-cover"
+            width="45"
+            height="45"
+            alt="Avatar do aluno"
+            loading="lazy"
+        >
+        {% else %}
         <img
             src="https://ui-avatars.com/api/?name={{ (aluno_nome|default('Aluno'))|replace(' ', '+') }}&amp;background=326F88&amp;color=fff"
             class="mission-user-avatar-img"
@@ -14,6 +25,7 @@
             alt="Avatar do aluno"
             loading="lazy"
         >
+        {% endif %}
         <div class="mission-user-meta-mj">
             <div class="d-flex align-items-center gap-2">
                 <span class="mission-user-name">{{ aluno_nome }}</span>

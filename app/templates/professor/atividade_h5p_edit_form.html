@@ -1,23 +1,24 @@
-{% extends "base_dashboard.html" %}
+{% extends "professor/base_professor.html" %}
 {% block page_title %}Editar Atividade H5P{% endblock %}
 {% block brand_link %}/professor{% endblock %}
 {% block menu_title %}Menu do Professor{% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/atividades">Minhas Atividades H5P</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/descritores">Descritores</a>
+{% include "professor/partials/professor_menu_links.html" %}
 {% endblock %}
 
 {% block main_content %}
 {% import 'partials/h5p_tipo_display.html' as h5p_tipo %}
 <div class="mb-4">
   <a href="/professor/atividades" class="text-mj-primary text-decoration-none small"><i class="fa-solid fa-arrow-left me-1"></i> Minhas atividades</a>
-  <h2 class="fw-bold text-mj-dark mt-2">Editar atividade H5P</h2>
+  <h2 class="fw-bold text-mj-dark mt-2">Editar atividade</h2>
 </div>
+{% if request.query_params.get('erro') == 'alunos_obrigatorio' %}
+<div class="alert alert-warning">Selecione pelo menos um aluno ou marque &quot;Turma inteira&quot;.</div>
+{% endif %}
 <div class="card dash-card border-0">
   <div class="card-body p-4">
-    <form method="post" action="{% if scope == 'trilha_geral' %}/professor/atividades/trilha-geral/{{ atividade.id }}/editar{% else %}/professor/atividades/{{ atividade.id }}/editar{% endif %}" enctype="multipart/form-data">
+    <form method="post" action="{% if scope == 'trilha_geral' %}/professor/atividades/trilha-geral/{{ atividade.id }}/editar{% else %}/professor/atividades/{{ atividade.id }}/editar{% endif %}" enctype="multipart/form-data" id="form-editar-atividade">
       <div class="row g-3">
         <div class="col-md-8">
           <label class="form-label fw-bold">Título</label>
@@ -63,6 +64,42 @@
             <label class="form-check-label">Ativa</label>
           </div>
         </div>
+        {% if scope == 'turma' %}
+        <div class="col-12">
+          <fieldset>
+            <legend class="form-label fw-bold mb-2">Destinatários na turma</legend>
+            <div class="d-flex flex-column gap-2 mb-3">
+              <label class="d-flex align-items-center gap-2 mb-0">
+                <input type="radio" name="destino_edicao" value="turma_toda" {% if destino_edicao_default == 'turma_toda' %}checked{% endif %}>
+                <span>Turma inteira</span>
+              </label>
+              <label class="d-flex align-items-center gap-2 mb-0">
+                <input type="radio" name="destino_edicao" value="alunos_especificos" {% if destino_edicao_default == 'alunos_especificos' %}checked{% endif %}>
+                <span>Alunos específicos</span>
+              </label>
+            </div>
+            <div id="edit-alunos-panel" class="aluno-picker-grid aluno-picker-grid--edit">
+              {% for a in alunos_turma %}
+              <label class="aluno-picker-item">
+                <span class="aluno-picker-face">
+                  {% if a.avatar_url %}
+                  <img src="{{ a.avatar_url }}" alt="" class="aluno-picker-avatar" width="44" height="44">
+                  {% else %}
+                  <span class="aluno-picker-avatar aluno-picker-avatar--fallback">{{ a.iniciais }}</span>
+                  {% endif %}
+                  <input type="checkbox" hidden name="aluno_ids" value="{{ a.id }}" class="form-check-input aluno-picker-cb flex-shrink-0" {% if a.id in selected_aluno_ids %}checked{% endif %} aria-label="Selecionar {{ a.nome }}">
+                  <span class="aluno-picker-text">
+                    <span class="aluno-picker-name">{{ a.nome }}</span>
+                    <span class="aluno-picker-meta">{{ a.ano_escolar }}º ano</span>
+                  </span>
+                </span>
+              </label>
+              {% endfor %}
+            </div>
+            <small class="text-muted d-block mt-2">Com &quot;Turma inteira&quot;, as marcações abaixo são ignoradas.</small>
+          </fieldset>
+        </div>
+        {% endif %}
       </div>
       <div class="mt-4">
         <button class="btn btn-mj rounded-pill" type="submit">Salvar alterações</button>
@@ -71,4 +108,25 @@
     </form>
   </div>
 </div>
+{% if scope == 'turma' %}
+<script>
+(function () {
+  var form = document.getElementById('form-editar-atividade');
+  if (!form) return;
+  var panel = document.getElementById('edit-alunos-panel');
+  function sync() {
+    var modo = form.querySelector('input[name="destino_edicao"]:checked');
+    var alunos = modo && modo.value === 'alunos_especificos';
+    if (panel) {
+      panel.style.opacity = alunos ? '1' : '0.45';
+      panel.style.pointerEvents = alunos ? '' : 'none';
+    }
+  }
+  form.querySelectorAll('input[name="destino_edicao"]').forEach(function (r) {
+    r.addEventListener('change', sync);
+  });
+  sync();
+})();
+</script>
+{% endif %}
 {% endblock %}

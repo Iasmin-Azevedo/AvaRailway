@@ -1,0 +1,39 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Meu perfil{% endblock %}
+{% block brand_link %}{{ home_url }}{% endblock %}
+{% block menu_title %}Menu{% endblock %}
+{% block offcanvas_links %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="{{ home_url }}">Início</a>
+{% endblock %}
+{% block main_content %}
+<div class="mb-3"><a href="{{ home_url }}" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar</a></div>
+<h1 class="h4 fw-bold text-mj-dark mb-3">Meu perfil</h1>
+{% if request.query_params.get('ok') %}
+<div class="alert alert-success">Perfil atualizado.</div>
+{% endif %}
+<div class="card dash-card border-0" style="max-width: 520px;">
+  <div class="card-body p-4">
+    <form method="post" enctype="multipart/form-data">
+      <div class="text-center mb-4">
+        {% if avatar_src %}
+        <img src="{{ avatar_src }}" alt="" class="rounded-circle border shadow-sm" width="96" height="96" style="object-fit: cover;">
+        {% else %}
+        <div class="rounded-circle bg-mj-primary bg-opacity-10 text-mj-primary d-inline-flex align-items-center justify-content-center fw-bold" style="width: 96px; height: 96px; font-size: 1.5rem;">
+          {{ (current_user.nome or '?')[:2]|upper }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold">Nome</label>
+        <input class="form-control" type="text" name="nome" required value="{{ current_user.nome or '' }}" maxlength="100">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold">Nova foto (JPG, PNG ou WebP, máx. 2&nbsp;MB)</label>
+        <input class="form-control" type="file" name="avatar" accept="image/jpeg,image/png,image/webp">
+      </div>
+      <button type="submit" class="btn btn-mj rounded-pill">Salvar</button>
+      <a href="{{ home_url }}" class="btn btn-mj-outline rounded-pill ms-2">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

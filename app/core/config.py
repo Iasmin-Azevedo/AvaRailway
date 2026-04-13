@@ -16,7 +16,13 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     MOODLE_URL: str = "https://seu-moodle"
     MOODLE_TOKEN: str = "moodle-token"
-    H5P_CONTENT_DIR: str = "app/templates/static/h5p"
+    # Relativo ao pacote `app/` (ver app.core.media_urls.h5p_content_root).
+    H5P_CONTENT_DIR: str = "templates/static/h5p"
+    # URL pública dos pacotes H5P extraídos (montada em app.main com StaticFiles).
+    # Em produção (Railway), defina H5P_CONTENT_DIR=/data/h5p e mantenha o prefixo /h5p.
+    H5P_URL_PREFIX: str = "/h5p"
+    # Avatares e outros uploads de usuário (montado em /media).
+    USER_UPLOAD_DIR: str = "templates/static/uploads"
     APP_ENV: str = "development"
     APP_DEBUG: bool = False
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]

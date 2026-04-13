@@ -4,31 +4,13 @@
 {% block menu_title %}Menu do Coordenador{% endblock %}
 
 {% block header_right %}
-<div class="d-flex align-items-center gap-2 bg-mj-soft px-3 py-1 rounded-3 border border-mj-primary border-opacity-25">
-    <span class="text-mj-dark small fw-bold">Escola:</span>
-    <span class="text-mj-dark fw-bold">
-        {{ escola.nome if escola else "Sem escola vinculada" }}
-    </span>
-</div>
-<div class="vr text-muted"></div>
-<div class="d-flex align-items-center gap-2">
-    <div class="text-end d-none d-md-block">
-        <div class="mission-user-name mb-0">
-            {{ current_user.nome if current_user else "Coordenador(a)" }}
-        </div>
-        <small class="text-mj-muted">Coordenador(a) Escolar</small>
-    </div>
-    <span class="mission-user-avatar bg-info text-white" style="font-size: 0.65rem;">
-        {{ avatar_iniciais }}
-    </span>
-</div>
+{% include "coordenador/partials/coordenador_header_right.html" %}
 {% endblock %}
 
 {% block offcanvas_extra %}{% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/coordenador">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/coordenador/relatorios">Relatórios</a>
+{% include "coordenador/partials/coordenador_menu_links.html" %}
 {% endblock %}
 
 {% block main_content %}
@@ -40,7 +22,7 @@
                 <i class="fa-solid fa-graduation-cap text-mj-primary opacity-50 fs-4"></i>
             </div>
             <div class="dash-stat-value text-mj-primary mb-1">{{ stats.adesao_escolar_pct|default(92) }}%</div>
-            <small class="text-success fw-bold">Meta atingida (Alunos ativos)</small>
+            <small class="text-muted">Alunos ativos</small>
             <div class="progress mt-2" style="height: 6px;">
                 <div class="progress-bar bg-mj-primary" style="width: {{ stats.kpi_chart_adesao|default(0) }}%"></div>
             </div>
@@ -88,20 +70,23 @@
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-lg-8 d-flex flex-column gap-4">
+    <div class="col-12 col-lg-8 d-flex flex-column gap-4">
         <div class="card dash-card flex-grow-1" id="monitoramento">
-            <div class="dash-card-header d-flex justify-content-between align-items-center">
+            <div class="dash-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="mb-0 fw-bold text-dark">Monitoramento por Turma</h5>
-                <div class="d-flex gap-2">
-                    <select class="form-select form-select-sm shadow-sm border-0 bg-light fw-bold text-mj-dark">
-                        <option selected>Língua Portuguesa</option>
-                        <option>Matemática</option>
+                <form method="get" action="/coordenador" class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <label class="small fw-bold text-mj-dark mb-0 d-none d-sm-inline" for="selDiscMonitor">Disciplina</label>
+                    <select name="disciplina" id="selDiscMonitor" class="form-select form-select-sm shadow-sm border-0 bg-light fw-bold text-mj-dark" style="min-width: 11rem;" onchange="this.form.submit()">
+                        <option value="geral" {% if disciplina_monitor|default('geral') == 'geral' %}selected{% endif %}>Geral (todas)</option>
+                        <option value="lp" {% if disciplina_monitor|default('geral') == 'lp' %}selected{% endif %}>Língua Portuguesa</option>
+                        <option value="mat" {% if disciplina_monitor|default('geral') == 'mat' %}selected{% endif %}>Matemática</option>
                     </select>
-                </div>
+                </form>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                <!-- <p class="small text-muted px-3 pt-3 mb-0">Adesão por uso da plataforma considera apenas atividades H5P da disciplina selecionada (via descritor SAEB ou nome do curso vinculado à trilha). Em <strong>Geral</strong> entram todas as atividades ativas.</p> -->
+                <div class="table-responsive mj-table-horizontal-scroll mt-2">
+                    <table class="table table-hover align-middle mb-0 mj-table-min-wide">
                         <thead class="table-light small text-uppercase text-muted">
                             <tr>
                                 <th class="ps-4">Ano/Turma</th>
@@ -118,7 +103,7 @@
                                 <td>{{ row.professor }}</td>
                                 <td><span class="fw-bold {% if row.adesao_pct < 60 %}text-danger{% elif row.adesao_pct < 85 %}text-mj-primary{% else %}text-success{% endif %}">{{ row.adesao_pct }}%</span></td>
                                 <td>
-                                    <span class="badge {% if row.status == 'Crítico' %}bg-danger text-white{% elif row.status == 'Bom' %}bg-primary bg-opacity-25 text-mj-primary border border-mj-primary{% else %}bg-success bg-opacity-25 text-success border border-success{% endif %}">
+                                    <span class="badge {% if row.status == 'Crítico' %}bg-danger text-white{% elif row.status == 'Bom' %}bg-primary bg-opacity-25 text-mj-primary border border-mj-primary{% elif row.status == 'Sem dados' or row.status == 'Sem atividades' %}bg-secondary bg-opacity-25 text-dark border border-secondary{% else %}bg-success bg-opacity-25 text-success border border-success{% endif %}">
                                         {{ row.status }}
                                     </span>
                                 </td>
@@ -156,7 +141,7 @@
                                 <div class="progress-bar {% if c.pct < 45 %}bg-danger{% else %}bg-warning{% endif %}" style="width: {{ c.pct }}%"></div>
                             </div>
                             <small class="text-muted d-block mb-2">{{ c.descricao }}</small>
-                            <a href="/coordenador/relatorios/export.csv?tipo=monitoramento_turmas" class="btn btn-sm {% if c.pct < 45 %}btn-outline-danger{% else %}btn-outline-warning text-dark{% endif %} w-100 fw-bold">Abrir relatório de intervenção</a>
+                            <a href="/coordenador/relatorios/export.csv?tipo=monitoramento_turmas&amp;disciplina={{ disciplina_monitor|default('geral') }}" class="btn btn-sm {% if c.pct < 45 %}btn-outline-danger{% else %}btn-outline-warning text-dark{% endif %} w-100 fw-bold">Abrir relatório de intervenção</a>
                         </div>
                     </div>
                     {% endfor %}
@@ -174,7 +159,7 @@
         </div>
     </div>
 
-    <div class="col-lg-4 d-flex flex-column gap-4">
+    <div class="col-12 col-lg-4 d-flex flex-column gap-4">
         <div class="card dash-card bg-mj-dark text-white border-0 flex-grow-1" id="mapa-risco">
             <div class="dash-card-header bg-transparent border-secondary d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0 text-white"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i> Mapa de Risco Escolar</h6>

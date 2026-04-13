@@ -1,0 +1,73 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}{% if modo_impressao %}{{ report_title }} — Imprimir{% else %}Relatórios{% endif %}{% endblock %}
+{% block brand_link %}/professor{% endblock %}
+{% block menu_title %}Professor{% endblock %}
+{% block body_extra_class %}{% if modo_impressao %} relatorio-embed-print-active{% endif %}{% endblock %}
+
+{% block main_a11y_attrs %}{% if modo_impressao %}data-a11y-caption="Relatório timbrado para impressão ou PDF. Use Voltar para regressar à lista de relatórios. O navegador pode abrir o diálogo de impressão automaticamente."{% else %}data-a11y-caption="Relatórios do professor: desempenho por descritor SAEB, progresso dos alunos na trilha H5P e atividades personalizadas. Ver relatório abre a folha timbrada nesta mesma página; CSV exporta para planilha. O escopo segue a turma selecionada no topo."{% endif %}{% endblock %}
+
+{% block offcanvas_links %}
+{% include "professor/partials/professor_menu_links.html" %}
+{% endblock %}
+
+{% block main_content %}
+{% if modo_impressao %}
+<div class="relatorio-embed-root">
+    {% include "shared/partials/relatorio_sheet.html" %}
+</div>
+{% else %}
+<div class="relatorios-lista-normal no-print">
+    <div class="mb-3"><a href="/professor{{ turma_query_suffix }}" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Painel</a></div>
+    <h1 class="h4 fw-bold text-mj-dark mb-2">Relatórios</h1>
+    <p class="small text-muted mb-4">Use <strong>Ver relatório</strong> para abrir a visualização timbrada nesta mesma página (impressão automática). Exporte CSV quando precisar de planilha. O escopo segue a turma do topo ou <strong>Todas as turmas</strong>.</p>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card dash-card border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h6 fw-bold text-mj-dark">Desempenho por descritor</h2>
+                    <p class="small text-muted flex-grow-1">Taxa de conclusão e score médio por código SAEB (alunos da seleção).</p>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <a class="btn btn-mj rounded-pill" href="/professor/relatorios?imprimir=1&amp;tipo=descritores_turma{% if turma_query_suffix %}{{ turma_query_suffix|replace('?', '&amp;') }}{% endif %}"><i class="fas fa-file-alt me-1"></i> Ver relatório</a>
+                        <a class="btn btn-mj-outline rounded-pill" href="/professor/relatorios/export.csv?tipo=descritores_turma{% if turma_query_suffix %}{{ turma_query_suffix|replace('?', '&') }}{% endif %}"><i class="fas fa-download me-1"></i> CSV</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card dash-card border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h6 fw-bold text-mj-dark">Progresso dos alunos (trilha H5P)</h2>
+                    <p class="small text-muted flex-grow-1">Concluídas na trilha global vs total de atividades ativas.</p>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <a class="btn btn-mj rounded-pill" href="/professor/relatorios?imprimir=1&amp;tipo=alunos_progresso{% if turma_query_suffix %}{{ turma_query_suffix|replace('?', '&amp;') }}{% endif %}"><i class="fas fa-file-alt me-1"></i> Ver relatório</a>
+                        <a class="btn btn-mj-outline rounded-pill" href="/professor/relatorios/export.csv?tipo=alunos_progresso{% if turma_query_suffix %}{{ turma_query_suffix|replace('?', '&') }}{% endif %}"><i class="fas fa-download me-1"></i> CSV</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card dash-card border-0 h-100">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h6 fw-bold text-mj-dark">Atividades personalizadas (professor)</h2>
+                    <p class="small text-muted flex-grow-1">Suas atividades H5P por turma e contagem de conclusões.</p>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <a class="btn btn-mj rounded-pill" href="/professor/relatorios?imprimir=1&amp;tipo=atividades_professor_turma{% if turma_query_suffix %}{{ turma_query_suffix|replace('?', '&amp;') }}{% endif %}"><i class="fas fa-file-alt me-1"></i> Ver relatório</a>
+                        <a class="btn btn-mj-outline rounded-pill" href="/professor/relatorios/export.csv?tipo=atividades_professor_turma{% if turma_query_suffix %}{{ turma_query_suffix|replace('?', '&') }}{% endif %}"><i class="fas fa-download me-1"></i> CSV</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if modo_impressao %}
+<script>
+    window.addEventListener("load", function () {
+        setTimeout(function () { window.print(); }, 350);
+    });
+</script>
+{% endif %}
+{% endblock %}

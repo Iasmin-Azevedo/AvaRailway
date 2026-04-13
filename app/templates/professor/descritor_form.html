@@ -1,11 +1,10 @@
-{% extends "base_dashboard.html" %}
+{% extends "professor/base_professor.html" %}
 {% block page_title %}{{ "Editar Descritor" if descritor else "Novo Descritor" }}{% endblock %}
 {% block brand_link %}/professor{% endblock %}
 {% block menu_title %}Menu do Professor{% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/atividades">Minhas Atividades H5P</a>
-<a class="btn btn-mj w-100 rounded-pill" href="/professor/descritores">Descritores</a>
+{% include "professor/partials/professor_menu_links.html" %}
 {% endblock %}
 
 {% block main_content %}

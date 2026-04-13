@@ -12,9 +12,7 @@
 {% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/portugues">Trilhas</a>
-<a class="btn btn-mj w-100 rounded-pill" href="/aluno/configuracoes">Configurações</a>
+{% include "aluno/partials/aluno_menu_default.html" %}
 {% endblock %}
 
 {% block main_content %}
@@ -22,7 +20,7 @@
     <div class="col-12 col-lg-8">
         <div class="card dash-card border-0 shadow rounded-4">
             <div class="card-body p-4 p-md-5">
-                <a href="/aluno/configuracoes" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar para configurações</a>
+                <a href="/aluno/configuracoes" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao Meu perfil</a>
                 <h1 class="h4 fw-bold text-mj-dark mt-3 mb-2">Abrir chamado</h1>
                 <p class="text-mj-muted small mb-4">Descreva o problema. Um administrador responderá pelo sistema.</p>
                 {% if erro == 'campos' %}

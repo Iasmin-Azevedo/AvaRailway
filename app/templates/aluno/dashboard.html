@@ -12,12 +12,11 @@
 {% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/portugues">Trilhas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/aluno/configuracoes">Configurações</a>
+{% include "aluno/partials/aluno_menu_default.html" %}
 {% endblock %}
 
 {% block main_content %}
+{% import 'partials/h5p_tipo_display.html' as h5p_tipo %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="card border-0 dash-hero bg-mj-gradient text-white overflow-hidden">
@@ -63,26 +62,25 @@
             <div class="col-md-6">
                 <article class="gm-card h-100 hover-lift border-bottom border-mj-primary border-3">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="gm-circle gm-circle--orange"><i class="fas fa-book-open"></i></span>
-                        <span class="mission-chip-mj">{% if preview_trilha %}Trilha {{ (preview_trilha.ordem or 0) + 1 }}{% else %}Jornada{% endif %}</span>
+                        <span class="gm-circle gm-circle--blue"><i class="fas fa-book-open"></i></span>
+                        <span class="mission-chip-mj">{{ lp_mission.chip_label|default('Jornada') }}</span>
                     </div>
-                    <h5 class="gm-card__title">{% if preview_curso_nome %}{{ preview_curso_nome }}{% else %}Suas trilhas{% endif %}</h5>
+                    <h5 class="gm-card__title">{{ lp_mission.curso_nome|default('Língua Portuguesa') }}</h5>
                     <p class="gm-card__text mb-3">
-                        {% if preview_trilha %}
-                        {{ preview_trilha.nome }} · {{ preview_atividades_total }} atividade{% if preview_atividades_total != 1 %}s{% endif %}
+                        {% if lp_mission.trilha_nome %}
+                        {{ lp_mission.trilha_nome }} · {{ lp_mission.total }} atividade{% if lp_mission.total != 1 %}s{% endif %}
                         {% else %}
-                        Abra o mapa da jornada e suas atividades cadastradas.
+                        Abra o mapa da jornada de Português.
                         {% endif %}
                     </p>
                     <div class="d-flex justify-content-between small text-mj-muted mb-2">
-                        <span>Atividades na 1ª trilha</span>
-                        <strong>{{ preview_atividades_total }}</strong>
+                        <span>{{ lp_mission.progresso_label|default('Concluídas') }}</span>
+                        <strong>{{ lp_mission.concluidas|default(0) }}/{{ lp_mission.total|default(0) }}</strong>
                     </div>
-                    {% set preview_width = 35 if preview_atividades_total else 0 %}
                     <div class="gm-progress mb-4">
-                        <span class="gm-progress__fill" data-progress-width="{{ preview_width }}"></span>
+                        <span class="gm-progress__fill" data-progress-width="{{ lp_mission.pct|default(0) }}"></span>
                     </div>
-                    <a href="/aluno/portugues" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Ver jornada</a>
+                    <a href="/aluno/portugues" class="btn gm-btn gm-btn--blue w-100 text-center text-decoration-none">Ver jornada</a>
                 </article>
             </div>
 
@@ -90,40 +88,103 @@
                 <article class="gm-card h-100 hover-lift border-bottom border-mj-green border-3">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <span class="gm-circle gm-circle--green"><i class="fas fa-calculator"></i></span>
-                        <span class="mission-chip-mj">Trilha 1</span>
+                        <span class="mission-chip-mj">{{ mat_mission.chip_label|default('Jornada') }}</span>
                     </div>
-                    <h5 class="gm-card__title">Matemática</h5>
-                    <p class="gm-card__text mb-3">Missão 1: Desafio dos Números</p>
+                    <h5 class="gm-card__title">{{ mat_mission.curso_nome|default('Matemática') }}</h5>
+                    <p class="gm-card__text mb-3">
+                        {% if mat_mission.trilha_nome %}
+                        {{ mat_mission.trilha_nome }} · {{ mat_mission.total }} atividade{% if mat_mission.total != 1 %}s{% endif %}
+                        {% else %}
+                        Abra o mapa da jornada de Matemática.
+                        {% endif %}
+                    </p>
                     <div class="d-flex justify-content-between small text-mj-muted mb-2">
-                        <span>Progresso da Fase</span>
-                        <strong>0/60 pts</strong>
+                        <span>{{ mat_mission.progresso_label|default('Concluídas') }}</span>
+                        <strong>{{ mat_mission.concluidas|default(0) }}/{{ mat_mission.total|default(0) }}</strong>
                     </div>
                     <div class="gm-progress mb-4">
-                        <span class="gm-progress__fill" style="width: 0%"></span>
+                        <span class="gm-progress__fill" data-progress-width="{{ mat_mission.pct|default(0) }}"></span>
                     </div>
-                    <a href="/aluno/matematica" class="btn gm-btn gm-btn--green w-100 text-center text-decoration-none">Iniciar Missão</a>
-                </article>
-            </div>
-            <div class="col-md-6">
-                <article class="gm-card h-100 hover-lift border-bottom border-danger border-3">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="gm-circle gm-circle--red"><i class="fas fa-chalkboard-teacher"></i></span>
-                        <span class="mission-chip-mj">Turma</span>
-                    </div>
-                    <h5 class="gm-card__title">Atividades da sua turma</h5>
-                    <p class="gm-card__text mb-3">Conteúdos enviados pelo seu professor para sua turma.</p>
-                    <div class="d-flex justify-content-between small text-mj-muted mb-2">
-                        <span>Concluídas</span>
-                        <strong>{{ atividades_turma_concluidas|default(0) }}/{{ atividades_turma_total|default(0) }}</strong>
-                    </div>
-                    {% set turma_pct = ((atividades_turma_concluidas / atividades_turma_total) * 100) if atividades_turma_total else 0 %}
-                    <div class="gm-progress mb-4">
-                        <span class="gm-progress__fill" data-progress-width="{{ turma_pct|round|int }}"></span>
-                    </div>
-                    <a href="/aluno/portugues#atividades-turma" class="btn gm-btn gm-btn--red w-100 text-center text-decoration-none">Abrir atividades da turma</a>
+                    <a href="/aluno/matematica" class="btn gm-btn gm-btn--green w-100 text-center text-decoration-none">Ver jornada</a>
                 </article>
             </div>
         </div>
+
+        {% if atividades_turma_total or missoes_extras_total %}
+        <div class="row g-4 mt-2" id="missoes-extras">
+            <div class="col-12">
+                <h2 class="gm-title mb-3"><i class="fas fa-star me-2 text-warning"></i> Missões Extras</h2>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <article class="gm-card h-100 hover-lift border-bottom border-danger border-3">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="gm-circle gm-circle--red"><i class="fas fa-chalkboard-teacher"></i></span>
+                                <span class="mission-chip-mj">Turma</span>
+                            </div>
+                            <h5 class="gm-card__title">Atividades da sua turma</h5>
+                            <p class="gm-card__text mb-3">Conteúdos do professor para todos da turma.</p>
+                            <div class="d-flex justify-content-between small text-mj-muted mb-2">
+                                <span>Concluídas</span>
+                                <strong>{{ atividades_turma_concluidas|default(0) }}/{{ atividades_turma_total|default(0) }}</strong>
+                            </div>
+                            {% set turma_pct = ((atividades_turma_concluidas / atividades_turma_total) * 100) if atividades_turma_total else 0 %}
+                            <div class="gm-progress mb-3">
+                                <span class="gm-progress__fill" data-progress-width="{{ turma_pct|round|int }}"></span>
+                            </div>
+                            {% if atividades_turma_itens|length %}
+                            <ul class="list-unstyled small mb-3 aluno-missao-atividade-list">
+                                {% for it in atividades_turma_itens[:6] %}
+                                <li class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom border-light">
+                                    <a href="/aluno/atividade-professor/{{ it.id }}" class="text-truncate text-decoration-none text-mj-dark">{{ it.titulo }}</a>
+                                    {% if it.concluida %}
+                                    <span class="badge bg-success flex-shrink-0">Concluída</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-muted border flex-shrink-0">Pendente</span>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                            <a href="/aluno/portugues#atividades-turma" class="btn gm-btn gm-btn--red w-100 text-center text-decoration-none">Ver todas na trilha</a>
+                        </article>
+                    </div>
+                    <div class="col-md-6">
+                        <article class="gm-card h-100 hover-lift border-bottom border-3" style="border-color: var(--mj-orange, #FF9800) !important;">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="gm-circle gm-circle--orange"><i class="fas fa-bullseye"></i></span>
+                                <span class="mission-chip-mj">Somente você</span>
+                            </div>
+                            <h5 class="gm-card__title">Direcionadas a você</h5>
+                            <p class="gm-card__text mb-3">Missões que o professor enviou para o seu perfil.</p>
+                            <div class="d-flex justify-content-between small text-mj-muted mb-2">
+                                <span>Concluídas</span>
+                                <strong>{{ missoes_extras_concluidas|default(0) }}/{{ missoes_extras_total|default(0) }}</strong>
+                            </div>
+                            {% set extra_pct = ((missoes_extras_concluidas / missoes_extras_total) * 100) if missoes_extras_total else 0 %}
+                            <div class="gm-progress mb-3">
+                                <span class="gm-progress__fill" data-progress-width="{{ extra_pct|round|int }}"></span>
+                            </div>
+                            {% if missoes_extras_itens|length %}
+                            <ul class="list-unstyled small mb-3 aluno-missao-atividade-list">
+                                {% for it in missoes_extras_itens[:6] %}
+                                <li class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom border-light">
+                                    <a href="/aluno/atividade-professor/{{ it.id }}" class="text-truncate text-decoration-none text-mj-dark">{{ it.titulo }}</a>
+                                    {% if it.concluida %}
+                                    <span class="badge bg-success flex-shrink-0">Concluída</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-muted border flex-shrink-0">Pendente</span>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                            <a href="/aluno/portugues#missoes-extras-trilha" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Ver todas na trilha</a>
+                        </article>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <div class="col-lg-4">
@@ -133,7 +194,7 @@
                     <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-mj-primary">
                         <i class="fa-solid fa-video fs-4"></i>
                     </div>
-                    <h6 class="fw-bold mb-0">Agenda de Aulas ao Vivo</h6>
+                    <h6 class="fw-bold mb-0">Agenda de Lives</h6>
                 </div>
                 {% if upcoming_live_classes %}
                 <div class="d-grid gap-3">
@@ -195,6 +256,8 @@
         </div>
     </div>
 </div>
+
+
 
 <div class="position-fixed bottom-0 end-0 m-4 z-3">
     <div class="position-relative d-inline-block">

@@ -9,6 +9,7 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.media_urls import h5p_content_root
 from app.repositories.gestao_repository import TrilhaRepository, TurmaRepository
 
 
@@ -67,7 +68,7 @@ def save_h5p_upload(
     else:
         materia, ano = _get_materia_ano_from_turma(db, turma_id)
 
-    base_dir = Path(settings.H5P_CONTENT_DIR).resolve()
+    base_dir = h5p_content_root()
     target_dir = base_dir / materia / ano / f"{_slugify(titulo)}-{uuid.uuid4().hex[:8]}"
     target_dir.mkdir(parents=True, exist_ok=True)
     pacote_path = target_dir / "upload.h5p"

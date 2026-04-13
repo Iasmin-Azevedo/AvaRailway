@@ -8,9 +8,7 @@
 {% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/aluno">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/aluno/portugues">Trilhas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/aluno/configuracoes">Configurações</a>
+{% include "aluno/partials/aluno_menu_default.html" %}
 {% endblock %}
 {% block offcanvas_extra %}
 {% include "aluno/partials/aluno_offcanvas_info.html" %}
@@ -36,10 +34,12 @@
 {% endif %}
 <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <h2 class="fw-bold text-mj-dark mb-1"><i class="fas fa-route me-2 text-mj-primary"></i> Jornada de {{ materia_nome|default('Língua Portuguesa') }}</h2>
+        <h2 class="fw-bold text-mj-dark mb-1"><i class="fas fa-route me-2 text-mj-primary"></i> Jornada de {{
+            materia_nome|default('Língua Portuguesa') }}</h2>
         <p class="text-mj-muted small mb-0">Use o mapa ao lado para saltar entre trilhas e atividades.</p>
     </div>
-    <a href="/aluno" class="text-mj-primary text-decoration-none small fw-bold"><i class="fas fa-arrow-left me-1"></i> Início</a>
+    <a href="/aluno" class="text-mj-primary text-decoration-none small fw-bold"><i class="fas fa-arrow-left me-1"></i>
+        Início</a>
 </div>
 
 {% if trilhas %}
@@ -50,7 +50,8 @@
 <div class="accordion d-lg-none mb-3 border-0 shadow-sm rounded-4 overflow-hidden" id="jornadaAccordionMobile">
     <div class="accordion-item border-0">
         <h2 class="accordion-header">
-            <button class="accordion-button collapsed fw-bold text-mj-dark bg-mj-light" type="button" data-bs-toggle="collapse" data-bs-target="#jornadaMobileSumario" aria-expanded="false">
+            <button class="accordion-button collapsed fw-bold text-mj-dark bg-mj-light" type="button"
+                data-bs-toggle="collapse" data-bs-target="#jornadaMobileSumario" aria-expanded="false">
                 <i class="fas fa-map me-2 text-mj-primary"></i> Mapa da jornada
             </button>
         </h2>
@@ -59,10 +60,12 @@
                 <a href="#jornada-objetivo" class="jornada-nav-link d-block py-2 small">Objetivo</a>
                 {% for t in trilhas %}
                 <div class="jornada-nav-trilha">
-                    <a href="#jornada-t-{{ t.id }}" class="jornada-nav-link d-block py-2 small fw-bold">{{ loop.index }}. {{ t.nome }}</a>
+                    <a href="#jornada-t-{{ t.id }}" class="jornada-nav-link d-block py-2 small fw-bold">{{ loop.index
+                        }}. {{ t.nome }}</a>
                     <ul class="list-unstyled ps-3 mb-2 small">
                         {% for a in atividades_por_trilha.get(t.id, []) %}
-                        <li><a href="#atividade-{{ t.id }}-{{ a.id }}" class="jornada-nav-sublink text-mj-muted text-decoration-none">{{ a.titulo }}</a></li>
+                        <li><a href="#atividade-{{ t.id }}-{{ a.id }}"
+                                class="jornada-nav-sublink text-mj-muted text-decoration-none">{{ a.titulo }}</a></li>
                         {% else %}
                         <li class="text-mj-muted">Sem atividades</li>
                         {% endfor %}
@@ -86,11 +89,13 @@
                     {% for t in trilhas %}
                     <div class="jornada-nav-trilha position-relative ps-3">
                         <span class="jornada-timeline-line"></span>
-                        <a href="#jornada-t-{{ t.id }}" class="jornada-nav-link d-block py-2 small fw-bold">{{ loop.index }}. {{ t.nome }}</a>
+                        <a href="#jornada-t-{{ t.id }}" class="jornada-nav-link d-block py-2 small fw-bold">{{
+                            loop.index }}. {{ t.nome }}</a>
                         <ul class="list-unstyled ps-2 mb-3 small">
                             {% for a in atividades_por_trilha.get(t.id, []) %}
                             <li class="mb-1">
-                                <a href="#atividade-{{ t.id }}-{{ a.id }}" class="jornada-nav-sublink text-mj-muted text-decoration-none">{{ a.titulo }}</a>
+                                <a href="#atividade-{{ t.id }}-{{ a.id }}"
+                                    class="jornada-nav-sublink text-mj-muted text-decoration-none">{{ a.titulo }}</a>
                             </li>
                             {% endfor %}
                         </ul>
@@ -105,7 +110,7 @@
         <article class="gm-card hover-lift border-bottom border-mj-primary border-1 mb-4" id="jornada-top">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
                 <div class="d-flex gap-3 align-items-start">
-                    <span class="gm-circle gm-circle--orange flex-shrink-0"><i class="fas fa-book-open"></i></span>
+                    <span class="gm-circle gm-circle--blue flex-shrink-0"><i class="fas fa-book-open"></i></span>
                     <div>
                         <h3 class="gm-card__title mb-1">{{ hero_curso }}</h3>
                         <p class="gm-card__text mb-0 small">
@@ -117,7 +122,8 @@
                         </p>
                     </div>
                 </div>
-                <a href="#jornada-t-{{ primeira_trilha.id }}" class="btn gm-btn gm-btn--orange text-decoration-none text-center px-4 flex-shrink-0">
+                <a href="#jornada-t-{{ primeira_trilha.id }}"
+                    class="btn gm-btn gm-btn--blue text-decoration-none text-center px-4 flex-shrink-0">
                     Começar jornada
                 </a>
             </div>
@@ -126,25 +132,28 @@
         <article class="card dash-card border-0 mb-4" id="jornada-objetivo">
             <div class="card-body p-4">
                 <div class="d-flex align-items-start gap-3">
-                    <span class="rounded-3 bg-mj-light text-mj-primary d-inline-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width:2.5rem;height:2.5rem;"><i class="fas fa-bullseye"></i></span>
+                    <span
+                        class="rounded-3 bg-mj-light text-mj-primary d-inline-flex align-items-center justify-content-center flex-shrink-0 shadow-sm"
+                        style="width:2.5rem;height:2.5rem;"><i class="fas fa-bullseye"></i></span>
                     <div>
                         <h4 class="h6 fw-bold text-mj-dark mb-2">Seu objetivo</h4>
                         <p class="text-mj-muted small mb-0">
-                            Avançar pelas trilhas, completar as atividades interativas (H5P) e consolidar habilidades alinhadas ao SAEB.
-                            A partir da <strong>segunda trilha</strong>, o conteúdo permanece bloqueado até liberarmos as próximas etapas.
+                            Avançar pelas trilhas, completar as atividades interativas (H5P) e consolidar habilidades
+                            alinhadas ao SAEB.
+                            A partir da <strong>segunda trilha</strong>, o conteúdo permanece bloqueado até liberarmos
+                            as próximas etapas.
                         </p>
                     </div>
                 </div>
                 <div class="mt-4 pt-2 border-top">
                     <div class="d-flex justify-content-between small fw-bold mb-2">
                         <span>Progresso geral da matéria</span>
-                        <span>{{ progresso_geral.concluidas|default(0) }} / {{ progresso_geral.total|default(0) }} atividades</span>
+                        <span>{{ progresso_geral.concluidas|default(0) }} / {{ progresso_geral.total|default(0) }}
+                            atividades</span>
                     </div>
                     <div class="progress" style="height: 10px; background-color: rgba(50, 111, 136, 0.12);">
-                        <div
-                            class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
-                            data-progress-width="{{ progresso_geral.pct|default(0) }}"
-                        ></div>
+                        <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
+                            data-progress-width="{{ progresso_geral.pct|default(0) }}"></div>
                     </div>
                 </div>
             </div>
@@ -153,8 +162,10 @@
         {% if atividades_professor_turma %}
         <article class="card dash-card border-0 mb-4" id="atividades-turma">
             <div class="card-body p-4">
-                <h4 class="h6 fw-bold text-mj-dark mb-3"><i class="fas fa-chalkboard-teacher me-2 text-mj-primary"></i>Atividades da sua turma</h4>
-                <p class="small text-mj-muted mb-3">As atividades cadastradas pelo seu professor aparecem nesta seção.</p>
+                <h4 class="h6 fw-bold text-mj-dark mb-3"><i
+                        class="fas fa-chalkboard-teacher me-2 text-mj-primary"></i>Atividades da sua turma</h4>
+                <p class="small text-mj-muted mb-3">As atividades cadastradas pelo seu professor aparecem nesta seção.
+                </p>
                 <div class="row g-3">
                     {% for ap in atividades_professor_turma %}
                     <div class="col-12 col-md-6">
@@ -168,7 +179,38 @@
                                 <span class="badge bg-success">Concluída</span>
                                 {% endif %}
                             </div>
-                            <a href="/aluno/atividade-professor/{{ ap.id }}" class="btn btn-sm btn-mj mt-3 rounded-pill">Abrir atividade</a>
+                            <a href="/aluno/atividade-professor/{{ ap.id }}"
+                                class="btn btn-sm btn-mj mt-3 rounded-pill">Abrir atividade</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+        {% endif %}
+
+        {% if atividades_professor_extras %}
+        <article class="card dash-card border-0 mb-4" id="missoes-extras-trilha"
+            style="border-left: 4px solid var(--mj-blue, #FF9800) !important;">
+            <div class="card-body p-4">
+                <h4 class="h6 fw-bold text-mj-dark mb-3"><i class="fas fa-bullseye me-2 text-warning"></i>Missões extras
+                    (somente você)</h4>
+                <p class="small text-mj-muted mb-3">Atividades que o professor direcionou para o seu perfil.</p>
+                <div class="row g-3">
+                    {% for ap in atividades_professor_extras %}
+                    <div class="col-12 col-md-6">
+                        <div class="border rounded-4 p-3 h-100 border-warning border-opacity-50">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div class="fw-bold text-mj-dark">{{ ap.titulo }}</div>
+                                    <div class="small text-mj-muted">{{ h5p_tipo.label(ap.tipo) }}</div>
+                                </div>
+                                {% if ap.id in atividades_professor_concluidas %}
+                                <span class="badge bg-success">Concluída</span>
+                                {% endif %}
+                            </div>
+                            <a href="/aluno/atividade-professor/{{ ap.id }}"
+                                class="btn btn-sm btn-warning text-dark mt-3 rounded-pill fw-bold">Abrir atividade</a>
                         </div>
                     </div>
                     {% endfor %}
@@ -183,16 +225,19 @@
         {% set acts = atividades_por_trilha.get(t.id, []) %}
         {% set curso_nome = t.curso.nome if t.curso else 'Trilha' %}
 
-        <article id="jornada-t-{{ t.id }}" class="jornada-trilha-card gm-card hover-lift border-bottom {% if bloqueada %}border-secondary border-1 jornada-trilha-card--locked{% else %}border-mj-primary border-1{% endif %} mb-4 scroll-margin-top">
+        <article id="jornada-t-{{ t.id }}"
+            class="jornada-trilha-card gm-card hover-lift border-bottom {% if bloqueada %}border-secondary border-1 jornada-trilha-card--locked{% else %}border-mj-primary border-1{% endif %} mb-4 scroll-margin-top">
             <div class="p-4">
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
                     <div>
                         <span class="mission-chip-mj mb-2 d-inline-block">Trilha {{ loop.index }}</span>
                         <h4 class="gm-card__title mb-1">{{ t.nome }}</h4>
-                        <p class="gm-card__text small mb-0">{{ curso_nome }}{% if t.ano_escolar %} · {{ t.ano_escolar }}º ano{% endif %}</p>
+                        <p class="gm-card__text small mb-0">{{ curso_nome }}{% if t.ano_escolar %} · {{ t.ano_escolar
+                            }}º ano{% endif %}</p>
                     </div>
                     {% if bloqueada %}
-                    <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill px-3 py-2"><i class="fas fa-lock me-1"></i> Bloqueada</span>
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary rounded-pill px-3 py-2"><i
+                            class="fas fa-lock me-1"></i> Bloqueada</span>
                     {% endif %}
                 </div>
 
@@ -203,7 +248,9 @@
                         {% if descs %}
                         <div class="d-flex flex-wrap gap-2 mb-3">
                             {% for d in descs %}
-                            <span class="badge bg-mj-light text-mj-primary border border-mj-primary border-opacity-25 rounded-pill px-2 py-1">{{ d.codigo }}</span>
+                            <span
+                                class="badge bg-mj-light text-mj-primary border border-mj-primary border-opacity-25 rounded-pill px-2 py-1">{{
+                                d.codigo }}</span>
                             {% endfor %}
                         </div>
                         <ul class="small text-mj-muted ps-3 mb-0">
@@ -212,7 +259,8 @@
                             {% endfor %}
                         </ul>
                         {% else %}
-                        <p class="small text-mj-muted mb-0">Os descritores aparecem aqui quando as atividades estiverem vinculadas a códigos SAEB no cadastro.</p>
+                        <p class="small text-mj-muted mb-0">Os descritores aparecem aqui quando as atividades estiverem
+                            vinculadas a códigos SAEB no cadastro.</p>
                         {% endif %}
                     </div>
 
@@ -221,16 +269,19 @@
                         {% if acts %}
                         <ul class="list-unstyled mb-0 jornada-atividades-list">
                             {% for a in acts %}
-                            <li id="atividade-{{ t.id }}-{{ a.id }}" class="card p-3 mb-3 border-0 shadow-sm rounded-4 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-3 transition-hover scroll-margin-top">
-                                
-                                <div class="jornada-atividade-icon--{{ h5p_tipo.css(a.tipo) }} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
-                                     style="width: 50px; height: 50px;">
+                            <li id="atividade-{{ t.id }}-{{ a.id }}"
+                                class="card p-3 mb-3 border-0 shadow-sm rounded-4 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-3 transition-hover scroll-margin-top">
+
+                                <div class="jornada-atividade-icon--{{ h5p_tipo.css(a.tipo) }} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                    style="width: 50px; height: 50px;">
                                     <i class="fas {{ h5p_tipo.icon(a.tipo) }} fs-5"></i>
                                 </div>
-                        
+
                                 <div class="flex-grow-1 min-w-0 text-break">
                                     <div class="mb-1">
-                                        <span class="badge rounded-pill fw-medium px-2 py-1 small jornada-atividade-tipo-badge--{{ h5p_tipo.css(a.tipo) }}" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        <span
+                                            class="badge rounded-pill fw-medium px-2 py-1 small jornada-atividade-tipo-badge--{{ h5p_tipo.css(a.tipo) }}"
+                                            style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">
                                             {{ h5p_tipo.label(a.tipo) }}
                                         </span>
                                     </div>
@@ -238,23 +289,26 @@
                                         {{ a.titulo }}
                                     </h6>
                                 </div>
-                        
+
                                 <div class="ms-sm-auto flex-shrink-0 d-flex justify-content-sm-end">
                                     {% if bloqueada %}
-                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-muted shadow-sm" style="width: 40px; height: 40px;" data-bs-toggle="tooltip" title="Disponível após liberar esta trilha">
-                                            <i class="fas fa-lock"></i>
-                                        </div>
+                                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-muted shadow-sm"
+                                        style="width: 40px; height: 40px;" data-bs-toggle="tooltip"
+                                        title="Disponível após liberar esta trilha">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
                                     {% elif a.id in atividades_concluidas %}
-                                        <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-2">
-                                            <i class="fas fa-check-circle me-1"></i> Concluída
-                                        </span>
+                                    <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-2">
+                                        <i class="fas fa-check-circle me-1"></i> Concluída
+                                    </span>
                                     {% else %}
-                                        <a href="/aluno/atividade/{{ a.id }}" class="btn btn-mj px-4 rounded-pill fw-bold shadow-sm">
-                                            Iniciar
-                                        </a>
+                                    <a href="/aluno/atividade/{{ a.id }}"
+                                        class="btn btn-mj px-4 rounded-pill fw-bold shadow-sm">
+                                        Iniciar
+                                    </a>
                                     {% endif %}
                                 </div>
-                        
+
                             </li>
                             {% endfor %}
                         </ul>
@@ -279,10 +333,10 @@
 </div>
 {% endif %}
 <script>
-document.querySelectorAll('[data-progress-width]').forEach(function(el) {
-    var raw = Number(el.getAttribute('data-progress-width') || 0);
-    var clamped = Math.max(0, Math.min(100, raw));
-    el.style.width = clamped + '%';
-});
+    document.querySelectorAll('[data-progress-width]').forEach(function (el) {
+        var raw = Number(el.getAttribute('data-progress-width') || 0);
+        var clamped = Math.max(0, Math.min(100, raw));
+        el.style.width = clamped + '%';
+    });
 </script>
 {% endblock %}

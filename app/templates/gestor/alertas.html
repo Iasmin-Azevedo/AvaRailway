@@ -1,12 +1,12 @@
 {% extends "base_dashboard.html" %}
 {% block page_title %}Alertas{% endblock %}
 {% block brand_link %}/gestor{% endblock %}
-{% block menu_title %}Gestor{% endblock %}
+{% block menu_title %}Menu do Gestor{% endblock %}
+{% block header_right %}
+{% include "gestor/partials/gestor_header_right.html" %}
+{% endblock %}
 {% block offcanvas_links %}
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/gestor">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/proficiencia">Proficiência</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/alertas">Alertas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/gestor/relatorios">Relatórios</a>
+{% include "gestor/partials/gestor_menu_links.html" %}
 {% endblock %}
 {% block main_content %}
 <div class="mb-3"><a href="/gestor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Painel</a></div>

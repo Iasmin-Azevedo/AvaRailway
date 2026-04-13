@@ -11,11 +11,16 @@ from app.core.dependencies import get_current_user, get_current_user_optional
 from app.models.user import Usuario
 from app.models.aluno import Aluno, PontuacaoGamificacao
 from app.models.h5p import AtividadeH5P
-from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
+from app.models.professor_h5p import (
+    ProfessorAtividadeH5P,
+    ProfessorAtividadeH5PAluno,
+    ProfessorProgressoH5P,
+)
 from app.repositories.h5p_repository import AtividadeH5PRepository, ProgressoH5PRepository
 from app.repositories.gestao_repository import TrilhaRepository
 from app.schemas.h5p_schema import AtividadeH5PResponse, ProgressoH5PResponse
 from app.core.config import settings
+from app.core.media_urls import h5p_content_root
 from jose import jwt, JWTError
 from app.core.gamification_rules import calculate_xp_gain, get_level_progress
 
@@ -164,7 +169,7 @@ def servir_conteudo_h5p(
     if not path:
         raise HTTPException(404, "Arquivo de conteúdo não configurado")
     if not os.path.isabs(path):
-        path = os.path.join(settings.H5P_CONTENT_DIR, path)
+        path = os.path.join(str(h5p_content_root()), path)
     if os.path.isdir(path):
         path = os.path.join(path, "content", "content.json")
     if not os.path.isfile(path):
@@ -276,6 +281,20 @@ async def concluir_atividade_professor(
         raise HTTPException(404, "Atividade não encontrada")
     if not aluno.turma_id or atividade.turma_id != aluno.turma_id:
         raise HTTPException(403, "Atividade não pertence à sua turma")
+    n_alvo = (
+        db.query(ProfessorAtividadeH5PAluno)
+        .filter(ProfessorAtividadeH5PAluno.atividade_id == atividade.id)
+        .count()
+    )
+    if n_alvo > 0 and not (
+        db.query(ProfessorAtividadeH5PAluno)
+        .filter(
+            ProfessorAtividadeH5PAluno.atividade_id == atividade.id,
+            ProfessorAtividadeH5PAluno.aluno_id == aluno.id,
+        )
+        .first()
+    ):
+        raise HTTPException(403, "Atividade não está direcionada a você")
 
     score = None
     try:

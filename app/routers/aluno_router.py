@@ -9,8 +9,10 @@ from typing import Optional
 from datetime import datetime, timedelta, timezone
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.media_urls import h5p_content_root, h5p_public_url
 from app.core.security import criar_token_acesso, criar_refresh_token
-from app.models.user import UserRole
+from app.core.dependencies import require_role_redirect
+from app.models.user import UserRole, Usuario
 from app.schemas.user_schema import UserCreate, UserResponse
 from app.repositories.user_repository import UserRepository
 from app.repositories.aluno_repository import AlunoRepository
@@ -41,7 +43,7 @@ def _get_aluno_nome(request: Request, db: Session) -> str:
 
 def _get_aluno_id_from_request(request: Request, db: Session) -> Optional[int]:
     from app.models.aluno import Aluno
-    token = request.cookies.get("access_token")
+    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
     if not token:
         return None
     try:
@@ -56,6 +58,125 @@ def _get_aluno_id_from_request(request: Request, db: Session) -> Optional[int]:
         return aluno.id if aluno else None
     except JWTError:
         return None
+
+
+def _smart_trilha_mission_info(
+    db: Session,
+    aluno_id: Optional[int],
+    aluno_ano: Optional[int],
+    curso_ilike: str,
+) -> dict:
+    """
+    Até 4 trilhas do curso: na 1ª–3ª trilha em andamento mostra só essa trilha;
+    na 4ª trilha ativa agrega progresso das quatro.
+    """
+    from app.models.gestao import Curso
+    from app.models.h5p import ProgressoH5P
+    from app.repositories.gestao_repository import TrilhaRepository
+    from app.repositories.h5p_repository import AtividadeH5PRepository
+
+    out = {
+        "pct": 0,
+        "total": 0,
+        "concluidas": 0,
+        "trilha_nome": "",
+        "curso_nome": "",
+        "chip_label": "Jornada",
+        "progresso_label": "Concluídas",
+    }
+    curso = db.query(Curso).filter(Curso.nome.ilike(curso_ilike)).first()
+    if not curso:
+        return out
+    out["curso_nome"] = curso.nome or ""
+    trilhas_all = TrilhaRepository().listar(db, curso_id=curso.id, ano_escolar=aluno_ano)
+    if not trilhas_all:
+        return out
+    trilhas = trilhas_all[:4]
+    per: list[dict] = []
+    for t in trilhas:
+        acts = AtividadeH5PRepository().listar(db, trilha_id=t.id, ativo_only=True)
+        ids = {a.id for a in acts}
+        total = len(ids)
+        concl = 0
+        if aluno_id and ids:
+            concl = (
+                db.query(ProgressoH5P)
+                .filter(
+                    ProgressoH5P.aluno_id == aluno_id,
+                    ProgressoH5P.concluido,
+                    ProgressoH5P.atividade_id.in_(ids),
+                )
+                .count()
+            )
+        per.append({"trilha": t, "total": total, "concluidas": concl})
+
+    n = len(per)
+    active_i = 0
+    for i, p in enumerate(per):
+        active_i = i
+        if p["total"] == 0:
+            continue
+        if p["concluidas"] < p["total"]:
+            break
+    else:
+        active_i = n - 1
+
+    agregar_todas = n >= 4 and active_i == 3
+    if agregar_todas:
+        total = sum(p["total"] for p in per)
+        concluidas = sum(min(p["concluidas"], p["total"]) for p in per)
+        out["trilha_nome"] = "Consolidado nas 4 trilhas"
+        out["chip_label"] = "4 trilhas"
+        out["progresso_label"] = "Concluídas (todas as trilhas)"
+    else:
+        p = per[active_i]
+        total = p["total"]
+        concluidas = p["concluidas"]
+        out["trilha_nome"] = (p["trilha"].nome or "").strip() or f"Trilha {active_i + 1}"
+        out["chip_label"] = f"Trilha {active_i + 1} de {n}" if n else "Trilha"
+        out["progresso_label"] = "Concluídas nesta trilha"
+
+    out["total"] = total
+    out["concluidas"] = concluidas
+    out["pct"] = int((concluidas / total) * 100) if total else 0
+    return out
+
+
+def _aluno_identity_bundle(request: Request, db: Session) -> dict:
+    from app.models.aluno import Aluno
+
+    nome = "Aluno"
+    aluno_id: Optional[int] = None
+    aluno_ano: Optional[int] = None
+    aluno_turma_id: Optional[int] = None
+    aluno_avatar_url = ""
+    current_user = None
+    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
+    if token:
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            email = payload.get("sub")
+            if email:
+                user = user_repo.get_by_email(db, email)
+                if user:
+                    current_user = user
+                    nome = (user.nome or nome).strip() or nome
+                    aluno_avatar_url = (getattr(user, "avatar_url", None) or "").strip()
+                    aluno = db.query(Aluno).filter(Aluno.usuario_id == user.id).first()
+                    if aluno:
+                        aluno_id = aluno.id
+                        aluno_ano = aluno.ano_escolar
+                        aluno_turma_id = aluno.turma_id
+        except JWTError:
+            pass
+    return {
+        "aluno_nome": nome,
+        "aluno_id": aluno_id,
+        "aluno_ano": aluno_ano,
+        "aluno_turma_id": aluno_turma_id,
+        "aluno_avatar_url": aluno_avatar_url,
+        "current_user": current_user,
+    }
 
 
 def _as_int(value) -> Optional[int]:
@@ -120,34 +241,37 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
     from app.models.aluno import Aluno
     from app.services.dashboard_service import DashboardService
     from app.services.live_support_service import LiveSupportService
-    aluno_nome = _get_aluno_nome(request, db)
-    aluno_id = None
-    aluno_ano = None
-    current_user = None
-    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
-    if token:
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-            email = payload.get("sub")
-            if email:
-                user = user_repo.get_by_email(db, email)
-                if user:
-                    current_user = user
-                    aluno = db.query(Aluno).filter(Aluno.usuario_id == user.id).first()
-                    if aluno:
-                        aluno_id = aluno.id
-                        aluno_ano = aluno.ano_escolar
-        except JWTError:
-            pass
+
+    ident = _aluno_identity_bundle(request, db)
+    aluno_nome = ident["aluno_nome"]
+    aluno_id = ident["aluno_id"]
+    aluno_ano = ident["aluno_ano"]
+    aluno_avatar_url = ident["aluno_avatar_url"]
+    current_user = ident["current_user"]
     stats = DashboardService().get_aluno_stats(db, aluno_id) if aluno_id else {}
 
     preview_trilha = None
     preview_curso_nome = None
     preview_atividades_total = 0
+    lp_mission = {
+        "pct": 0,
+        "total": 0,
+        "concluidas": 0,
+        "trilha_nome": "",
+        "curso_nome": "",
+        "chip_label": "Jornada",
+        "progresso_label": "Concluídas",
+    }
+    mat_mission = dict(lp_mission)
     from app.repositories.gestao_repository import TrilhaRepository
     from app.repositories.h5p_repository import AtividadeH5PRepository
+
     atividades_turma_total = 0
     atividades_turma_concluidas = 0
+    missoes_extras_total = 0
+    missoes_extras_concluidas = 0
+    atividades_turma_itens: list[dict] = []
+    missoes_extras_itens: list[dict] = []
 
     trilhas_prev = TrilhaRepository().listar(db)
     if trilhas_prev:
@@ -163,37 +287,90 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
             )
         )
 
+    if aluno_id:
+        lp_mission = _smart_trilha_mission_info(db, aluno_id, aluno_ano, "%portug%")
+        mat_mission = _smart_trilha_mission_info(db, aluno_id, aluno_ano, "%matem%")
+
     upcoming_live_classes = []
     if current_user:
         upcoming_live_classes = LiveSupportService(db).list_live_classes_for_student(current_user)
     if aluno_id:
-        from app.models.aluno import Aluno
         from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
+        from app.models.professor_h5p import ProfessorAtividadeH5PAluno
 
         aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
         if aluno and aluno.turma_id:
-            atividades_turma_total = (
+            prof_done_rows = (
+                db.query(ProfessorProgressoH5P.atividade_id)
+                .filter(
+                    ProfessorProgressoH5P.aluno_id == aluno_id,
+                    ProfessorProgressoH5P.concluido,
+                )
+                .all()
+            )
+            prof_done_ids = {r[0] for r in prof_done_rows}
+
+            acts_turma = (
                 db.query(ProfessorAtividadeH5P)
                 .filter(
                     ProfessorAtividadeH5P.turma_id == aluno.turma_id,
                     ProfessorAtividadeH5P.ativo,
                 )
-                .count()
+                .order_by(ProfessorAtividadeH5P.created_at.desc())
+                .all()
             )
-            atividades_turma_concluidas = (
-                db.query(ProfessorProgressoH5P)
-                .join(
-                    ProfessorAtividadeH5P,
-                    ProfessorAtividadeH5P.id == ProfessorProgressoH5P.atividade_id,
+            ids_sem_alvo: list[int] = []
+            ids_com_alvo_para_mim: list[int] = []
+            for act in acts_turma:
+                n_alvo = (
+                    db.query(ProfessorAtividadeH5PAluno)
+                    .filter(ProfessorAtividadeH5PAluno.atividade_id == act.id)
+                    .count()
                 )
-                .filter(
-                    ProfessorProgressoH5P.aluno_id == aluno_id,
-                    ProfessorProgressoH5P.concluido,
-                    ProfessorAtividadeH5P.turma_id == aluno.turma_id,
-                    ProfessorAtividadeH5P.ativo,
+                item = {
+                    "id": act.id,
+                    "titulo": act.titulo or f"Atividade #{act.id}",
+                    "tipo": act.tipo or "outro",
+                    "concluida": act.id in prof_done_ids,
+                }
+                if n_alvo == 0:
+                    ids_sem_alvo.append(act.id)
+                    atividades_turma_itens.append(item)
+                elif (
+                    db.query(ProfessorAtividadeH5PAluno)
+                    .filter(
+                        ProfessorAtividadeH5PAluno.atividade_id == act.id,
+                        ProfessorAtividadeH5PAluno.aluno_id == aluno_id,
+                    )
+                    .first()
+                ):
+                    ids_com_alvo_para_mim.append(act.id)
+                    missoes_extras_itens.append(item)
+
+            atividades_turma_total = len(ids_sem_alvo)
+            missoes_extras_total = len(ids_com_alvo_para_mim)
+            if ids_sem_alvo:
+                atividades_turma_concluidas = (
+                    db.query(ProfessorProgressoH5P)
+                    .filter(
+                        ProfessorProgressoH5P.aluno_id == aluno_id,
+                        ProfessorProgressoH5P.concluido,
+                        ProfessorProgressoH5P.atividade_id.in_(ids_sem_alvo),
+                    )
+                    .count()
                 )
-                .count()
-            )
+            if ids_com_alvo_para_mim:
+                missoes_extras_concluidas = (
+                    db.query(ProfessorProgressoH5P)
+                    .filter(
+                        ProfessorProgressoH5P.aluno_id == aluno_id,
+                        ProfessorProgressoH5P.concluido,
+                        ProfessorProgressoH5P.atividade_id.in_(
+                            ids_com_alvo_para_mim
+                        ),
+                    )
+                    .count()
+                )
 
     return templates.TemplateResponse(
         request,
@@ -201,13 +378,21 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
         {
             "aluno_nome": aluno_nome,
             "aluno_ano": aluno_ano,
+            "aluno_avatar_url": aluno_avatar_url,
+            "current_user": current_user,
             "stats": stats,
             "preview_trilha": preview_trilha,
             "preview_curso_nome": preview_curso_nome,
             "preview_atividades_total": preview_atividades_total,
+            "lp_mission": lp_mission,
+            "mat_mission": mat_mission,
             "upcoming_live_classes": upcoming_live_classes,
             "atividades_turma_total": atividades_turma_total,
             "atividades_turma_concluidas": atividades_turma_concluidas,
+            "missoes_extras_total": missoes_extras_total,
+            "missoes_extras_concluidas": missoes_extras_concluidas,
+            "atividades_turma_itens": atividades_turma_itens,
+            "missoes_extras_itens": missoes_extras_itens,
         },
     )
 
@@ -215,49 +400,51 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
 
 @page_router.get("/aluno/missao1")
 def aluno_missao_1(request: Request, db: Session = Depends(get_db)):
-    aluno_nome = _get_aluno_nome(request, db)
-    aluno_ano = None
-    token = request.cookies.get("access_token")
-    if token:
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-            email = payload.get("sub")
-            if email:
-                user = user_repo.get_by_email(db, email)
-                if user:
-                    from app.models.aluno import Aluno
-                    aluno = db.query(Aluno).filter(Aluno.usuario_id == user.id).first()
-                    if aluno:
-                        aluno_ano = aluno.ano_escolar
-        except JWTError:
-            pass
+    ident = _aluno_identity_bundle(request, db)
+    from app.services.dashboard_service import DashboardService
+
+    stats = (
+        DashboardService().get_aluno_stats(db, ident["aluno_id"])
+        if ident["aluno_id"]
+        else {}
+    )
     return templates.TemplateResponse(
         request,
         "aluno/missao1_desafios.html",
-        {"aluno_nome": aluno_nome, "aluno_ano": aluno_ano},
+        {
+            "aluno_nome": ident["aluno_nome"],
+            "aluno_ano": ident["aluno_ano"],
+            "aluno_avatar_url": ident["aluno_avatar_url"],
+            "stats": stats,
+        },
     )
 
 
 @page_router.get("/aluno/configuracoes")
-def aluno_configuracoes(request: Request, db: Session = Depends(get_db)):
+def aluno_configuracoes(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.ALUNO)),
+):
+    from app.models.aluno import Aluno
     from app.services.dashboard_service import DashboardService
 
-    aluno_nome = _get_aluno_nome(request, db)
-    aluno_id = _get_aluno_id_from_request(request, db)
-    aluno_ano = None
-    if aluno_id:
-        from app.models.aluno import Aluno
-
-        aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
-        aluno_ano = aluno.ano_escolar if aluno else None
+    aluno = db.query(Aluno).filter(Aluno.usuario_id == current_user.id).first()
+    aluno_id = aluno.id if aluno else None
+    aluno_ano = aluno.ano_escolar if aluno else None
     stats = DashboardService().get_aluno_stats(db, aluno_id) if aluno_id else {}
+    avatar_src = (getattr(current_user, "avatar_url", None) or "").strip()
+    ident = _aluno_identity_bundle(request, db)
     return templates.TemplateResponse(
         request,
         "aluno/configuracoes.html",
         {
-            "aluno_nome": aluno_nome,
+            "current_user": current_user,
+            "aluno_nome": (current_user.nome or "Aluno").strip(),
             "aluno_ano": aluno_ano,
+            "aluno_avatar_url": ident["aluno_avatar_url"],
             "stats": stats,
+            "avatar_src": avatar_src,
         },
     )
 
@@ -309,32 +496,15 @@ def _render_trilhas_por_materia(
     template_name: str,
 ):
     """Renderiza trilhas filtradas por matéria (português/matemática)."""
-    from app.models.aluno import Aluno
     from app.models.gestao import Curso
     from app.models.saeb import Descritor
     from app.repositories.gestao_repository import TrilhaRepository
     from app.repositories.h5p_repository import AtividadeH5PRepository
 
-    aluno_nome = _get_aluno_nome(request, db)
-    aluno_id = _get_aluno_id_from_request(request, db)
-    aluno_ano = None
-    aluno_turma_id = None
-    token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
-    if token:
-        try:
-            payload = jwt.decode(
-                token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-            )
-            email = payload.get("sub")
-            if email:
-                user = user_repo.get_by_email(db, email)
-                if user:
-                    aluno = db.query(Aluno).filter(Aluno.usuario_id == user.id).first()
-                    if aluno:
-                        aluno_ano = aluno.ano_escolar
-                        aluno_turma_id = aluno.turma_id
-        except JWTError:
-            pass
+    ident = _aluno_identity_bundle(request, db)
+    aluno_id = ident["aluno_id"]
+    aluno_ano = ident["aluno_ano"]
+    aluno_turma_id = ident["aluno_turma_id"]
 
     materia_map = {
         "portugues": ("Língua Portuguesa", "%portug%"),
@@ -397,11 +567,16 @@ def _render_trilhas_por_materia(
         atividades_concluidas = {r[0] for r in rows}
 
     atividades_professor_turma = []
-    atividades_professor_concluidas = set()
+    atividades_professor_extras = []
+    atividades_professor_concluidas: set[int] = set()
     if aluno_turma_id and aluno_id:
-        from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
+        from app.models.professor_h5p import (
+            ProfessorAtividadeH5P,
+            ProfessorAtividadeH5PAluno,
+            ProfessorProgressoH5P,
+        )
 
-        atividades_professor_turma = (
+        acts_prof = (
             db.query(ProfessorAtividadeH5P)
             .filter(
                 ProfessorAtividadeH5P.turma_id == aluno_turma_id,
@@ -410,6 +585,23 @@ def _render_trilhas_por_materia(
             .order_by(ProfessorAtividadeH5P.created_at.desc())
             .all()
         )
+        for ap in acts_prof:
+            n_alvo = (
+                db.query(ProfessorAtividadeH5PAluno)
+                .filter(ProfessorAtividadeH5PAluno.atividade_id == ap.id)
+                .count()
+            )
+            if n_alvo == 0:
+                atividades_professor_turma.append(ap)
+            elif (
+                db.query(ProfessorAtividadeH5PAluno)
+                .filter(
+                    ProfessorAtividadeH5PAluno.atividade_id == ap.id,
+                    ProfessorAtividadeH5PAluno.aluno_id == aluno_id,
+                )
+                .first()
+            ):
+                atividades_professor_extras.append(ap)
         concl_rows = (
             db.query(ProfessorProgressoH5P.atividade_id)
             .filter(
@@ -449,14 +641,17 @@ def _render_trilhas_por_materia(
     }
 
     from app.services.dashboard_service import DashboardService
+
     stats = DashboardService().get_aluno_stats(db, aluno_id) if aluno_id else {}
 
     return templates.TemplateResponse(
         request,
         template_name,
         {
-            "aluno_nome": aluno_nome,
+            "aluno_nome": ident["aluno_nome"],
             "aluno_ano": aluno_ano,
+            "aluno_avatar_url": ident["aluno_avatar_url"],
+            "current_user": ident["current_user"],
             "stats": stats,
             "materia_nome": materia_nome,
             "materia_slug": materia_slug,
@@ -469,6 +664,7 @@ def _render_trilhas_por_materia(
             "progresso_geral": progresso_geral,
             "trilhas_bloqueadas": trilhas_bloqueadas,
             "atividades_professor_turma": atividades_professor_turma,
+            "atividades_professor_extras": atividades_professor_extras,
             "atividades_professor_concluidas": atividades_professor_concluidas,
         },
     )
@@ -486,7 +682,7 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
     aluno_id = _get_aluno_id_from_request(request, db)
     if not aluno_id:
         # Tenta recuperar usuário autenticado e autocriar perfil de aluno se estiver faltando.
-        token = request.cookies.get("access_token")
+        token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
         if not token:
             return RedirectResponse(url="/login", status_code=302)
         try:
@@ -585,7 +781,7 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
     if atividade.path_ou_json:
         raw_path = atividade.path_ou_json.strip().replace("\\", "/").strip("/")
         path_obj = Path(raw_path)
-        h5p_base_dir = Path(settings.H5P_CONTENT_DIR).resolve()
+        h5p_base_dir = h5p_content_root()
 
         def _normalize_candidates(value: str) -> list[str]:
             v = (value or "").strip("/").replace("\\", "/")
@@ -618,7 +814,7 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
         if path_obj.suffix.lower() != ".json":
             rel = _pick_valid_h5p_dir(_normalize_candidates(raw_path))
             if rel:
-                content_base_url = f"/static/h5p/{rel}"
+                content_base_url = h5p_public_url(rel)
         else:
             # Compatibilidade com registros antigos: .../content/content.json
             parts = path_obj.parts
@@ -626,7 +822,7 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
                 base_parts = "/".join(parts[:-2])
                 rel = _pick_valid_h5p_dir(_normalize_candidates(base_parts))
                 if rel:
-                    content_base_url = f"/static/h5p/{rel}"
+                    content_base_url = h5p_public_url(rel)
 
         if not content_base_url:
             content_missing_reason = (
@@ -659,12 +855,14 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
     }
     template_path = tipo_para_template.get(atividade.tipo, "aluno/atividade_h5p_outro.html")
 
+    ident = _aluno_identity_bundle(request, db)
     return templates.TemplateResponse(
         request,
         template_path,
         {
-            "aluno_nome": aluno_nome,
+            "aluno_nome": ident["aluno_nome"],
             "aluno_ano": aluno_ano,
+            "aluno_avatar_url": ident["aluno_avatar_url"],
             "stats": stats,
             "atividade": atividade,
             "content_base_url": content_base_url,
@@ -673,6 +871,7 @@ def aluno_atividade(request: Request, id: int, db: Session = Depends(get_db)):
             "next_atividade_url": next_atividade_url,
             "completion_token": completion_token,
             "atividade_concluida": atividade_concluida,
+            "manual_completion_enabled": True,
         },
     )
 
@@ -736,11 +935,15 @@ async def aluno_atividade_post(id: int, request: Request, db: Session = Depends(
 @page_router.get("/aluno/atividade-professor/{id}")
 def aluno_atividade_professor(request: Request, id: int, db: Session = Depends(get_db)):
     from app.models.aluno import Aluno
-    from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
+    from app.models.professor_h5p import (
+        ProfessorAtividadeH5P,
+        ProfessorAtividadeH5PAluno,
+        ProfessorProgressoH5P,
+    )
     from app.services.dashboard_service import DashboardService
 
-    aluno_nome = _get_aluno_nome(request, db)
-    aluno_id = _get_aluno_id_from_request(request, db)
+    ident = _aluno_identity_bundle(request, db)
+    aluno_id = ident["aluno_id"]
     if not aluno_id:
         return RedirectResponse(url="/login", status_code=302)
     aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
@@ -749,6 +952,20 @@ def aluno_atividade_professor(request: Request, id: int, db: Session = Depends(g
 
     atividade = db.query(ProfessorAtividadeH5P).filter(ProfessorAtividadeH5P.id == id, ProfessorAtividadeH5P.ativo).first()
     if not atividade or not aluno.turma_id or atividade.turma_id != aluno.turma_id:
+        return RedirectResponse(url="/aluno/portugues?acesso_negado_ano=1", status_code=302)
+    n_alvo = (
+        db.query(ProfessorAtividadeH5PAluno)
+        .filter(ProfessorAtividadeH5PAluno.atividade_id == atividade.id)
+        .count()
+    )
+    if n_alvo > 0 and not (
+        db.query(ProfessorAtividadeH5PAluno)
+        .filter(
+            ProfessorAtividadeH5PAluno.atividade_id == atividade.id,
+            ProfessorAtividadeH5PAluno.aluno_id == aluno_id,
+        )
+        .first()
+    ):
         return RedirectResponse(url="/aluno/portugues?acesso_negado_ano=1", status_code=302)
 
     progresso = db.query(ProfessorProgressoH5P).filter(
@@ -761,12 +978,12 @@ def aluno_atividade_professor(request: Request, id: int, db: Session = Depends(g
     content_base_url = ""
     if atividade.path_ou_json:
         raw_path = atividade.path_ou_json.strip().replace("\\", "/").strip("/")
-        h5p_base_dir = Path(settings.H5P_CONTENT_DIR).resolve()
+        h5p_base_dir = h5p_content_root()
         full = (h5p_base_dir / raw_path).resolve()
         try:
             full.relative_to(h5p_base_dir)
             if full.is_dir() and (full / "h5p.json").is_file():
-                content_base_url = f"/static/h5p/{raw_path}"
+                content_base_url = h5p_public_url(raw_path)
         except ValueError:
             content_base_url = ""
 
@@ -774,8 +991,9 @@ def aluno_atividade_professor(request: Request, id: int, db: Session = Depends(g
         request,
         "aluno/atividade_h5p_professor.html",
         {
-            "aluno_nome": aluno_nome,
+            "aluno_nome": ident["aluno_nome"],
             "aluno_ano": aluno.ano_escolar,
+            "aluno_avatar_url": ident["aluno_avatar_url"],
             "stats": stats,
             "atividade": atividade,
             "content_base_url": content_base_url,
@@ -794,14 +1012,33 @@ def aluno_atividade_professor(request: Request, id: int, db: Session = Depends(g
 async def aluno_atividade_professor_post(id: int, request: Request, db: Session = Depends(get_db)):
     from app.core.gamification_rules import calculate_xp_gain, get_level_progress
     from app.models.aluno import Aluno, PontuacaoGamificacao
-    from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
+    from app.models.professor_h5p import (
+        ProfessorAtividadeH5P,
+        ProfessorAtividadeH5PAluno,
+        ProfessorProgressoH5P,
+    )
 
     aluno_id = _get_aluno_id_from_request(request, db)
     if not aluno_id:
         return RedirectResponse(url="/login", status_code=302)
     aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+
     atividade = db.query(ProfessorAtividadeH5P).filter(ProfessorAtividadeH5P.id == id, ProfessorAtividadeH5P.ativo).first()
     if not aluno or not atividade or not aluno.turma_id or atividade.turma_id != aluno.turma_id:
+        return RedirectResponse(url="/aluno/portugues?acesso_negado_ano=1", status_code=302)
+    n_alvo = (
+        db.query(ProfessorAtividadeH5PAluno)
+        .filter(ProfessorAtividadeH5PAluno.atividade_id == atividade.id)
+        .count()
+    )
+    if n_alvo > 0 and not (
+        db.query(ProfessorAtividadeH5PAluno)
+        .filter(
+            ProfessorAtividadeH5PAluno.atividade_id == atividade.id,
+            ProfessorAtividadeH5PAluno.aluno_id == aluno_id,
+        )
+        .first()
+    ):
         return RedirectResponse(url="/aluno/portugues?acesso_negado_ano=1", status_code=302)
 
     payload = None
@@ -928,12 +1165,14 @@ def aluno_suporte_chamado_get(request: Request, db: Session = Depends(get_db)):
     from app.models.aluno import Aluno
 
     aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+    ident = _aluno_identity_bundle(request, db)
     return templates.TemplateResponse(
         request,
         "aluno/suporte_chamado.html",
         {
-            "aluno_nome": _get_aluno_nome(request, db),
+            "aluno_nome": ident["aluno_nome"],
             "aluno_ano": (aluno.ano_escolar if aluno else None),
+            "aluno_avatar_url": ident["aluno_avatar_url"],
             "stats": DashboardService().get_aluno_stats(db, aluno_id),
             "email_default": (getattr(user, "email", "") or ""),
             "erro": request.query_params.get("erro"),

@@ -1,0 +1,10 @@
+{% extends "base_dashboard.html" %}
+{% block header_right %}
+{% include "professor/partials/professor_header_right.html" %}
+{% endblock %}
+{% block offcanvas_extra %}
+<div class="professor-offcanvas-turma d-lg-none pb-3 mb-2 border-bottom border-secondary border-opacity-10">
+    {% set turma_select_id = "selTurmaProfMobile" %}
+    {% include "professor/partials/turma_selector.html" %}
+</div>
+{% endblock %}

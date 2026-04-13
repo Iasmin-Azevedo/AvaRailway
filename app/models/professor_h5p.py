@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base
@@ -20,6 +20,29 @@ class ProfessorAtividadeH5P(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     progressos = relationship("ProfessorProgressoH5P", back_populates="atividade")
+    alvos_alunos = relationship(
+        "ProfessorAtividadeH5PAluno",
+        back_populates="atividade",
+        cascade="all, delete-orphan",
+    )
+
+
+class ProfessorAtividadeH5PAluno(Base):
+    """Se vazio para uma atividade, toda a turma vê; se preenchido, só os alunos listados."""
+
+    __tablename__ = "professor_atividade_h5p_alunos"
+    __table_args__ = (
+        UniqueConstraint("atividade_id", "aluno_id", name="uq_prof_atividade_aluno"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    atividade_id = Column(
+        Integer, ForeignKey("professor_atividades_h5p.id"), nullable=False, index=True
+    )
+    aluno_id = Column(Integer, ForeignKey("alunos.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    atividade = relationship("ProfessorAtividadeH5P", back_populates="alvos_alunos")
 
 
 class ProfessorProgressoH5P(Base):

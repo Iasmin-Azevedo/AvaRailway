@@ -1,38 +1,10 @@
-{% extends "base_dashboard.html" %}
+{% extends "professor/base_professor.html" %}
 {% block page_title %}Portal Docente{% endblock %}
 {% block brand_link %}/professor{% endblock %}
 {% block menu_title %}Menu do Professor{% endblock %}
 
-{% block header_right %}
-<div class="d-flex flex-column flex-lg-row align-items-stretch align-items-lg-center gap-2 bg-mj-soft px-3 py-2 rounded-3 border border-mj-primary border-opacity-25 mw-100" style="min-width: 0;">
-    {% include "professor/partials/turma_selector.html" %}
-</div>
-<div class="vr text-muted d-none d-lg-block"></div>
-<div class="d-flex align-items-center gap-2">
-    <div class="text-end d-none d-md-block">
-        <div class="mission-user-name mb-0">
-            {{ current_user.nome if current_user else "Professor(a)" }}
-        </div>
-        <small class="text-mj-muted">Professor(a)</small>
-    </div>
-    <div class="position-relative">
-        <span class="mission-user-avatar bg-success text-white" style="font-size: 0.65rem;">
-            {{ avatar_iniciais }}
-        </span>
-        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" title="Novos alertas"></span>
-    </div>
-</div>
-{% endblock %}
-
-{% block offcanvas_extra %}{% endblock %}
-
 {% block offcanvas_links %}
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/desempenho-descritores{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Desempenho</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/radar-alunos{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Radar de Alunos</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/professor/chat-duvidas{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Dúvidas Chatbot</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mt-2" href="/professor/atividades">Minhas Atividades H5P</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mt-2" href="/professor/descritores">Descritores</a>
+{% include "professor/partials/professor_menu_links.html" %}
 {% endblock %}
 
 {% block main_content %}
@@ -44,9 +16,9 @@
     <div class="flex-grow-1 min-w-0">
         <h6 class="fw-bold mb-1 text-dark">Atenção: descritor com menor taxa de conclusão</h6>
         <p class="small text-muted mb-2 text-break">
-            O descritor <strong>{{ ia_alerta_descritor.codigo }}</strong> ({{ ia_alerta_descritor.descricao[:120] }}{% if ia_alerta_descritor.descricao|length > 120 %}…{% endif %}) está com taxa de conclusão de <strong>{{ ia_alerta_descritor.taxa_pct }}%</strong> na turma selecionada.
+            O descritor <strong>{{ ia_alerta_descritor.codigo }}</strong> ({{ ia_alerta_descritor.descricao[:120] }}{% if ia_alerta_descritor.descricao|length > 120 %}…{% endif %}) está com taxa de conclusão de <strong>{{ ia_alerta_descritor.taxa_pct }}%</strong> {% if turma_all %}considerando todas as suas turmas{% else %}na turma selecionada{% endif %}.
         </p>
-        <a class="btn btn-sm btn-mj" href="/professor/desempenho-descritores{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Ver todos os descritores</a>
+        <a class="btn btn-sm btn-mj" href="/professor/desempenho-descritores{{ turma_query_suffix }}">Ver todos os descritores</a>
     </div>
 </div>
 {% endif %}
@@ -101,15 +73,15 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-lg-8">
+    <div class="col-12 col-lg-8">
         <div class="card dash-card mb-4">
             <div class="dash-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <h6 class="fw-bold mb-0 text-dark">Desempenho por descritores (H5P)</h6>
-                <a class="btn btn-sm btn-mj-outline" href="/professor/desempenho-descritores{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}">Ver completo</a>
+                <h6 class="fw-bold mb-0 text-dark">Desempenho por descritores</h6>
+                <a class="btn btn-sm btn-mj-outline" href="/professor/desempenho-descritores{{ turma_query_suffix }}">Ver completo</a>
             </div>
             <div class="card-body p-4">
                 {% if not descritores_preview %}
-                <p class="small text-muted mb-0">Sem atividades vinculadas a descritores ou sem dados de conclusão para esta turma.</p>
+                <p class="small text-muted mb-0">Sem atividades vinculadas a descritores ou sem dados de conclusão para {% if turma_all %}as turmas selecionadas{% else %}esta turma{% endif %}.</p>
                 {% else %}
                 {% for r in descritores_preview %}
                 <div class="row mb-3 align-items-center g-2">
@@ -131,20 +103,22 @@
                 <h6 class="fw-bold mb-0 text-dark">Radar de Acompanhamento Individual</h6>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                <div class="table-responsive mj-table-horizontal-scroll">
+                    <table class="table table-hover align-middle mb-0 mj-table-min-wide">
                         <thead class="table-light small text-uppercase text-muted">
                             <tr>
-                                <th class="ps-4">Aluno</th>
-                                <th>Status</th>
-                                <th>Principal Dificuldade</th>
-                                <th class="text-end pe-4">Progresso</th>
+                                <th class="ps-4" style="min-width: 10rem;">Aluno</th>
+                                {% if turma_all %}<th style="min-width: 6rem;">Turma</th>{% endif %}
+                                <th style="min-width: 5.5rem;">Status</th>
+                                <th style="min-width: 12rem;">Principal Dificuldade</th>
+                                <th class="text-end pe-4" style="min-width: 6rem;">Progresso</th>
                             </tr>
                         </thead>
                         <tbody class="small">
                             {% for a in radar_alunos %}
                             <tr>
-                                <td class="ps-4 fw-bold text-dark text-break">{{ a.nome }}</td>
+                                <td class="ps-4 fw-bold text-dark">{{ a.nome }}</td>
+                                {% if turma_all %}<td class="text-muted small">{{ a.turma_nome }}</td>{% endif %}
                                 <td>
                                     {% if a.nivel_risco == 'BAIXO' %}
                                     <span class="badge bg-success bg-opacity-25 text-success">Baixo</span>
@@ -152,11 +126,11 @@
                                     <span class="badge bg-warning bg-opacity-25 text-warning">{{ a.nivel_risco }}</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-muted">{{ a.concluidas }} / {{ a.total_atividades }} atividades H5P</td>
+                                <td class="text-muted">{{ a.concluidas }} / {{ a.total_atividades }} atividades</td>
                                 <td class="text-end pe-4">{{ a.progresso_pct }}%</td>
                             </tr>
                             {% else %}
-                            <tr><td colspan="4" class="text-center text-muted py-4">Sem alunos na turma selecionada.</td></tr>
+                            <tr><td colspan="{% if turma_all %}5{% else %}4{% endif %}" class="text-center text-muted py-4">Sem alunos na seleção.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -182,7 +156,7 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="p-3 small text-muted">Nenhuma aula ao vivo agendada no momento.</div>
+                <div class="p-3 small text-muted">Nenhuma live agendada no momento.</div>
                 {% endif %}
             </div>
         </div>
@@ -213,7 +187,7 @@
         </div>
     </div>
 
-    <div class="col-lg-4 d-flex flex-column gap-4">
+    <div class="col-12 col-lg-4 d-flex flex-column gap-4">
         <div class="card dash-card flex-grow-1">
             <div class="dash-card-header d-flex align-items-center gap-2">
                 <i class="fa-regular fa-comments text-mj-primary fs-5"></i>
@@ -234,7 +208,30 @@
                 </div>
             </div>
             <div class="card-footer bg-white border-top text-center py-2">
-                <a href="/professor/chat-duvidas{% if selected_turma_id %}?turma_id={{ selected_turma_id }}{% endif %}" class="small text-decoration-none fw-bold text-mj-primary">Ver mais perguntas</a>
+                <a href="/professor/chat-duvidas{{ turma_query_suffix }}" class="small text-decoration-none fw-bold text-mj-primary">Ver mais perguntas</a>
+            </div>
+        </div>
+
+        <div class="card dash-card mt-4">
+            <div class="dash-card-header d-flex align-items-center gap-2">
+                <i class="fa-solid fa-graduation-cap text-mj-primary fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Meus cursos no Moodle</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if moodle_aviso %}
+                <div class="p-3 small text-muted">{{ moodle_aviso }}</div>
+                {% elif moodle_cursos %}
+                <ul class="list-group list-group-flush small">
+                    {% for c in moodle_cursos %}
+                    <li class="list-group-item p-3">
+                        <a href="{{ MOODLE_URL }}/course/view.php?id={{ c.id }}" class="fw-bold text-decoration-none text-mj-dark" target="_blank" rel="noopener">{{ c.fullname }}</a>
+                        {% if c.shortname %}<div class="text-muted text-truncate">{{ c.shortname }}</div>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="p-3 small text-muted">Nenhum curso retornado para este vínculo Moodle.</div>
+                {% endif %}
             </div>
         </div>
 
@@ -264,7 +261,7 @@
             <div class="card-body p-3">
                 <h6 class="fw-bold small text-muted text-uppercase mb-3">Ações Rápidas</h6>
                 <div class="d-grid gap-2">
-                    <button id="toggle-live-class-form" class="btn btn-white border shadow-sm text-start fw-bold text-mj-primary"><i class="fa-solid fa-video me-2"></i> Agendar Live de Revisão</button>
+                    <button id="toggle-live-class-form" class="btn btn-white border shadow-sm text-start fw-bold text-mj-primary"><i class="fa-solid fa-video me-2"></i> Agendar Live</button>
                     <button class="btn btn-white border shadow-sm text-start fw-bold text-success"><i class="fa-solid fa-medal me-2"></i> Enviar Medalha Coletiva</button>
                     <button class="btn btn-white border shadow-sm text-start fw-bold text-mj-muted"><i class="fa-solid fa-file-lines me-2"></i> Ver Dashboard Completo</button>
                 </div>
@@ -276,7 +273,7 @@
 <div id="live-class-form-wrapper" class="card dash-card mt-4 d-none">
     <div class="dash-card-header d-flex align-items-center gap-2">
         <i class="fa-solid fa-video text-mj-primary fs-5"></i>
-        <h6 class="fw-bold mb-0 text-dark">Agendar Aula ao Vivo</h6>
+        <h6 class="fw-bold mb-0 text-dark">Agendar Live</h6>
     </div>
     <div class="card-body">
         <form id="live-class-form" class="d-grid gap-2">
@@ -334,7 +331,7 @@
             });
             var body = await response.json();
             if (!response.ok) throw new Error(body.mensagem_amigavel || 'Não foi possível salvar o agendamento.');
-            feedback.textContent = 'Aula ao vivo agendada com sucesso.';
+            feedback.textContent = 'Live agendada com sucesso.';
             feedback.className = 'small mt-2 text-success';
             form.reset();
             setTimeout(function() { window.location.reload(); }, 700);

@@ -1,0 +1,28 @@
+{# Requer: current_user, escola (opcional), avatar_iniciais (opcional, fallback CO) #}
+{% set _nome = (current_user.nome if current_user else '')|trim %}
+{% set _partes = _nome.split() %}
+{% if _partes|length >= 2 %}
+  {% set _ini = (_partes[0][0] ~ _partes[-1][0])|upper %}
+{% elif _partes|length == 1 and _partes[0]|length >= 2 %}
+  {% set _ini = _partes[0][:2]|upper %}
+{% else %}
+  {% set _ini = avatar_iniciais|default('CO') %}
+{% endif %}
+<div class="d-flex align-items-center gap-2 bg-mj-soft px-3 py-1 rounded-3 border border-mj-primary border-opacity-25">
+    <span class="text-mj-dark small fw-bold">Escola:</span>
+    <span class="text-mj-dark fw-bold">
+        {{ escola.nome if escola else "Sem escola vinculada" }}
+    </span>
+</div>
+<div class="vr text-muted d-none d-md-block"></div>
+<div class="d-flex align-items-center gap-3 flex-shrink-0">
+    <div class="text-end d-none d-md-block">
+        <div class="mission-user-name mb-0">{{ current_user.nome if current_user else "Coordenador(a)" }}</div>
+        <small class="text-mj-muted">Coordenador(a) escolar</small>
+    </div>
+    {% if current_user and current_user.avatar_url %}
+    <img src="{{ current_user.avatar_url }}" alt="" width="56" height="56" class="rounded-circle border border-2 border-white object-fit-cover professor-header-avatar flex-shrink-0">
+    {% else %}
+    <span class="professor-header-avatar professor-header-avatar--fallback rounded-circle bg-info text-white fw-bold d-inline-flex align-items-center justify-content-center flex-shrink-0">{{ _ini }}</span>
+    {% endif %}
+</div>

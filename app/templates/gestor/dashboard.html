@@ -4,27 +4,13 @@
 {% block menu_title %}Menu do Gestor{% endblock %}
 
 {% block header_right %}
-<div class="d-flex flex-wrap align-items-center gap-2 justify-content-end w-100 w-lg-auto">
-<span class="badge bg-white text-mj-primary border border-mj-primary">Ciclo 2025/2026</span>
-<div class="vr text-muted d-none d-md-block"></div>
-<span class="text-mj-muted small d-none d-sm-inline">Painel estratégico</span>
-<div class="d-flex align-items-center gap-2">
-    <div class="text-end d-none d-md-block">
-        <div class="mission-user-name mb-0">Gestor</div>
-        <small class="text-mj-muted">Painel Estratégico</small>
-    </div>
-    <span class="mission-user-avatar bg-mj-primary text-white" style="font-size: 0.65rem;">G</span>
-</div>
-</div>
+{% include "gestor/partials/gestor_header_right.html" %}
 {% endblock %}
 
 {% block offcanvas_extra %}{% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/gestor">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/proficiencia">Proficiência</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/gestor/alertas">Alertas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill" href="/gestor/relatorios">Relatórios</a>
+{% include "gestor/partials/gestor_menu_links.html" %}
 {% endblock %}
 
 {% block main_content %}
@@ -74,15 +60,15 @@
 </div>
 
 <div class="row g-4">
-    <div class="col-lg-8">
+    <div class="col-12 col-lg-8">
         <div class="card dash-card h-100">
             <div class="dash-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0 fw-bold text-mj-dark">Engajamento H5P por escola</h5>
                 <a class="btn btn-sm btn-mj-outline" href="/gestor/proficiencia">Ver tela completa</a>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                <div class="table-responsive mj-table-horizontal-scroll">
+                    <table class="table table-hover align-middle mb-0 mj-table-min-wide">
                         <thead class="table-light">
                             <tr class="small text-muted">
                                 <th>Escola</th>
@@ -112,7 +98,7 @@
         </div>
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-12 col-lg-4">
         <div class="card dash-card mb-4 bg-mj-dark text-white border-0">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-3">

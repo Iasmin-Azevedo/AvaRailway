@@ -22,6 +22,7 @@
 
 {% block offcanvas_links %}
 <a class="btn btn-mj w-100 rounded-pill mb-2" href="/admin">Início</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/perfil">Meu perfil</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/escolas">Escolas</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/turmas">Turmas</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/cursos">Cursos</a>
@@ -164,7 +165,8 @@
                 <button class="btn btn-sm btn-mj-outline">Forçar Sincronização</button>
             </div>
             <div class="card-body p-0">
-                <table class="table table-hover align-middle mb-0">
+                <div class="table-responsive mj-table-horizontal-scroll">
+                <table class="table table-hover align-middle mb-0 mj-table-min-wide">
                     <thead class="table-light small text-uppercase text-muted">
                         <tr>
                             <th class="ps-4">Serviço / API</th>
@@ -204,6 +206,7 @@
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
 
