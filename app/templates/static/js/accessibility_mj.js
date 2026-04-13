@@ -31,10 +31,31 @@
     } catch (e) {}
   }
 
+  function syncContrastButton(on) {
+    var btn = document.getElementById('a11y-high-contrast');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.setAttribute(
+      'title',
+      on ? 'Desativar alto contraste (tema escuro)' : 'Ativar alto contraste (tema escuro legível)'
+    );
+  }
+
+  function syncSiteLogos() {
+    var on = getBody().classList.contains('a11y-high-contrast');
+    document.querySelectorAll('img.mj-site-logo').forEach(function (img) {
+      var def = img.getAttribute('data-logo-default') || '/static/img/logo.png';
+      var hc = img.getAttribute('data-logo-hc') || '/static/img/logoBranca.png';
+      img.setAttribute('src', on ? hc : def);
+    });
+  }
+
   function toggleContrast(on) {
     var b = getBody();
     if (on) b.classList.add('a11y-high-contrast');
     else b.classList.remove('a11y-high-contrast');
+    syncContrastButton(on);
+    syncSiteLogos();
     try {
       localStorage.setItem(STORAGE_CONTRAST, on ? '1' : '0');
     } catch (e) {}
@@ -42,8 +63,16 @@
 
   function loadContrast() {
     try {
-      if (localStorage.getItem(STORAGE_CONTRAST) === '1') toggleContrast(true);
-    } catch (e) {}
+      if (localStorage.getItem(STORAGE_CONTRAST) === '1') {
+        toggleContrast(true);
+      } else {
+        syncContrastButton(false);
+        syncSiteLogos();
+      }
+    } catch (e) {
+      syncContrastButton(false);
+      syncSiteLogos();
+    }
   }
 
   function currentFontPct() {
