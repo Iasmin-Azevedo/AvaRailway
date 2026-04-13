@@ -4,7 +4,7 @@
 {% block menu_title %}Admin{% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/usuarios">Voltar à lista</a>
+{% include "admin/partials/admin_menu_links.html" %}
 {% endblock %}
 
 {% block main_content %}

@@ -6,7 +6,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi import _rate_limit_exceeded_handler
@@ -48,6 +48,7 @@ from app.models import (
     h5p,
     interacao_ia,
     live_support,
+    moodle_gestao,
     relacoes,
     resposta,
     saeb,
@@ -577,18 +578,18 @@ def professor_dashboard(
     pior = descritores_rows[0] if descritores_rows else None
     ia_alerta_ativo = bool(pior and pior["taxa_pct"] < 50 and pior["alunos_elegiveis"] > 0)
 
-    from app.services.moodle_ws_service import MoodleWsService
+    from app.services import moodle_assignment_service as moodle_assign_svc
 
     moodle_cursos: list[dict] = []
     moodle_aviso: str | None = None
-    mid = (getattr(current_user, "moodle_user_id", None) or "").strip()
-    if not mid:
-        moodle_aviso = "Peça ao administrador para vincular seu usuário Moodle (ID) para listar cursos."
-    else:
-        try:
-            moodle_cursos = MoodleWsService().list_user_courses(int(mid))
-        except Exception:
-            moodle_aviso = "Não foi possível carregar os cursos do Moodle no momento."
+    moodle_cursos = moodle_assign_svc.list_assignments_for_professor(db, current_user.id)
+    if moodle_assign_svc.catalog_never_synced(db):
+        moodle_aviso = (
+            "O catálogo de cursos Moodle ainda não foi sincronizado. "
+            "Peça ao gestor para aceder a «Cursos Moodle (capacitação)» e sincronizar."
+        )
+    elif not moodle_cursos:
+        moodle_aviso = "Nenhum curso de formação foi atribuído pelo gestor."
 
     return templates.TemplateResponse(
         request,
@@ -1916,6 +1917,150 @@ def gestor_alertas(
         request,
         "gestor/alertas.html",
         {"request": request, "current_user": current_user, "alertas": alertas},
+    )
+
+
+@app.get("/gestor/moodle/cursos")
+def gestor_moodle_cursos_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
+):
+    from app.services import moodle_assignment_service as moodle_assign_svc
+
+    escola_ids = _gestor_escola_ids(db, current_user.id)
+    prof_ids = moodle_assign_svc.professor_usuario_ids_in_scope(db, escola_ids)
+    if prof_ids:
+        professores = (
+            db.query(Usuario).filter(Usuario.id.in_(prof_ids)).order_by(Usuario.nome).all()
+        )
+    else:
+        professores = []
+    catalog = moodle_assign_svc.list_courses_catalog(db)
+    assignments = moodle_assign_svc.list_assignments_for_gestor_view(db, escola_ids)
+    qp = request.query_params
+    return templates.TemplateResponse(
+        request,
+        "gestor/moodle_cursos.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "professores": professores,
+            "moodle_catalog": catalog,
+            "moodle_assignments": assignments,
+            "flash_ok": (qp.get("ok") or "").strip(),
+            "flash_err": (qp.get("err") or "").strip(),
+            "MOODLE_URL": settings.MOODLE_URL.rstrip("/"),
+            "moodle_auto_enrol": settings.MOODLE_AUTO_ENROL_ON_ASSIGN,
+        },
+    )
+
+
+@app.post("/gestor/moodle/cursos/sync")
+async def gestor_moodle_cursos_sync(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
+):
+    from urllib.parse import quote
+
+    from app.services import moodle_assignment_service as moodle_assign_svc
+
+    _ = request  # form POST sem campos
+    n, err = moodle_assign_svc.sync_catalog_from_moodle(db)
+    if err:
+        return RedirectResponse(
+            url=f"/gestor/moodle/cursos?err={quote(err)}",
+            status_code=303,
+        )
+    return RedirectResponse(
+        url=f"/gestor/moodle/cursos?ok=sync_{n}",
+        status_code=303,
+    )
+
+
+@app.post("/gestor/moodle/cursos/atribuir")
+async def gestor_moodle_cursos_atribuir(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
+):
+    from urllib.parse import quote
+
+    from app.services import moodle_assignment_service as moodle_assign_svc
+
+    form = await request.form()
+    try:
+        pid = int(form.get("professor_usuario_id") or 0)
+        cid = int(form.get("moodle_course_id") or 0)
+    except (TypeError, ValueError):
+        return RedirectResponse(
+            url="/gestor/moodle/cursos?err=" + quote("Dados inválidos."),
+            status_code=303,
+        )
+    obs = (form.get("observacao") or "").strip() or None
+    ok, msg = moodle_assign_svc.create_assignment(
+        db,
+        gestor=current_user,
+        professor_usuario_id=pid,
+        moodle_course_id=cid,
+        observacao=obs,
+    )
+    if not ok:
+        return RedirectResponse(
+            url=f"/gestor/moodle/cursos?err={quote(msg)}",
+            status_code=303,
+        )
+    return RedirectResponse(url="/gestor/moodle/cursos?ok=atribuido", status_code=303)
+
+
+@app.post("/gestor/moodle/cursos/revogar/{assignment_id}")
+async def gestor_moodle_cursos_revogar(
+    assignment_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
+):
+    from urllib.parse import quote
+
+    from app.services import moodle_assignment_service as moodle_assign_svc
+
+    _ = request
+    ok, msg = moodle_assign_svc.revoke_assignment(
+        db, gestor=current_user, assignment_id=assignment_id
+    )
+    if not ok:
+        return RedirectResponse(
+            url=f"/gestor/moodle/cursos?err={quote(msg)}",
+            status_code=303,
+        )
+    return RedirectResponse(url="/gestor/moodle/cursos?ok=revogado", status_code=303)
+
+
+@app.get("/moodle/course-image/{moodle_course_id}")
+def moodle_course_image_proxy(
+    moodle_course_id: int,
+    db: Session = Depends(get_db),
+):
+    from app.models.moodle_gestao import MoodleCourseCatalog
+    from app.services.moodle_ws_service import MoodleWsService
+
+    course = (
+        db.query(MoodleCourseCatalog)
+        .filter(MoodleCourseCatalog.moodle_course_id == moodle_course_id)
+        .one_or_none()
+    )
+    if not course or not (course.image_url or "").strip():
+        raise HTTPException(status_code=404, detail="Imagem do curso não encontrada")
+    try:
+        data, content_type = MoodleWsService().fetch_file_content(course.image_url)
+    except Exception as exc:
+        logger.warning("Falha ao carregar imagem Moodle course=%s: %s", moodle_course_id, exc)
+        raise HTTPException(status_code=502, detail="Falha ao carregar imagem do Moodle")
+    return Response(
+        content=data,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=900"},
     )
 
 

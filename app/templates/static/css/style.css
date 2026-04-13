@@ -2503,6 +2503,78 @@ body.a11y-high-contrast .form-control-mj:focus {
     box-shadow: 0 0 0 0.2rem rgba(56, 189, 248, 0.3) !important;
 }
 
+/* Chatbot flutuante (dashboard do aluno): evita blocos claros no alto contraste */
+body.a11y-high-contrast #chat-open-btn {
+    background: var(--a11y-hc-btn-solid) !important;
+    border-color: var(--a11y-hc-btn-solid-border) !important;
+}
+
+body.a11y-high-contrast #chat-panel {
+    background: var(--a11y-hc-surface) !important;
+    color: var(--a11y-hc-text) !important;
+    border: 2px solid var(--a11y-hc-border) !important;
+}
+
+body.a11y-high-contrast #chat-panel .border-bottom,
+body.a11y-high-contrast #chat-panel .border-top,
+body.a11y-high-contrast #chat-panel .border {
+    border-color: var(--a11y-hc-border) !important;
+}
+
+body.a11y-high-contrast #chat-panel .bg-light-subtle,
+body.a11y-high-contrast #chat-panel .bg-white {
+    background: var(--a11y-hc-raised) !important;
+    color: var(--a11y-hc-text) !important;
+}
+
+body.a11y-high-contrast #chat-messages {
+    background: var(--a11y-hc-bg) !important;
+}
+
+body.a11y-high-contrast #chat-panel .bg-warning {
+    background: #8a3f08 !important;
+    color: #fff !important;
+    border: 1px solid #fcd34d !important;
+}
+
+body.a11y-high-contrast #chat-panel .bg-light {
+    background: var(--a11y-hc-raised) !important;
+    color: var(--a11y-hc-text) !important;
+}
+
+body.a11y-high-contrast #chat-panel .text-dark,
+body.a11y-high-contrast #chat-panel .text-muted,
+body.a11y-high-contrast #chat-panel .text-secondary,
+body.a11y-high-contrast #chat-panel .small {
+    color: var(--a11y-hc-text) !important;
+}
+
+body.a11y-high-contrast #chat-panel .chat-typing-dots span {
+    background: var(--a11y-hc-accent) !important;
+}
+
+body.a11y-high-contrast #chat-panel .btn-warning {
+    background: #b45309 !important;
+    border-color: #fcd34d !important;
+    color: #fff !important;
+}
+
+body.a11y-high-contrast #chat-panel .btn-light,
+body.a11y-high-contrast #chat-panel .btn-link,
+body.a11y-high-contrast #chat-panel .btn-outline-primary,
+body.a11y-high-contrast #chat-panel .btn-outline-danger {
+    background: transparent !important;
+    color: var(--a11y-hc-accent) !important;
+    border-color: var(--a11y-hc-border) !important;
+}
+
+body.a11y-high-contrast #chat-panel .btn-link:hover,
+body.a11y-high-contrast #chat-panel .btn-outline-primary:hover,
+body.a11y-high-contrast #chat-panel .btn-outline-danger:hover {
+    background: rgba(56, 189, 248, 0.12) !important;
+    color: var(--a11y-hc-accent-hover) !important;
+}
+
 a:focus-visible,
 button:focus-visible {
     outline: 2px solid var(--mj-primary);
@@ -2654,6 +2726,19 @@ button:focus-visible {
 .aluno-missao-atividade-list {
     max-height: 200px;
     overflow-y: auto;
+}
+
+/* Cursos Moodle: evita quebra de layout com títulos longos */
+.moodle-course-preview-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.25;
+    max-height: 2.5em;
 }
 
 /* ========== Relatórios timbrados (standalone + embutido professor) ========== */

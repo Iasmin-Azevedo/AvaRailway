@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="/static/css/style.css?v=20260409hc2" rel="stylesheet">
+    <link href="/static/css/style.css?v=20260413hc3" rel="stylesheet">
 </head>
 <body class="mission-page-mj bg-mj-soft min-vh-100{% block body_extra_class %}{% endblock %}">
     {% include 'partials/utilbar_mj.html' %}
@@ -77,7 +77,10 @@
                 var href = link.getAttribute('href') || '';
                 if (!href || href === '#') return;
                 var linkPath = href.split('?')[0].replace(/\/+$/, '') || '/';
-                if (linkPath === currentPath) {
+                if (
+                    linkPath === currentPath ||
+                    (linkPath !== '/' && currentPath.indexOf(linkPath + '/') === 0)
+                ) {
                     link.classList.add('is-current');
                 }
             });

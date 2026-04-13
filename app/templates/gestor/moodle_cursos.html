@@ -1,0 +1,166 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Cursos Moodle — Capacitação{% endblock %}
+{% block brand_link %}/gestor{% endblock %}
+{% block menu_title %}Menu do Gestor{% endblock %}
+{% block header_right %}
+{% include "gestor/partials/gestor_header_right.html" %}
+{% endblock %}
+{% block offcanvas_extra %}{% endblock %}
+{% block offcanvas_links %}
+{% include "gestor/partials/gestor_menu_links.html" %}
+{% endblock %}
+{% block main_content %}
+<div class="mb-3"><a href="/gestor" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Painel</a></div>
+<h1 class="h4 fw-bold text-mj-dark mb-3"><i class="fa-solid fa-graduation-cap me-2 text-mj-primary"></i> Capacitação docente</h1>
+
+{% if flash_err %}
+<div class="alert alert-danger border-0 shadow-sm rounded-3 mb-3">{{ flash_err }}</div>
+{% endif %}
+{% if flash_ok %}
+<div class="alert alert-success border-0 shadow-sm rounded-3 mb-3">
+    {% if flash_ok == 'atribuido' %}Curso atribuído ao professor.{% elif flash_ok == 'revogado' %}Atribuição revogada.{% elif flash_ok.startswith('sync_') %}Catálogo sincronizado ({{ flash_ok.replace('sync_', '') }} curso(s)).{% else %}Operação concluída.{% endif %}
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header">
+                <h6 class="fw-bold mb-0">1. Sincronizar catálogo</h6>
+            </div>
+            <div class="card-body">
+                <!-- <p class="small text-muted mb-3">Puxa do Moodle a lista de cursos (webservice <code>core_course_get_courses</code>) e grava no AVA MJ. Execute após criar cursos no Moodle ou para atualizar nomes.</p> -->
+                <p class="small mb-3"><strong>Cursos no catálogo (visíveis):</strong> {{ moodle_catalog|length }}</p>
+                {% if moodle_catalog %}
+                <div class="row g-2 mb-3">
+                    {% for c in moodle_catalog[:8] %}
+                    <div class="col-6">
+                        <div class="border rounded-3 p-2 h-100 d-flex align-items-center gap-2 overflow-hidden">
+                            {% if c.image_url %}
+                            <img src="/moodle/course-image/{{ c.moodle_course_id }}" alt="Banner do curso {{ c.fullname }}" class="rounded border" style="width:56px;height:42px;object-fit:cover;" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');">
+                            <div class="rounded border d-none align-items-center justify-content-center text-muted" style="width:56px;height:42px;">
+                                <i class="fa-regular fa-image"></i>
+                            </div>
+                            {% else %}
+                            <div class="rounded border d-flex align-items-center justify-content-center text-muted" style="width:56px;height:42px;">
+                                <i class="fa-regular fa-image"></i>
+                            </div>
+                            {% endif %}
+                            <div style="min-width:0;" class="flex-grow-1">
+                                <div class="small fw-semibold moodle-course-preview-title">{{ c.fullname }}</div>
+                                <div class="text-muted" style="font-size:.72rem;">Id do curso: {{ c.moodle_course_id }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if moodle_catalog|length > 8 %}
+                <p class="small text-muted mb-3">Mostrando 8 de {{ moodle_catalog|length }} cursos no preview visual.</p>
+                {% endif %}
+                {% endif %}
+                <form method="post" action="/gestor/moodle/cursos/sync">
+                    <button type="submit" class="btn btn-mj fw-bold"><i class="fas fa-sync-alt me-1"></i> Sincronizar agora</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header">
+                <h6 class="fw-bold mb-0">2. Atribuir curso a um professor</h6>
+            </div>
+            <div class="card-body">
+                {% if not professores %}
+                <p class="small text-warning mb-0">Não há professores no seu âmbito (com turma vinculada). Associe escolas ao seu perfil ou cadastre vínculos professor–turma.</p>
+                {% elif not moodle_catalog %}
+                <p class="small text-warning mb-0">Catálogo vazio. Sincronize os cursos do Moodle primeiro.</p>
+                {% else %}
+                <form method="post" action="/gestor/moodle/cursos/atribuir" class="d-grid gap-2">
+                    <div>
+                        <label class="form-label small fw-bold mb-1" for="profSel">Professor</label>
+                        <select class="form-select" id="profSel" name="professor_usuario_id" required>
+                            <option value="">— Selecione —</option>
+                            {% for p in professores %}
+                            <option value="{{ p.id }}">{{ p.nome }} ({{ p.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label small fw-bold mb-1" for="cursoSel">Curso Moodle</label>
+                        <select class="form-select" id="cursoSel" name="moodle_course_id" required>
+                            <option value="">— Selecione —</option>
+                            {% for c in moodle_catalog %}
+                            <option value="{{ c.moodle_course_id }}">{{ c.fullname }}{% if c.shortname %} — {{ c.shortname }}{% endif %} (id {{ c.moodle_course_id }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label small fw-bold mb-1" for="obsAtrib">Observação (opcional)</label>
+                        <input type="text" class="form-control" id="obsAtrib" name="observacao" maxlength="500" placeholder="Ex.: Conclusão até 30/06">
+                    </div>
+                    <button type="submit" class="btn btn-mj-outline fw-bold">Atribuir</button>
+                </form>
+                {% if moodle_auto_enrol %}
+                <p class="small text-muted mt-2 mb-0"><i class="fas fa-info-circle me-1"></i> Inscrição automática no Moodle está <strong>ativa</strong> — o professor precisa de <code>moodle_user_id</code> no cadastro (admin).</p>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card dash-card">
+    <div class="dash-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h6 class="fw-bold mb-0">Atribuições ativas</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Professor</th>
+                        <th>Curso</th>
+                        <th>ID Moodle</th>
+                        <th>Desde</th>
+                        <th class="pe-3 text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in moodle_assignments %}
+                    <tr>
+                        <td class="ps-3 fw-bold">{{ a.professor_nome }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                {% if a.image_url %}
+                                <img src="/moodle/course-image/{{ a.moodle_course_id }}" alt="Banner do curso {{ a.fullname }}" class="rounded border flex-shrink-0" style="width:60px;height:44px;object-fit:cover;" loading="lazy" onerror="this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none');">
+                                <div class="rounded border d-none align-items-center justify-content-center text-muted flex-shrink-0" style="width:60px;height:44px;">
+                                    <i class="fa-regular fa-image"></i>
+                                </div>
+                                {% else %}
+                                <div class="rounded border d-flex align-items-center justify-content-center text-muted flex-shrink-0" style="width:60px;height:44px;">
+                                    <i class="fa-regular fa-image"></i>
+                                </div>
+                                {% endif %}
+                                <div style="min-width:0;" class="flex-grow-1">
+                                    <a href="{{ MOODLE_URL }}/course/view.php?id={{ a.moodle_course_id }}" target="_blank" rel="noopener" class="text-mj-primary fw-semibold text-decoration-none moodle-course-preview-title d-block">{{ a.fullname }}</a>
+                                    {% if a.shortname %}<div class="text-muted text-truncate d-block" style="max-width:14rem;">{{ a.shortname }}</div>{% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ a.moodle_course_id }}</td>
+                        <td>{% if a.created_at %}{{ a.created_at.strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}</td>
+                        <td class="pe-3 text-end">
+                            <form method="post" action="/gestor/moodle/cursos/revogar/{{ a.assignment_id }}" class="d-inline" onsubmit="return confirm('Revogar esta atribuição?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Revogar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma atribuição ativa.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

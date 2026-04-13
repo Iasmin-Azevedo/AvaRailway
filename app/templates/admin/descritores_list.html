@@ -4,14 +4,7 @@
 {% block menu_title %}Admin - Descritores{% endblock %}
 
 {% block offcanvas_links %}
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/escolas">Escolas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/turmas">Turmas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/cursos">Cursos</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/trilhas">Trilhas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/usuarios">Usuários</a>
-<a class="btn btn-mj w-100 rounded-pill mb-2" href="/admin/descritores">Descritores</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/atividades-h5p">H5P</a>
+{% include "admin/partials/admin_menu_links.html" %}
 {% endblock %}
 
 {% block main_content %}

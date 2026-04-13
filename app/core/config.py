@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     MOODLE_URL: str = "https://seu-moodle"
     MOODLE_TOKEN: str = "moodle-token"
+    # Ao atribuir curso no AVA, inscreve o professor como aluno no Moodle (requer moodle_user_id no utilizador).
+    MOODLE_AUTO_ENROL_ON_ASSIGN: bool = False
+    # ID do papel "aluno" no Moodle (muitas instalações usam 5; confirme em Administração > Utilizadores > Permissões > Papéis).
+    MOODLE_STUDENT_ROLE_ID: int = 5
     # Relativo ao pacote `app/` (ver app.core.media_urls.h5p_content_root).
     H5P_CONTENT_DIR: str = "templates/static/h5p"
     # URL pública dos pacotes H5P extraídos (montada em app.main com StaticFiles).

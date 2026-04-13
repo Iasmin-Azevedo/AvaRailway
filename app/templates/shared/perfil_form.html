@@ -3,7 +3,11 @@
 {% block brand_link %}{{ home_url }}{% endblock %}
 {% block menu_title %}Menu{% endblock %}
 {% block offcanvas_links %}
+{% if home_url == '/admin' %}
+{% include "admin/partials/admin_menu_links.html" %}
+{% else %}
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="{{ home_url }}">Início</a>
+{% endif %}
 {% endblock %}
 {% block main_content %}
 <div class="mb-3"><a href="{{ home_url }}" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar</a></div>
