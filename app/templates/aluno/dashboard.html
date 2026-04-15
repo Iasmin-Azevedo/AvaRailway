@@ -280,18 +280,11 @@
             <button id="chat-delete-btn" class="btn btn-sm btn-outline-danger rounded-pill fw-bold" title="Excluir sessão atual">Excluir</button>
         </div>
     </div>
-    <div class="chat-theme-row px-3 py-2 border-bottom bg-white d-flex align-items-center gap-2">
-        <label for="chat-theme-select" class="small text-muted mb-0">Tema do chat:</label>
-        <select id="chat-theme-select" class="form-select form-select-sm" style="max-width: 180px;">
-            <option value="classic">Clássico</option>
-            <option value="batman">Batman</option>
-            <option value="spiderman">Homem-Aranha</option>
-            <option value="barbie">Barbie</option>
-        </select>
-    </div>
     <div class="px-3 py-2 border-bottom bg-white">
-        <div class="small text-muted mb-2">Atalhos do tutor</div>
+        <div class="small text-muted mb-1">Dicas do seu tutor virtual</div>
+        <div class="small text-muted mb-2">Escolha um caminho guiado para receber ajuda sem confusão.</div>
         <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill chat-open-guided-options">Falar com o chat (guiado)</button>
             <button type="button" class="btn btn-sm btn-outline-primary rounded-pill chat-open-teacher-options">Tirar dúvidas com professor</button>
         </div>
     </div>
@@ -324,17 +317,18 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var form = document.getElementById('chat-form');
     var input = document.getElementById('chat-input');
     var messages = document.getElementById('chat-messages');
-    var themeSelect = document.getElementById('chat-theme-select');
     var sessionId = null;
     var historyLoadedFor = null;
     var sessionsCache = [];
     var pendingTeacherHelpSubject = null;
     var pendingTeacherHelpType = null;
-    var quickActionButtons = document.querySelectorAll('.chat-quick-action');
+    var pendingGuidedSubject = null;
+    var pendingGuidedHelpType = null;
+    var guidedOptionButtons = document.querySelectorAll('.chat-open-guided-options');
     var teacherOptionButtons = document.querySelectorAll('.chat-open-teacher-options');
-    var CHAT_THEME_KEY = 'ava_chat_theme';
     var initialGreeting = 'Oi. Escolha uma opção:';
     var initialActions = [
+        { label: 'Falar com o chat (guiado)', action: 'choose_guided_subject', kind: 'chat' },
         { label: 'Tirar dúvidas com professor', action: 'choose_teacher_subject', kind: 'teacher_help' },
         { label: 'Sair', action: 'close_chat_panel', kind: 'system' }
     ];
@@ -343,20 +337,23 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         { label: 'Sair do chat', action: 'close_chat_panel', kind: 'system' }
     ];
 
-    function applyTheme(theme) {
-        var value = (theme || 'classic').toLowerCase();
-        if (!['classic', 'batman', 'spiderman', 'barbie'].includes(value)) {
-            value = 'classic';
-        }
-        panel.setAttribute('data-chat-theme', value);
-        if (themeSelect) themeSelect.value = value;
-    }
-
     function buildTeacherHelpAssunto(rawText) {
         var text = String(rawText || '').trim();
         if (!text) return '';
         var typeLabel = pendingTeacherHelpType ? ('[' + pendingTeacherHelpType + '] ') : '';
         return (typeLabel + text).slice(0, 255);
+    }
+
+    function buildGuidedTutorMessage(rawText) {
+        var text = String(rawText || '').trim();
+        var subject = pendingGuidedSubject || 'Geral';
+        var kind = pendingGuidedHelpType || 'Outra dúvida';
+        return (
+            'Sou aluno do ensino fundamental e quero ajuda guiada. ' +
+            'Disciplina: ' + subject + '. ' +
+            'Tipo de dúvida: ' + kind + '. ' +
+            'Minha dúvida: ' + text
+        ).slice(0, 2000);
     }
 
     function appendMessage(text, from, actions) {
@@ -475,6 +472,8 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     function resetToGreeting() {
         pendingTeacherHelpSubject = null;
         pendingTeacherHelpType = null;
+        pendingGuidedSubject = null;
+        pendingGuidedHelpType = null;
         messages.innerHTML = '';
         appendMessage(initialGreeting, 'bot', initialActions);
     }
@@ -605,7 +604,52 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     async function handleSuggestedAction(action) {
         if (!action || !action.action) return;
 
+        if (action.action === 'choose_guided_subject') {
+            pendingTeacherHelpSubject = null;
+            pendingTeacherHelpType = null;
+            appendMessage(
+                'Passo 1 de 3: escolha a disciplina para eu te ajudar no modo guiado.',
+                'bot',
+                [
+                    { label: 'Dúvida de Matemática', action: 'choose_guided_help_subject', kind: 'chat', subject: 'Matemática' },
+                    { label: 'Dúvida de Português', action: 'choose_guided_help_subject', kind: 'chat', subject: 'Língua Portuguesa' },
+                    { label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }
+                ]
+            );
+            return;
+        }
+
+        if (action.action === 'choose_guided_help_subject') {
+            pendingGuidedSubject = action.subject || 'Geral';
+            pendingGuidedHelpType = null;
+            appendMessage(
+                'Passo 2 de 3: escolha o tipo da sua dúvida em ' + pendingGuidedSubject + '.',
+                'bot',
+                [
+                    { label: 'Não entendi a explicação', action: 'choose_guided_help_type', kind: 'chat', help_type: 'Não entendi a explicação' },
+                    { label: 'Não consegui resolver exercício', action: 'choose_guided_help_type', kind: 'chat', help_type: 'Não consegui resolver exercício' },
+                    { label: 'Quero revisar para a prova', action: 'choose_guided_help_type', kind: 'chat', help_type: 'Quero revisar para a prova' },
+                    { label: 'Outra dúvida', action: 'choose_guided_help_type', kind: 'chat', help_type: 'Outra dúvida' },
+                    { label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }
+                ]
+            );
+            return;
+        }
+
+        if (action.action === 'choose_guided_help_type') {
+            pendingGuidedHelpType = action.help_type || 'Outra dúvida';
+            appendMessage(
+                'Passo 3 de 3: escreva sua dúvida e eu vou te ajudar passo a passo.',
+                'bot',
+                [{ label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }]
+            );
+            input.focus();
+            return;
+        }
+
         if (action.action === 'request_teacher_help' && action.disciplina) {
+            pendingGuidedSubject = null;
+            pendingGuidedHelpType = null;
             pendingTeacherHelpSubject = action.disciplina;
             pendingTeacherHelpType = null;
             appendMessage(
@@ -634,6 +678,8 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         }
 
         if (action.action === 'choose_teacher_subject') {
+            pendingGuidedSubject = null;
+            pendingGuidedHelpType = null;
             appendMessage(
                 'Passo 1 de 3: escolha a disciplina para eu encaminhar sua dúvida ao professor.',
                 'bot',
@@ -648,6 +694,8 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         if (action.action === 'close_chat_panel') {
             pendingTeacherHelpSubject = null;
             pendingTeacherHelpType = null;
+            pendingGuidedSubject = null;
+            pendingGuidedHelpType = null;
             await closeCurrentSession();
             panel.classList.add('d-none');
             return;
@@ -656,6 +704,8 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         if (action.action === 'go_main_menu') {
             pendingTeacherHelpSubject = null;
             pendingTeacherHelpType = null;
+            pendingGuidedSubject = null;
+            pendingGuidedHelpType = null;
             appendMessage('Tudo certo. Escolha a próxima opção:', 'bot', initialActions);
             input.focus();
             return;
@@ -667,7 +717,11 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         }
 
         if (action.action === 'focus_chat_input') {
-            input.focus();
+            appendMessage(
+                'Para manter a conversa organizada, vamos usar o modo guiado.',
+                'bot',
+                [{ label: 'Continuar no chat guiado', action: 'choose_guided_subject', kind: 'chat' }]
+            );
             return;
         }
 
@@ -722,38 +776,17 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         }
     });
 
-    quickActionButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-            input && input.focus();
-        });
-    });
-
     teacherOptionButtons.forEach(function(button) {
         button.addEventListener('click', function() {
             handleSuggestedAction({ action: 'choose_teacher_subject', kind: 'teacher_help' });
         });
     });
 
-    if (themeSelect) {
-        var savedTheme = null;
-        try {
-            savedTheme = localStorage.getItem(CHAT_THEME_KEY);
-        } catch (err) {
-            savedTheme = null;
-        }
-        applyTheme(savedTheme || 'classic');
-        themeSelect.addEventListener('change', function() {
-            var nextTheme = (this.value || 'classic').toLowerCase();
-            applyTheme(nextTheme);
-            try {
-                localStorage.setItem(CHAT_THEME_KEY, nextTheme);
-            } catch (err) {
-                console.error(err);
-            }
+    guidedOptionButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            handleSuggestedAction({ action: 'choose_guided_subject', kind: 'chat' });
         });
-    } else {
-        applyTheme('classic');
-    }
+    });
 
     sessionSelect && sessionSelect.addEventListener('change', async function() {
         var selected = (this.value || '').trim();
@@ -797,6 +830,33 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         e.preventDefault();
         var text = (input.value || '').trim();
         if (!text) return;
+        if (pendingGuidedSubject) {
+            appendMessage(text, 'user');
+            if (input) input.value = '';
+            var typingNodeGuided = appendTypingBubble();
+            try {
+                const sid = await ensureSession();
+                const payloadText = buildGuidedTutorMessage(text);
+                const resp = await fetch('/api/v1/chat/message', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sid, message: payloadText })
+                });
+                if (!resp.ok) throw new Error('Falha ao enviar mensagem guiada');
+                const data = await resp.json();
+                removeTypingBubble(typingNodeGuided);
+                appendMessage(data.assistant_message || 'Não consegui responder agora.', 'bot', data.suggested_actions || postTeacherHelpActions);
+            } catch (err) {
+                removeTypingBubble(typingNodeGuided);
+                appendMessage('Não consegui concluir sua dúvida guiada agora. Tente novamente em instantes.', 'bot');
+                console.error(err);
+            } finally {
+                pendingGuidedSubject = null;
+                pendingGuidedHelpType = null;
+            }
+            return;
+        }
         if (pendingTeacherHelpSubject) {
             appendMessage(text, 'user');
             if (input) input.value = '';
@@ -841,37 +901,5 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     40% { transform: translateY(-4px); opacity: 1; }
 }
 
-#chat-panel[data-chat-theme="batman"] .chat-panel-header {
-    background: #111827;
-    color: #fbbf24;
-}
-#chat-panel[data-chat-theme="batman"] .chat-panel-header .text-mj-dark {
-    color: #fbbf24 !important;
-}
-#chat-panel[data-chat-theme="batman"] .chat-panel-messages {
-    background: #f3f4f6 !important;
-}
-
-#chat-panel[data-chat-theme="spiderman"] .chat-panel-header {
-    background: #b91c1c;
-    color: #ffffff;
-}
-#chat-panel[data-chat-theme="spiderman"] .chat-panel-header .text-mj-dark {
-    color: #ffffff !important;
-}
-#chat-panel[data-chat-theme="spiderman"] .chat-panel-messages {
-    background: #eff6ff !important;
-}
-
-#chat-panel[data-chat-theme="barbie"] .chat-panel-header {
-    background: #ec4899;
-    color: #ffffff;
-}
-#chat-panel[data-chat-theme="barbie"] .chat-panel-header .text-mj-dark {
-    color: #ffffff !important;
-}
-#chat-panel[data-chat-theme="barbie"] .chat-panel-messages {
-    background: #fdf2f8 !important;
-}
 </style>
 {% endblock %}

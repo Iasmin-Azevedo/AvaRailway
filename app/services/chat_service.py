@@ -164,6 +164,14 @@ class ChatService:
             actions.insert(
                 0,
                 {
+                    "label": "Falar com o chat (guiado)",
+                    "action": "choose_guided_subject",
+                    "kind": "chat",
+                },
+            )
+            actions.insert(
+                1,
+                {
                     "label": "Tirar dúvidas com professor",
                     "action": "choose_teacher_subject",
                     "kind": "teacher_help",
@@ -203,6 +211,11 @@ class ChatService:
                     "action": "send_message",
                     "kind": "chat",
                     "message": "Explique Português em linguagem simples para o ensino fundamental.",
+                },
+                {
+                    "label": "Falar com o chat (guiado)",
+                    "action": "choose_guided_subject",
+                    "kind": "chat",
                 },
                 {
                     "label": "Tirar dúvidas com professor",
@@ -278,6 +291,11 @@ class ChatService:
         role = self._role_value(user)
         if role == "aluno":
             return [
+                {
+                    "label": "Falar com o chat (guiado)",
+                    "action": "choose_guided_subject",
+                    "kind": "chat",
+                },
                 {
                     "label": "Dúvida de Matemática",
                     "action": "send_message",
