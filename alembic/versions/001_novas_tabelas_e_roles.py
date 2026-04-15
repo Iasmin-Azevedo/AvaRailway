@@ -90,6 +90,19 @@ def upgrade() -> None:
         )
         op.create_index(op.f("ix_trilhas_id"), "trilhas", ["id"], unique=False)
 
+    # SAEB descritores: obrigatório antes de atividades_h5p (FK descritor_id).
+    if not _table_exists(conn, "saeb_descritores"):
+        op.create_table(
+            "saeb_descritores",
+            sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column("codigo", sa.String(10), nullable=True),
+            sa.Column("descricao", sa.String(255), nullable=True),
+            sa.Column("disciplina", sa.String(50), nullable=True),
+            sa.PrimaryKeyConstraint("id"),
+        )
+        op.create_index(op.f("ix_saeb_descritores_id"), "saeb_descritores", ["id"], unique=False)
+        op.create_index("ix_saeb_descritores_codigo", "saeb_descritores", ["codigo"], unique=True)
+
     if not _table_exists(conn, "atividades_h5p"):
         op.create_table(
             "atividades_h5p",
@@ -152,6 +165,8 @@ def downgrade() -> None:
         op.drop_table("progresso_h5p")
     if _table_exists(conn, "atividades_h5p"):
         op.drop_table("atividades_h5p")
+    if _table_exists(conn, "saeb_descritores"):
+        op.drop_table("saeb_descritores")
     if _table_exists(conn, "trilhas"):
         op.drop_table("trilhas")
     if _table_exists(conn, "cursos"):

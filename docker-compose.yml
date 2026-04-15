@@ -5,8 +5,6 @@
 # Redis / Ollama (opcional): docker compose --profile cache up -d
 # Desenvolvimento local com bind na máquina: altere temporariamente ports para "8000:8000".
 
-version: "3.9"
-
 services:
   backend:
     build: .
