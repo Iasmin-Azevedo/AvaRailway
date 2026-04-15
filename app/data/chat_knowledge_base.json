@@ -1,0 +1,182 @@
+{
+  "version": "1.0",
+  "description": "Base inicial para melhorar respostas do chatbot por perfil e serie.",
+  "items": [
+    {
+      "source": "kb",
+      "title": "Matematica 5 ano - fracao como parte do todo",
+      "content": "Fracao representa parte de um todo. Em 3/4, o numero 3 indica partes escolhidas e o numero 4 indica em quantas partes iguais o todo foi dividido.",
+      "metadata": {
+        "perfil": "aluno",
+        "disciplina": "matematica",
+        "ano_escolar": 5,
+        "tema": "fracao",
+        "keywords": ["fracao", "numerador", "denominador", "parte do todo"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Matematica 5 ano - comparacao de fracoes",
+      "content": "Para comparar fracoes com mesmo denominador, compare os numeradores. Para denominadores diferentes, transforme em fracoes equivalentes antes de comparar.",
+      "metadata": {
+        "perfil": "aluno",
+        "disciplina": "matematica",
+        "ano_escolar": 5,
+        "tema": "comparacao de fracoes",
+        "keywords": ["comparar fracoes", "fracao equivalente"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Matematica 5 ano - porcentagem basica",
+      "content": "Porcentagem significa por cento. Para calcular 20 por cento de 50, faca 20/100 x 50. O resultado e 10.",
+      "metadata": {
+        "perfil": "aluno",
+        "disciplina": "matematica",
+        "ano_escolar": 5,
+        "tema": "porcentagem",
+        "keywords": ["porcentagem", "por cento", "calculo percentual"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Matematica 6 ano - ordem de operacoes",
+      "content": "A ordem de operacoes e: parenteses, potencias, multiplicacao e divisao, depois soma e subtracao.",
+      "metadata": {
+        "perfil": "aluno",
+        "disciplina": "matematica",
+        "ano_escolar": 6,
+        "tema": "ordem de operacoes",
+        "keywords": ["ordem de operacoes", "parenteses", "multiplicacao", "divisao"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Portugues 5 ano - ideia principal do texto",
+      "content": "Para encontrar a ideia principal, leia o texto inteiro, identifique o assunto repetido e observe o objetivo do autor.",
+      "metadata": {
+        "perfil": "aluno",
+        "disciplina": "portugues",
+        "ano_escolar": 5,
+        "tema": "interpretacao",
+        "keywords": ["ideia principal", "interpretacao de texto"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Portugues 5 ano - classes de palavras",
+      "content": "Substantivo nomeia seres ou coisas. Adjetivo caracteriza o substantivo. Verbo indica acao, estado ou fenomeno.",
+      "metadata": {
+        "perfil": "aluno",
+        "disciplina": "portugues",
+        "ano_escolar": 5,
+        "tema": "gramatica",
+        "keywords": ["substantivo", "adjetivo", "verbo"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Portugues 6 ano - uso de virgula em lista",
+      "content": "Use virgula para separar itens de uma lista: caderno, lapis, borracha e livro.",
+      "metadata": {
+        "perfil": "aluno",
+        "disciplina": "portugues",
+        "ano_escolar": 6,
+        "tema": "pontuacao",
+        "keywords": ["virgula", "pontuacao", "lista"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Portugues 6 ano - inferencia no texto",
+      "content": "Inferir e concluir algo que nao esta escrito diretamente. Use pistas do texto para chegar a conclusao.",
+      "metadata": {
+        "perfil": "aluno",
+        "disciplina": "portugues",
+        "ano_escolar": 6,
+        "tema": "interpretacao",
+        "keywords": ["inferencia", "interpretacao"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Aluno - como pedir ajuda ao professor",
+      "content": "Se a duvida continuar, o aluno pode enviar uma solicitacao ao professor pelo chat. A mensagem deve ser clara e objetiva.",
+      "metadata": {
+        "perfil": "aluno",
+        "tema": "fluxo de suporte",
+        "keywords": ["professor", "duvida", "suporte"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Aluno - organizacao de estudo semanal",
+      "content": "Uma rotina simples inclui revisao curta diaria, resolucao de exercicios e registro de duvidas para discutir com professor.",
+      "metadata": {
+        "perfil": "aluno",
+        "tema": "habito de estudo",
+        "keywords": ["rotina de estudo", "revisao", "exercicios"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Professor - resposta pedagogica no chat",
+      "content": "Para orientar aluno, priorize linguagem simples, exemplo curto e um proximo passo pratico.",
+      "metadata": {
+        "perfil": "professor",
+        "tema": "orientacao pedagogica",
+        "keywords": ["orientacao", "didatica", "feedback"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Professor - leitura de pedidos de ajuda",
+      "content": "Ao receber pedido do chat, validar turma, disciplina e nivel de duvida antes de responder para personalizar o apoio.",
+      "metadata": {
+        "perfil": "professor",
+        "tema": "suporte",
+        "keywords": ["pedido de ajuda", "turma", "disciplina"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Gestor - visao de indicadores",
+      "content": "Indicadores devem ser lidos por periodo, turma e tendencia. Evite decisoes baseadas em um unico ponto isolado.",
+      "metadata": {
+        "perfil": "gestor",
+        "tema": "indicadores",
+        "keywords": ["indicadores", "tendencia", "periodo"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Gestor - acao baseada em dados",
+      "content": "Use dados para priorizar turmas com maior risco e definir plano de intervencao com metas curtas e revisao frequente.",
+      "metadata": {
+        "perfil": "gestor",
+        "tema": "gestao pedagogica",
+        "keywords": ["intervencao", "metas", "risco"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Plataforma - boas praticas de pergunta",
+      "content": "Perguntas boas no chat costumam incluir disciplina, tema e o ponto exato de dificuldade.",
+      "metadata": {
+        "perfil": "geral",
+        "tema": "uso do chat",
+        "keywords": ["pergunta", "chat", "duvida objetiva"]
+      }
+    },
+    {
+      "source": "kb",
+      "title": "Plataforma - quando a base e insuficiente",
+      "content": "Quando nao houver base confiavel, o chat deve declarar limite com transparencia e propor um proximo passo util.",
+      "metadata": {
+        "perfil": "geral",
+        "tema": "confiabilidade",
+        "keywords": ["base insuficiente", "transparencia", "proximo passo"]
+      }
+    }
+  ]
+}

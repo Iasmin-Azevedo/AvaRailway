@@ -121,3 +121,31 @@ O fluxo da resposta segue esta ordem:
 - o sistema guarda sessoes, mensagens, memoria e feedback;
 - isso deixa a base pronta para melhorar o chat sem quebrar o frontend.
 - para aluno, o chat agora direciona para temas do fundamental (matematica, portugues, atividades, aula ao vivo e plataforma) e evita perguntas avulsas fora desse escopo.
+
+## Alimentar base do chat (pacote pronto)
+
+Agora o chatbot tambem le uma base externa em `app/data/chat_knowledge_base.json`.
+
+Formato esperado por item:
+
+```json
+{
+  "source": "kb",
+  "title": "titulo curto e objetivo",
+  "content": "explicacao confiavel e direta",
+  "metadata": {
+    "perfil": "aluno|professor|gestor|geral",
+    "disciplina": "matematica|portugues|...",
+    "ano_escolar": 5,
+    "tema": "fracao|interpretacao|...",
+    "keywords": ["termo1", "termo2"]
+  }
+}
+```
+
+Boas praticas para alimentar:
+
+- manter conteudo curto (3 a 8 linhas por item);
+- usar linguagem simples e sem ambiguidade;
+- incluir `keywords` com sinonimos comuns de busca;
+- separar por perfil e serie para melhorar pertinencia.

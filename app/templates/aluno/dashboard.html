@@ -261,7 +261,7 @@
 </div>
 
 <div id="chat-panel" class="position-fixed end-0 bottom-0 m-4 bg-white border rounded-4 shadow-lg d-none" style="width: min(94vw, 420px); z-index: 1080;">
-    <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
+    <div class="chat-panel-header d-flex align-items-center justify-content-between p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
             <img src="/static/img/ChatBot.gif" alt="" width="34" height="34" class="rounded-circle border">
             <strong class="text-mj-dark">Tutor AVA MJ</strong>
@@ -280,17 +280,25 @@
             <button id="chat-delete-btn" class="btn btn-sm btn-outline-danger rounded-pill fw-bold" title="Excluir sessão atual">Excluir</button>
         </div>
     </div>
+    <div class="chat-theme-row px-3 py-2 border-bottom bg-white d-flex align-items-center gap-2">
+        <label for="chat-theme-select" class="small text-muted mb-0">Tema do chat:</label>
+        <select id="chat-theme-select" class="form-select form-select-sm" style="max-width: 180px;">
+            <option value="classic">Clássico</option>
+            <option value="batman">Batman</option>
+            <option value="spiderman">Homem-Aranha</option>
+            <option value="barbie">Barbie</option>
+        </select>
+    </div>
     <div class="px-3 py-2 border-bottom bg-white">
         <div class="small text-muted mb-2">Atalhos do tutor</div>
         <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill chat-quick-action" data-chat-focus="1">Falar com o chat</button>
-            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill chat-open-teacher-options">Falar com professor</button>
+            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill chat-open-teacher-options">Tirar dúvidas com professor</button>
         </div>
     </div>
-    <div id="chat-messages" class="p-3" style="height: 360px; overflow-y: auto; background: #fafbfc;">
+    <div id="chat-messages" class="chat-panel-messages p-3" style="height: 360px; overflow-y: auto; background: #fafbfc;">
         <div class="small text-muted">Olá! Eu sou seu tutor virtual. Como posso ajudar?</div>
     </div>
-    <form id="chat-form" class="p-3 border-top">
+    <form id="chat-form" class="chat-panel-form p-3 border-top">
         <div class="input-group">
             <input id="chat-input" type="text" class="form-control" placeholder="Digite sua dúvida..." maxlength="2000" required>
             <button class="btn btn-warning fw-bold" type="submit">Enviar</button>
@@ -316,22 +324,40 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var form = document.getElementById('chat-form');
     var input = document.getElementById('chat-input');
     var messages = document.getElementById('chat-messages');
+    var themeSelect = document.getElementById('chat-theme-select');
     var sessionId = null;
     var historyLoadedFor = null;
     var sessionsCache = [];
     var pendingTeacherHelpSubject = null;
+    var pendingTeacherHelpType = null;
     var quickActionButtons = document.querySelectorAll('.chat-quick-action');
     var teacherOptionButtons = document.querySelectorAll('.chat-open-teacher-options');
+    var CHAT_THEME_KEY = 'ava_chat_theme';
     var initialGreeting = 'Oi. Escolha uma opção:';
     var initialActions = [
-        { label: 'Falar com o chat', action: 'focus_chat_input', kind: 'chat' },
-        { label: 'Falar com professor', action: 'choose_teacher_subject', kind: 'teacher_help' },
+        { label: 'Tirar dúvidas com professor', action: 'choose_teacher_subject', kind: 'teacher_help' },
         { label: 'Sair', action: 'close_chat_panel', kind: 'system' }
     ];
     var postTeacherHelpActions = [
         { label: 'Voltar ao menu inicial', action: 'go_main_menu', kind: 'chat' },
         { label: 'Sair do chat', action: 'close_chat_panel', kind: 'system' }
     ];
+
+    function applyTheme(theme) {
+        var value = (theme || 'classic').toLowerCase();
+        if (!['classic', 'batman', 'spiderman', 'barbie'].includes(value)) {
+            value = 'classic';
+        }
+        panel.setAttribute('data-chat-theme', value);
+        if (themeSelect) themeSelect.value = value;
+    }
+
+    function buildTeacherHelpAssunto(rawText) {
+        var text = String(rawText || '').trim();
+        if (!text) return '';
+        var typeLabel = pendingTeacherHelpType ? ('[' + pendingTeacherHelpType + '] ') : '';
+        return (typeLabel + text).slice(0, 255);
+    }
 
     function appendMessage(text, from, actions) {
         var wrap = document.createElement('div');
@@ -448,6 +474,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
 
     function resetToGreeting() {
         pendingTeacherHelpSubject = null;
+        pendingTeacherHelpType = null;
         messages.innerHTML = '';
         appendMessage(initialGreeting, 'bot', initialActions);
     }
@@ -580,8 +607,25 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
 
         if (action.action === 'request_teacher_help' && action.disciplina) {
             pendingTeacherHelpSubject = action.disciplina;
+            pendingTeacherHelpType = null;
             appendMessage(
-                'Perfeito. Agora escreva sua dúvida para o professor de ' + action.disciplina + '.',
+                'Ótimo. Passo 2 de 3: escolha o tipo da sua dúvida em ' + action.disciplina + '.',
+                'bot',
+                [
+                    { label: 'Não entendi a explicação', action: 'choose_teacher_help_type', kind: 'teacher_help', help_type: 'Não entendi a explicação' },
+                    { label: 'Não consegui resolver exercício', action: 'choose_teacher_help_type', kind: 'teacher_help', help_type: 'Não consegui resolver exercício' },
+                    { label: 'Quero revisar para a prova', action: 'choose_teacher_help_type', kind: 'teacher_help', help_type: 'Quero revisar para a prova' },
+                    { label: 'Outra dúvida', action: 'choose_teacher_help_type', kind: 'teacher_help', help_type: 'Outra dúvida' },
+                    { label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }
+                ]
+            );
+            return;
+        }
+
+        if (action.action === 'choose_teacher_help_type') {
+            pendingTeacherHelpType = action.help_type || 'Outra dúvida';
+            appendMessage(
+                'Perfeito. Passo 3 de 3: escreva sua dúvida para eu enviar ao professor.',
                 'bot',
                 [{ label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }]
             );
@@ -591,11 +635,11 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
 
         if (action.action === 'choose_teacher_subject') {
             appendMessage(
-                'Escolha a disciplina para eu encaminhar sua dúvida ao professor.',
+                'Passo 1 de 3: escolha a disciplina para eu encaminhar sua dúvida ao professor.',
                 'bot',
                 [
-                    { label: 'Professor de Matemática', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Matemática' },
-                    { label: 'Professor de Português', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Língua Portuguesa' }
+                    { label: 'Tirar dúvidas de Matemática', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Matemática' },
+                    { label: 'Tirar dúvidas de Português', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Língua Portuguesa' }
                 ]
             );
             return;
@@ -603,6 +647,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
 
         if (action.action === 'close_chat_panel') {
             pendingTeacherHelpSubject = null;
+            pendingTeacherHelpType = null;
             await closeCurrentSession();
             panel.classList.add('d-none');
             return;
@@ -610,7 +655,8 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
 
         if (action.action === 'go_main_menu') {
             pendingTeacherHelpSubject = null;
-            appendMessage('Tudo certo. Escolha a proxima opcao:', 'bot', initialActions);
+            pendingTeacherHelpType = null;
+            appendMessage('Tudo certo. Escolha a próxima opção:', 'bot', initialActions);
             input.focus();
             return;
         }
@@ -688,6 +734,27 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         });
     });
 
+    if (themeSelect) {
+        var savedTheme = null;
+        try {
+            savedTheme = localStorage.getItem(CHAT_THEME_KEY);
+        } catch (err) {
+            savedTheme = null;
+        }
+        applyTheme(savedTheme || 'classic');
+        themeSelect.addEventListener('change', function() {
+            var nextTheme = (this.value || 'classic').toLowerCase();
+            applyTheme(nextTheme);
+            try {
+                localStorage.setItem(CHAT_THEME_KEY, nextTheme);
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    } else {
+        applyTheme('classic');
+    }
+
     sessionSelect && sessionSelect.addEventListener('change', async function() {
         var selected = (this.value || '').trim();
         if (!selected) return;
@@ -734,7 +801,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             appendMessage(text, 'user');
             if (input) input.value = '';
             try {
-                await createTeacherHelpRequest(pendingTeacherHelpSubject, text.slice(0, 255));
+                await createTeacherHelpRequest(pendingTeacherHelpSubject, buildTeacherHelpAssunto(text));
                 appendMessage(
                     'Mensagem enviada com sucesso para o professor de ' + pendingTeacherHelpSubject + '.',
                     'bot',
@@ -745,6 +812,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
                 console.error(err);
             } finally {
                 pendingTeacherHelpSubject = null;
+                pendingTeacherHelpType = null;
             }
             return;
         }
@@ -771,6 +839,39 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
 @keyframes chatTypingBounce {
     0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
     40% { transform: translateY(-4px); opacity: 1; }
+}
+
+#chat-panel[data-chat-theme="batman"] .chat-panel-header {
+    background: #111827;
+    color: #fbbf24;
+}
+#chat-panel[data-chat-theme="batman"] .chat-panel-header .text-mj-dark {
+    color: #fbbf24 !important;
+}
+#chat-panel[data-chat-theme="batman"] .chat-panel-messages {
+    background: #f3f4f6 !important;
+}
+
+#chat-panel[data-chat-theme="spiderman"] .chat-panel-header {
+    background: #b91c1c;
+    color: #ffffff;
+}
+#chat-panel[data-chat-theme="spiderman"] .chat-panel-header .text-mj-dark {
+    color: #ffffff !important;
+}
+#chat-panel[data-chat-theme="spiderman"] .chat-panel-messages {
+    background: #eff6ff !important;
+}
+
+#chat-panel[data-chat-theme="barbie"] .chat-panel-header {
+    background: #ec4899;
+    color: #ffffff;
+}
+#chat-panel[data-chat-theme="barbie"] .chat-panel-header .text-mj-dark {
+    color: #ffffff !important;
+}
+#chat-panel[data-chat-theme="barbie"] .chat-panel-messages {
+    background: #fdf2f8 !important;
 }
 </style>
 {% endblock %}

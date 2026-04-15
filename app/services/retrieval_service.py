@@ -1,5 +1,8 @@
+import json
+import logging
 import re
 import unicodedata
+from pathlib import Path
 from typing import List
 
 from sqlalchemy.orm import Session
@@ -17,6 +20,8 @@ try:
 except Exception:
     SentenceTransformer = None
     util = None
+
+logger = logging.getLogger("ava_mj_backend.chat_retrieval")
 
 
 class RetrievalService:
@@ -76,6 +81,7 @@ class RetrievalService:
         self.moodle_client = MoodleClient()
         self.enabled = settings.CHAT_ENABLE_SEMANTIC_SEARCH and SentenceTransformer is not None
         self.model = None
+        self.external_kb_path = Path(__file__).resolve().parent.parent / "data" / "chat_knowledge_base.json"
         self.base_corpus = [
             {
                 "source": "faq",
@@ -120,10 +126,44 @@ class RetrievalService:
                 "metadata": {"area": "português", "keywords": ["interpretação", "interpretacao", "texto", "leitura"]},
             },
         ]
+        self.base_corpus.extend(self._load_external_corpus())
         self.corpus_embeddings = None
 
         if self.enabled:
             self.model = SentenceTransformer(settings.CHAT_EMBEDDING_MODEL)
+
+    def _load_external_corpus(self) -> list[dict]:
+        if not self.external_kb_path.exists():
+            return []
+        try:
+            payload = json.loads(self.external_kb_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            logger.warning("Falha ao carregar base externa do chat: %s", exc)
+            return []
+
+        rows = payload.get("items", []) if isinstance(payload, dict) else []
+        if not isinstance(rows, list):
+            return []
+
+        out: list[dict] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            source = (row.get("source") or "kb").strip()
+            title = (row.get("title") or "").strip()
+            content = (row.get("content") or "").strip()
+            metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+            if not title or not content:
+                continue
+            out.append(
+                {
+                    "source": source,
+                    "title": title,
+                    "content": content,
+                    "metadata": metadata,
+                }
+            )
+        return out
 
     def _repair_text(self, text: str) -> str:
         try:
@@ -155,6 +195,31 @@ class RetrievalService:
             if any(alias in normalized_query for alias in alias_tokens):
                 expanded.update(self._tokenize(" ".join(alias_tokens)))
         return list(expanded)
+
+    def _context_relevance_multiplier(self, item: dict, context: dict | None) -> float:
+        if not context:
+            return 1.0
+        metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+        user_profile = str((context.get("user", {}) or {}).get("perfil") or "").strip().lower()
+        user_year = (context.get("pedagogical", {}) or {}).get("ano_escolar")
+        multiplier = 1.0
+
+        item_profile = str(metadata.get("perfil") or "").strip().lower()
+        if item_profile:
+            if item_profile in {"geral", "all"}:
+                multiplier *= 1.05
+            elif user_profile and item_profile == user_profile:
+                multiplier *= 1.15
+            elif user_profile and item_profile != user_profile:
+                multiplier *= 0.82
+
+        item_year = metadata.get("ano_escolar")
+        if isinstance(item_year, int) and isinstance(user_year, int):
+            if item_year == user_year:
+                multiplier *= 1.1
+            else:
+                multiplier *= 0.9
+        return multiplier
 
     def _build_dynamic_corpus(self, context: dict | None = None) -> list[dict]:
         corpus = list(self.base_corpus)
@@ -250,11 +315,11 @@ class RetrievalService:
     def search(self, query: str, top_k: int | None = None, context: dict | None = None) -> List[RetrievedChunk]:
         top_k = top_k or settings.CHAT_RETRIEVAL_TOP_K
         corpus = self._build_dynamic_corpus(context)
-        direct_matches = self.direct_match(query, corpus, top_k)
+        direct_matches = self.direct_match(query, corpus, top_k, context=context)
         if direct_matches:
             return direct_matches
         if not self.enabled or not self.model or util is None:
-            return self.keyword_fallback(query, top_k, corpus)
+            return self.keyword_fallback(query, top_k, corpus, context=context)
 
         corpus_embeddings = self.model.encode(
             [item["content"] for item in corpus],
@@ -266,7 +331,11 @@ class RetrievalService:
         for hit in hits:
             item = corpus[hit["corpus_id"]]
             raw_score = float(hit["score"])
-            adjusted_score = raw_score * self._source_weight(item["source"])
+            adjusted_score = (
+                raw_score
+                * self._source_weight(item["source"])
+                * self._context_relevance_multiplier(item, context)
+            )
             if adjusted_score < 0.2:
                 continue
             scored_results.append(
@@ -284,7 +353,13 @@ class RetrievalService:
         scored_results.sort(key=lambda row: row[0], reverse=True)
         return [row[1] for row in scored_results[:top_k]]
 
-    def keyword_fallback(self, query: str, top_k: int, corpus: list[dict]) -> List[RetrievedChunk]:
+    def keyword_fallback(
+        self,
+        query: str,
+        top_k: int,
+        corpus: list[dict],
+        context: dict | None = None,
+    ) -> List[RetrievedChunk]:
         query_terms = self._expand_query_terms(query)
         scored = []
         for item in corpus:
@@ -294,7 +369,11 @@ class RetrievalService:
                 score += 3
             if item["source"] in {"descritor", "atividade", "trilha"} and any(term in item_terms for term in query_terms):
                 score += 1
-            score = score * self._source_weight(item["source"])
+            score = (
+                score
+                * self._source_weight(item["source"])
+                * self._context_relevance_multiplier(item, context)
+            )
             if score > 0:
                 scored.append((score, item))
         scored.sort(key=lambda x: x[0], reverse=True)
@@ -309,7 +388,13 @@ class RetrievalService:
             for score, item in scored[:top_k]
         ]
 
-    def direct_match(self, query: str, corpus: list[dict], top_k: int) -> List[RetrievedChunk]:
+    def direct_match(
+        self,
+        query: str,
+        corpus: list[dict],
+        top_k: int,
+        context: dict | None = None,
+    ) -> List[RetrievedChunk]:
         normalized_query = self._normalize(query)
         query_terms = self._expand_query_terms(query)
         matches = []
@@ -334,7 +419,11 @@ class RetrievalService:
                         source=item["source"],
                         title=item["title"],
                         content=item["content"],
-                        score=100.0 * self._source_weight(item["source"]),
+                        score=(
+                            100.0
+                            * self._source_weight(item["source"])
+                            * self._context_relevance_multiplier(item, context)
+                        ),
                         metadata=item["metadata"],
                     )
                 )

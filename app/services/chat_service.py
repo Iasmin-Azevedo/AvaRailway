@@ -119,16 +119,15 @@ class ChatService:
         wants_teacher_help: bool = False,
         knowledge_status: str = "grounded",
     ) -> list[dict]:
-        actions = [
-            {"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"},
-            {"label": "Sair", "action": "close_chat_panel", "kind": "system"},
-        ]
-
         role = getattr(user.role, "value", user.role)
+        actions = [{"label": "Sair", "action": "close_chat_panel", "kind": "system"}]
+        if role != "aluno":
+            actions.insert(0, {"label": "Escrever minha dúvida", "action": "focus_chat_input", "kind": "chat"})
+
         if role == "aluno" and subject:
             actions.append(
                 {
-                    "label": f"Chamar professor de {subject}",
+                    "label": f"Tirar dúvidas com professor de {subject}",
                     "action": "request_teacher_help",
                     "kind": "teacher_help",
                     "disciplina": subject,
@@ -146,32 +145,32 @@ class ChatService:
             )
 
         if wants_teacher_help and subject:
-            actions.insert(
-                0,
-                {
-                    "label": "Falar com o chat",
-                    "action": "focus_chat_input",
-                    "kind": "chat",
-                }
-            )
+            if role != "aluno":
+                actions.insert(
+                    0,
+                    {
+                        "label": "Escrever minha dúvida",
+                        "action": "focus_chat_input",
+                        "kind": "chat",
+                    }
+                )
 
         return actions
 
     def _build_main_menu_actions(self, user: Usuario) -> list[dict]:
-        actions = [
-            {"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"},
-            {"label": "Sair", "action": "close_chat_panel", "kind": "system"},
-        ]
+        actions = [{"label": "Sair", "action": "close_chat_panel", "kind": "system"}]
         role = getattr(user.role, "value", user.role)
         if role == "aluno":
             actions.insert(
-                1,
+                0,
                 {
-                    "label": "Falar com professor",
+                    "label": "Tirar dúvidas com professor",
                     "action": "choose_teacher_subject",
                     "kind": "teacher_help",
                 }
             )
+        else:
+            actions.insert(0, {"label": "Escrever minha dúvida", "action": "focus_chat_input", "kind": "chat"})
         return actions
 
     def _role_value(self, user: Usuario) -> str:
@@ -206,7 +205,7 @@ class ChatService:
                     "message": "Explique Português em linguagem simples para o ensino fundamental.",
                 },
                 {
-                    "label": "Falar com professor",
+                    "label": "Tirar dúvidas com professor",
                     "action": "choose_teacher_subject",
                     "kind": "teacher_help",
                 },
@@ -253,7 +252,7 @@ class ChatService:
                     "message": "Explique os fluxos de gestão disponíveis para o meu perfil.",
                 },
             ]
-        return [{"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"}]
+        return [{"label": "Escrever minha dúvida", "action": "focus_chat_input", "kind": "chat"}]
 
     def _looks_like_basic_math_expression(self, message: str) -> bool:
         return bool(re.search(r"[\d\+\-\*/=()]{3,}", message or ""))
@@ -298,7 +297,7 @@ class ChatService:
                     "message": "Quais atividades estão pendentes para mim?",
                 },
                 {
-                    "label": "Falar com professor",
+                    "label": "Tirar dúvidas com professor",
                     "action": "choose_teacher_subject",
                     "kind": "teacher_help",
                 },
@@ -365,14 +364,14 @@ class ChatService:
     def _build_teacher_choice_actions(self) -> list[dict]:
         return [
             {
-                "label": "Professor de Matemática",
+                "label": "Tirar dúvidas de Matemática",
                 "action": "request_teacher_help",
                 "kind": "teacher_help",
                 "disciplina": "Matemática",
                 "endpoint": "/api/v1/live-support/teacher-help-requests",
             },
             {
-                "label": "Professor de Português",
+                "label": "Tirar dúvidas de Português",
                 "action": "request_teacher_help",
                 "kind": "teacher_help",
                 "disciplina": "Língua Portuguesa",
@@ -383,16 +382,15 @@ class ChatService:
     def _build_operational_actions(self, topic: str) -> list[dict]:
         if topic == "atividade":
             return [
-                {"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"},
                 {
-                    "label": "Chamar professor de Matemática",
+                    "label": "Tirar dúvidas com professor de Matemática",
                     "action": "request_teacher_help",
                     "kind": "teacher_help",
                     "disciplina": "Matemática",
                     "endpoint": "/api/v1/live-support/teacher-help-requests",
                 },
                 {
-                    "label": "Chamar professor de Português",
+                    "label": "Tirar dúvidas com professor de Português",
                     "action": "request_teacher_help",
                     "kind": "teacher_help",
                     "disciplina": "Língua Portuguesa",
@@ -401,15 +399,20 @@ class ChatService:
             ]
         if topic == "aula_ao_vivo":
             return [
-                {"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"},
                 {
-                    "label": "Falar com professor",
+                    "label": "Tirar dúvidas com professor",
                     "action": "choose_teacher_subject",
                     "kind": "teacher_help",
                 },
             ]
         if topic == "plataforma":
-            return [{"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"}]
+            return [
+                {
+                    "label": "Tirar dúvidas com professor",
+                    "action": "choose_teacher_subject",
+                    "kind": "teacher_help",
+                }
+            ]
         return []
 
     def _normalize_text(self, text: str) -> str:
@@ -524,7 +527,7 @@ class ChatService:
         else:
             response = (
                 f"Você já concluiu {completed_count} atividades das {len(available_activities)} que encontrei para o seu ano. "
-                "Se quiser, posso te ajudar a revisar o conteúdo ou chamar o professor."
+                "Se quiser, posso te ajudar a revisar o conteúdo ou abrir a opção de tirar dúvidas com professor."
             )
 
         if asks_for_status and pending_activity:
@@ -660,7 +663,7 @@ class ChatService:
             return self._store_simple_response(
                 session,
                 message,
-                "Posso encaminhar sua dúvida para um professor. Escolha a disciplina para eu enviar a solicitação corretamente.",
+                "Posso te ajudar a tirar dúvidas com professor. Escolha a disciplina para eu encaminhar corretamente.",
                 "teacher_guidance",
                 suggested_actions=self._build_teacher_choice_actions(),
             )
@@ -668,7 +671,7 @@ class ChatService:
         if wants_teacher_help and subject:
             guidance = (
                 f"Entendi que você quer ajuda em {subject}. "
-                f"Você pode continuar comigo para uma explicação inicial ou chamar o professor de {subject}. "
+                f"Você pode continuar comigo para uma explicação inicial ou tirar dúvidas com professor de {subject}. "
                 "Se preferir o professor, use a opção de solicitação para eu encaminhar corretamente."
             )
             return self._store_simple_response(
