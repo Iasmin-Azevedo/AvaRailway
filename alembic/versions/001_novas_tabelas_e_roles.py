@@ -181,21 +181,51 @@ def upgrade() -> None:
                 op.f("ix_atividades_h5p_id"), "atividades_h5p", ["id"], unique=False
             )
 
-    if not _table_exists(conn, "progresso_h5p"):
-        op.create_table(
-            "progresso_h5p",
-            sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-            sa.Column("aluno_id", sa.Integer(), nullable=False),
-            sa.Column("atividade_id", sa.Integer(), nullable=False),
-            sa.Column("concluido", sa.Boolean(), default=False),
-            sa.Column("score", sa.Float(), nullable=True),
-            sa.Column("data_conclusao", sa.DateTime(), nullable=True),
-            sa.Column("tentativas", sa.Integer(), default=0),
-            sa.ForeignKeyConstraint(["aluno_id"], ["alunos.id"], ondelete="CASCADE"),
-            sa.ForeignKeyConstraint(["atividade_id"], ["atividades_h5p.id"], ondelete="CASCADE"),
-            sa.PrimaryKeyConstraint("id"),
-        )
-        op.create_index(op.f("ix_progresso_h5p_id"), "progresso_h5p", ["id"], unique=False)
+    # progresso_h5p referencia alunos: em BD vazia, alunos só surge depois do create_all no startup.
+    # Se o Alembic rodar antes do app, pular aqui — o SQLAlchemy criará progresso_h5p no próximo startup.
+    if not _table_exists(conn, "progresso_h5p") and _table_exists(conn, "alunos") and _table_exists(
+        conn, "atividades_h5p"
+    ):
+        if dialeto == "mysql":
+            op.execute(
+                sa.text(
+                    """
+                    CREATE TABLE IF NOT EXISTS progresso_h5p (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        aluno_id INT NOT NULL,
+                        atividade_id INT NOT NULL,
+                        concluido TINYINT(1) NULL DEFAULT 0,
+                        score DOUBLE NULL,
+                        data_conclusao DATETIME NULL,
+                        tentativas INT NULL DEFAULT 0,
+                        PRIMARY KEY (id),
+                        CONSTRAINT fk_progresso_h5p_aluno_id
+                            FOREIGN KEY (aluno_id) REFERENCES alunos (id) ON DELETE CASCADE,
+                        CONSTRAINT fk_progresso_h5p_atividade_id
+                            FOREIGN KEY (atividade_id) REFERENCES atividades_h5p (id) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """
+                )
+            )
+        else:
+            op.create_table(
+                "progresso_h5p",
+                sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+                sa.Column("aluno_id", sa.Integer(), nullable=False),
+                sa.Column("atividade_id", sa.Integer(), nullable=False),
+                sa.Column("concluido", sa.Boolean(), default=False),
+                sa.Column("score", sa.Float(), nullable=True),
+                sa.Column("data_conclusao", sa.DateTime(), nullable=True),
+                sa.Column("tentativas", sa.Integer(), default=0),
+                sa.ForeignKeyConstraint(["aluno_id"], ["alunos.id"], ondelete="CASCADE"),
+                sa.ForeignKeyConstraint(
+                    ["atividade_id"], ["atividades_h5p.id"], ondelete="CASCADE"
+                ),
+                sa.PrimaryKeyConstraint("id"),
+            )
+            op.create_index(
+                op.f("ix_progresso_h5p_id"), "progresso_h5p", ["id"], unique=False
+            )
 
     # 3) Alunos: adicionar FK turma_id -> turmas se ainda não existir
     #    Em MySQL, se a coluna já existe como INT, podemos adicionar a FK.
