@@ -50,19 +50,19 @@ class ChatGuardrailsService:
             r"\bremov(a|er)\b.*\b(permiss[aã]o|acesso|restric[aã]o)\b",
         ]
         self.safe_reply = (
-            "Nao posso ajudar com ofensas, palavroes, discriminacao ou qualquer conteudo que fira "
-            "a dignidade humana. Se voce quiser, posso reformular sua pergunta de forma respeitosa "
+            "Não posso ajudar com ofensas, palavrões, discriminação ou qualquer conteúdo que fira "
+            "a dignidade humana. Se você quiser, posso reformular sua pergunta de forma respeitosa "
             "e ajudar no tema permitido."
         )
         self.protected_reply = (
-            "Nao posso ajudar com pedido de violencia, autoagressao, exploracao sexual, invasao, "
-            "roubo de acesso ou qualquer conteudo perigoso. Se a situacao for academica ou preventiva, "
+            "Não posso ajudar com pedido de violência, autoagressão, exploração sexual, invasão, "
+            "roubo de acesso ou qualquer conteúdo perigoso. Se a situação for acadêmica ou preventiva, "
             "posso explicar o tema de forma segura e educativa."
         )
         self.mutation_reply = (
-            "Nao posso executar, orientar ou autorizar alteracoes operacionais no sistema por conversa, "
-            "como mudanca de permissao, senha, perfil, configuracao, nota ou exclusao de dados. "
-            "Se houver necessidade real, isso deve ser feito pelos fluxos administrativos e tecnicos apropriados."
+            "Não posso executar, orientar ou autorizar alterações operacionais no sistema por conversa, "
+            "como mudança de permissão, senha, perfil, configuração, nota ou exclusão de dados. "
+            "Se houver necessidade real, isso deve ser feito pelos fluxos administrativos e técnicos apropriados."
         )
 
     def _normalize(self, text: str) -> str:
@@ -84,7 +84,7 @@ class ChatGuardrailsService:
         if self.has_blocked_content(text):
             return (
                 "blocked_offense",
-                "Essa mensagem foi bloqueada. Aqui o chat precisa manter respeito, sem xingamentos, ofensas, discriminacao ou conteudo que fira direitos humanos. Se quiser, reformule sua pergunta de forma respeitosa que eu continuo te ajudando.",
+                "Essa mensagem foi bloqueada. Aqui, o chat precisa manter respeito, sem xingamentos, ofensas, discriminação ou conteúdo que fira os direitos humanos. Se quiser, reformule sua pergunta de forma respeitosa que eu continuo te ajudando.",
             )
         if self.requests_system_mutation(text):
             return ("blocked_system_mutation", self.mutation_reply)
