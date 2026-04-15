@@ -91,7 +91,24 @@ def upgrade() -> None:
         op.create_index(op.f("ix_trilhas_id"), "trilhas", ["id"], unique=False)
 
     # SAEB descritores: obrigatório antes de atividades_h5p (FK descritor_id).
-    if not _table_exists(conn, "saeb_descritores"):
+    # No MySQL usamos CREATE TABLE IF NOT EXISTS para ser idempotente mesmo se o
+    # inventário de tabelas do SQLAlchemy estiver defasado (deploy antigo / imagem em cache).
+    if dialeto == "mysql":
+        op.execute(
+            sa.text(
+                """
+                CREATE TABLE IF NOT EXISTS saeb_descritores (
+                    id INT NOT NULL AUTO_INCREMENT,
+                    codigo VARCHAR(10) NULL,
+                    descricao VARCHAR(255) NULL,
+                    disciplina VARCHAR(50) NULL,
+                    PRIMARY KEY (id),
+                    UNIQUE KEY uq_saeb_descritores_codigo (codigo)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """
+            )
+        )
+    elif not _table_exists(conn, "saeb_descritores"):
         op.create_table(
             "saeb_descritores",
             sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
