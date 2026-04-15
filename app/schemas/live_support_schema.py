@@ -58,3 +58,7 @@ class SolicitacaoProfessorAck(BaseModel):
     success: bool
     message: str
     request_id: int
+
+
+class SolicitacaoProfessorStatusUpdateRequest(BaseModel):
+    status: str = Field(min_length=3, max_length=20)

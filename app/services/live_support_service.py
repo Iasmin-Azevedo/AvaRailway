@@ -175,3 +175,32 @@ class LiveSupportService:
         if user.role != UserRole.PROFESSOR:
             return []
         return self.solicitacao_repo.list_for_professor(self.db, user.id)
+
+    def update_teacher_help_request_status(self, user: Usuario, request_id: int, next_status: str):
+        if user.role != UserRole.PROFESSOR:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Somente professores podem atualizar o status da solicitação.",
+            )
+
+        normalized = (next_status or "").strip().lower()
+        allowed_statuses = {"pendente", "em_analise", "respondida"}
+        if normalized not in allowed_statuses:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Status inválido. Use pendente, em_analise ou respondida.",
+            )
+
+        item = self.solicitacao_repo.get_for_professor(self.db, user.id, request_id)
+        if not item:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Solicitação não encontrada para o professor autenticado.",
+            )
+
+        item.status = normalized
+        item.responded_at = datetime.utcnow() if normalized == "respondida" else None
+        self.db.add(item)
+        self.db.commit()
+        self.db.refresh(item)
+        return item

@@ -59,3 +59,13 @@ class SolicitacaoProfessorRepository:
             .limit(limit)
             .all()
         )
+
+    def get_for_professor(self, db: Session, professor_id: int, request_id: int) -> SolicitacaoProfessor | None:
+        return (
+            db.query(SolicitacaoProfessor)
+            .filter(
+                SolicitacaoProfessor.id == request_id,
+                SolicitacaoProfessor.professor_id == professor_id,
+            )
+            .first()
+        )

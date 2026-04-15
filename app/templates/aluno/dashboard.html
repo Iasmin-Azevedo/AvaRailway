@@ -219,10 +219,33 @@
                     <div class="bg-white p-1 rounded-circle shadow-sm border border-warning border-opacity-25 overflow-hidden" style="width: 56px; height: 56px;">
                         <img src="/static/img/ChatBot.png" alt="Tutor virtual" width="54" height="54" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
-                    <h6 class="fw-bold text-warning-emphasis mb-0">Dica do seu Tutor Virtual</h6>
+                    <h6 class="fw-bold text-warning-emphasis mb-0">Status das suas dúvidas com professor</h6>
                 </div>
-                <p class="small text-dark mb-3">Notei que você teve um pouco de dúvida sobre <strong>Ponto Final</strong> na última missão. Que tal uma microaula rápida e divertida para gabaritar na próxima?</p>
-                <button class="btn btn-sm btn-warning text-dark fw-bold w-100 rounded-pill shadow-sm">Assistir Microaula (3 min)</button>
+                {% if teacher_help_status_card and teacher_help_status_card.has_request %}
+                <div class="small text-dark mb-2">
+                    <strong>Última dúvida:</strong> {{ teacher_help_status_card.latest.assunto }}
+                </div>
+                <div class="small text-muted mb-2">
+                    {{ teacher_help_status_card.latest.disciplina }} · enviada em {{ teacher_help_status_card.latest.created_at.strftime("%d/%m/%Y %H:%M") }}
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="badge rounded-pill {{ teacher_help_status_card.latest.status_badge }}">
+                        {{ teacher_help_status_card.latest.status_label }}
+                    </span>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <span class="badge rounded-pill bg-warning text-dark">Pendentes: {{ teacher_help_status_card.pending_count }}</span>
+                    <span class="badge rounded-pill bg-info text-dark">Em análise: {{ teacher_help_status_card.in_review_count }}</span>
+                    <span class="badge rounded-pill bg-success text-white">Respondidas: {{ teacher_help_status_card.answered_count }}</span>
+                </div>
+                {% else %}
+                <p class="small text-dark mb-3">
+                    Você ainda não enviou dúvidas para o professor. Quando enviar pelo chat, o status aparecerá aqui.
+                </p>
+                {% endif %}
+                <button id="chat-open-guided-from-status" class="btn btn-sm btn-warning text-dark fw-bold w-100 rounded-pill shadow-sm">
+                    Falar com o chat (guiado)
+                </button>
             </div>
         </div>
 
@@ -260,7 +283,7 @@
     </div>
 </div>
 
-<div id="chat-panel" class="position-fixed end-0 bottom-0 m-4 bg-white border rounded-4 shadow-lg d-none" style="width: min(94vw, 420px); z-index: 1080;">
+<div id="chat-panel" class="position-fixed end-0 bottom-0 m-4 bg-white border rounded-4 shadow-lg d-none" style="width: min(88vw, 360px); z-index: 1080;">
     <div class="chat-panel-header d-flex align-items-center justify-content-between p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
             <img src="/static/img/ChatBot.gif" alt="" width="34" height="34" class="rounded-circle border">
@@ -280,15 +303,7 @@
             <button id="chat-delete-btn" class="btn btn-sm btn-outline-danger rounded-pill fw-bold" title="Excluir sessão atual">Excluir</button>
         </div>
     </div>
-    <div class="px-3 py-2 border-bottom bg-white">
-        <div class="small text-muted mb-1">Dicas do seu tutor virtual</div>
-        <div class="small text-muted mb-2">Escolha um caminho guiado para receber ajuda sem confusão.</div>
-        <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill chat-open-guided-options">Falar com o chat (guiado)</button>
-            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill chat-open-teacher-options">Tirar dúvidas com professor</button>
-        </div>
-    </div>
-    <div id="chat-messages" class="chat-panel-messages p-3" style="height: 360px; overflow-y: auto; background: #fafbfc;">
+    <div id="chat-messages" class="chat-panel-messages p-3" style="height: 300px; overflow-y: auto; background: #fafbfc;">
         <div class="small text-muted">Olá! Eu sou seu tutor virtual. Como posso ajudar?</div>
     </div>
     <form id="chat-form" class="chat-panel-form p-3 border-top">
@@ -313,6 +328,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var sessionsTools = document.getElementById('chat-sessions-tools');
     var sessionSelect = document.getElementById('chat-session-select');
     var closeBtn = document.getElementById('chat-close-btn');
+    var openGuidedFromStatusBtn = document.getElementById('chat-open-guided-from-status');
     var panel = document.getElementById('chat-panel');
     var form = document.getElementById('chat-form');
     var input = document.getElementById('chat-input');
@@ -324,8 +340,6 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var pendingTeacherHelpType = null;
     var pendingGuidedSubject = null;
     var pendingGuidedHelpType = null;
-    var guidedOptionButtons = document.querySelectorAll('.chat-open-guided-options');
-    var teacherOptionButtons = document.querySelectorAll('.chat-open-teacher-options');
     var initialGreeting = 'Oi. Escolha uma opção:';
     var initialActions = [
         { label: 'Falar com o chat (guiado)', action: 'choose_guided_subject', kind: 'chat' },
@@ -756,6 +770,20 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         }
     });
 
+    openGuidedFromStatusBtn && openGuidedFromStatusBtn.addEventListener('click', async function() {
+        panel.classList.remove('d-none');
+        try {
+            if (!sessionId) {
+                resetToGreeting();
+            }
+            await loadHistoryIfNeeded();
+            await handleSuggestedAction({ action: 'choose_guided_subject', kind: 'chat' });
+            input && input.focus();
+        } catch (err) {
+            console.error(err);
+        }
+    });
+
     closeBtn && closeBtn.addEventListener('click', async function() {
         await closeCurrentSession();
         panel.classList.add('d-none');
@@ -774,18 +802,6 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             appendMessage('Não consegui iniciar uma nova conversa agora. Tente novamente.', 'bot');
             console.error(err);
         }
-    });
-
-    teacherOptionButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-            handleSuggestedAction({ action: 'choose_teacher_subject', kind: 'teacher_help' });
-        });
-    });
-
-    guidedOptionButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-            handleSuggestedAction({ action: 'choose_guided_subject', kind: 'chat' });
-        });
     });
 
     sessionSelect && sessionSelect.addEventListener('change', async function() {
