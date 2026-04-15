@@ -295,8 +295,77 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
         mat_mission = _smart_trilha_mission_info(db, aluno_id, aluno_ano, "%matem%")
 
     upcoming_live_classes = []
+    teacher_help_status_card = {
+        "has_request": False,
+        "latest": None,
+        "pending_count": 0,
+        "in_review_count": 0,
+        "answered_count": 0,
+    }
     if current_user:
         upcoming_live_classes = LiveSupportService(db).list_live_classes_for_student(current_user)
+        from app.models.live_support import SolicitacaoProfessor
+
+        base_query = db.query(SolicitacaoProfessor).filter(
+            SolicitacaoProfessor.requester_user_id == current_user.id
+        )
+        latest = (
+            base_query.order_by(SolicitacaoProfessor.created_at.desc())
+            .first()
+        )
+        pending_count = (
+            base_query.filter(SolicitacaoProfessor.status == "pendente").count()
+        )
+        in_review_count = (
+            base_query.filter(
+                SolicitacaoProfessor.status.in_(["em_analise", "em_andamento"])
+            ).count()
+        )
+        answered_count = (
+            base_query.filter(
+                SolicitacaoProfessor.status.in_(["respondida", "resolvida", "concluida"])
+            ).count()
+        )
+        status_label_map = {
+            "pendente": "Pendente",
+            "em_analise": "Em análise",
+            "em_andamento": "Em análise",
+            "respondida": "Respondida",
+            "resolvida": "Respondida",
+            "concluida": "Respondida",
+        }
+        status_badge_map = {
+            "pendente": "bg-warning text-dark",
+            "em_analise": "bg-info text-dark",
+            "em_andamento": "bg-info text-dark",
+            "respondida": "bg-success text-white",
+            "resolvida": "bg-success text-white",
+            "concluida": "bg-success text-white",
+        }
+        teacher_help_status_card = {
+            "has_request": latest is not None,
+            "latest": (
+                {
+                    "disciplina": latest.disciplina,
+                    "assunto": latest.assunto,
+                    "created_at": latest.created_at,
+                    "status": (latest.status or "").strip().lower(),
+                    "status_label": status_label_map.get(
+                        (latest.status or "").strip().lower(),
+                        "Em andamento",
+                    ),
+                    "status_badge": status_badge_map.get(
+                        (latest.status or "").strip().lower(),
+                        "bg-secondary text-white",
+                    ),
+                }
+                if latest
+                else None
+            ),
+            "pending_count": pending_count,
+            "in_review_count": in_review_count,
+            "answered_count": answered_count,
+        }
     if aluno_id:
         medalhas_mural = MedalhaService().list_mural_aluno(db, aluno_id, limit=6)
         medalhas_total = MedalhaService().count_mural_aluno(db, aluno_id)
@@ -393,6 +462,7 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
             "lp_mission": lp_mission,
             "mat_mission": mat_mission,
             "upcoming_live_classes": upcoming_live_classes,
+            "teacher_help_status_card": teacher_help_status_card,
             "atividades_turma_total": atividades_turma_total,
             "atividades_turma_concluidas": atividades_turma_concluidas,
             "missoes_extras_total": missoes_extras_total,

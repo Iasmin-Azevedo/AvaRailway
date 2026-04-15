@@ -11,6 +11,7 @@ from app.schemas.live_support_schema import (
     SolicitacaoProfessorAck,
     SolicitacaoProfessorCreateRequest,
     SolicitacaoProfessorResponse,
+    SolicitacaoProfessorStatusUpdateRequest,
 )
 from app.services.live_support_service import LiveSupportService
 
@@ -70,6 +71,17 @@ def list_teacher_help_requests(
 ):
     service = LiveSupportService(db)
     return service.list_teacher_help_requests(current_user)
+
+
+@router.patch("/teacher-help-requests/{request_id}/status", response_model=SolicitacaoProfessorResponse)
+def update_teacher_help_request_status(
+    request_id: int,
+    payload: SolicitacaoProfessorStatusUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    service = LiveSupportService(db)
+    return service.update_teacher_help_request_status(current_user, request_id, payload.status)
 
 
 @page_router.get("/ao-vivo/{live_class_id}")

@@ -188,6 +188,30 @@
     </div>
 
     <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 mb-4 dash-card border border-success border-opacity-25 hover-lift">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
+                        <i class="fa-solid fa-star fs-4"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0">Seu progresso de XP</h6>
+                </div>
+                <div class="small text-muted mb-2">
+                    Nível atual: <strong>{{ stats.nivel|default('LV 1') }}</strong>
+                </div>
+                <div class="small text-muted mb-2">
+                    XP total: <strong>{{ stats.xp_total|default(0) }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small fw-bold mb-2">
+                    <span>XP no nível</span>
+                    <span>{{ stats.xp_atual_nivel|default(0) }} / {{ stats.xp_meta_nivel|default(600) }}</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar bg-success" data-progress-width="{{ stats.xp_pct_nivel|default(0) }}"></div>
+                </div>
+            </div>
+        </div>
+
         <div class="card border-0 shadow-sm rounded-4 mb-4 dash-card border border-primary border-opacity-25 hover-lift">
             <div class="card-body p-4">
                 <div class="d-flex align-items-center gap-3 mb-3">
@@ -219,10 +243,33 @@
                     <div class="bg-white p-1 rounded-circle shadow-sm border border-warning border-opacity-25 overflow-hidden" style="width: 56px; height: 56px;">
                         <img src="/static/img/ChatBot.png" alt="Tutor virtual" width="54" height="54" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">
                     </div>
-                    <h6 class="fw-bold text-warning-emphasis mb-0">Dica do seu Tutor Virtual</h6>
+                    <h6 class="fw-bold text-warning-emphasis mb-0">Status das suas dúvidas com professor</h6>
                 </div>
-                <p class="small text-dark mb-3">Notei que você teve um pouco de dúvida sobre <strong>Ponto Final</strong> na última missão. Que tal uma microaula rápida e divertida para gabaritar na próxima?</p>
-                <button class="btn btn-sm btn-warning text-dark fw-bold w-100 rounded-pill shadow-sm">Assistir Microaula (3 min)</button>
+                {% if teacher_help_status_card and teacher_help_status_card.has_request %}
+                <div class="small text-dark mb-2">
+                    <strong>Última dúvida:</strong> {{ teacher_help_status_card.latest.assunto }}
+                </div>
+                <div class="small text-muted mb-2">
+                    {{ teacher_help_status_card.latest.disciplina }} · enviada em {{ teacher_help_status_card.latest.created_at.strftime("%d/%m/%Y %H:%M") }}
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="badge rounded-pill {{ teacher_help_status_card.latest.status_badge }}">
+                        {{ teacher_help_status_card.latest.status_label }}
+                    </span>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <span class="badge rounded-pill bg-warning text-dark">Pendentes: {{ teacher_help_status_card.pending_count }}</span>
+                    <span class="badge rounded-pill bg-info text-dark">Em análise: {{ teacher_help_status_card.in_review_count }}</span>
+                    <span class="badge rounded-pill bg-success text-white">Respondidas: {{ teacher_help_status_card.answered_count }}</span>
+                </div>
+                {% else %}
+                <p class="small text-dark mb-3">
+                    Você ainda não enviou dúvidas para o professor. Quando enviar pelo chat, o status aparecerá aqui.
+                </p>
+                {% endif %}
+                <button id="chat-open-guided-from-status" class="btn btn-sm btn-warning text-dark fw-bold w-100 rounded-pill shadow-sm">
+                    Falar com o chat
+                </button>
             </div>
         </div>
 
@@ -260,8 +307,8 @@
     </div>
 </div>
 
-<div id="chat-panel" class="position-fixed end-0 bottom-0 m-4 bg-white border rounded-4 shadow-lg d-none" style="width: min(94vw, 420px); z-index: 1080;">
-    <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
+<div id="chat-panel" class="position-fixed end-0 bottom-0 m-4 bg-white border rounded-4 shadow-lg d-none" style="width: min(88vw, 360px); z-index: 1080;">
+    <div class="chat-panel-header d-flex align-items-center justify-content-between p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
             <img src="/static/img/ChatBot.gif" alt="" width="34" height="34" class="rounded-circle border">
             <strong class="text-mj-dark">Tutor AVA MJ</strong>
@@ -280,17 +327,10 @@
             <button id="chat-delete-btn" class="btn btn-sm btn-outline-danger rounded-pill fw-bold" title="Excluir sessão atual">Excluir</button>
         </div>
     </div>
-    <div class="px-3 py-2 border-bottom bg-white">
-        <div class="small text-muted mb-2">Atalhos do tutor</div>
-        <div class="d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill chat-quick-action" data-chat-focus="1">Falar com o chat</button>
-            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill chat-open-teacher-options">Falar com professor</button>
-        </div>
-    </div>
-    <div id="chat-messages" class="p-3" style="height: 360px; overflow-y: auto; background: #fafbfc;">
+    <div id="chat-messages" class="chat-panel-messages p-3" style="height: 300px; overflow-y: auto; background: #fafbfc;">
         <div class="small text-muted">Olá! Eu sou seu tutor virtual. Como posso ajudar?</div>
     </div>
-    <form id="chat-form" class="p-3 border-top">
+    <form id="chat-form" class="chat-panel-form p-3 border-top">
         <div class="input-group">
             <input id="chat-input" type="text" class="form-control" placeholder="Digite sua dúvida..." maxlength="2000" required>
             <button class="btn btn-warning fw-bold" type="submit">Enviar</button>
@@ -312,6 +352,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var sessionsTools = document.getElementById('chat-sessions-tools');
     var sessionSelect = document.getElementById('chat-session-select');
     var closeBtn = document.getElementById('chat-close-btn');
+    var openGuidedFromStatusBtn = document.getElementById('chat-open-guided-from-status');
     var panel = document.getElementById('chat-panel');
     var form = document.getElementById('chat-form');
     var input = document.getElementById('chat-input');
@@ -319,14 +360,39 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var sessionId = null;
     var historyLoadedFor = null;
     var sessionsCache = [];
-    var quickActionButtons = document.querySelectorAll('.chat-quick-action');
-    var teacherOptionButtons = document.querySelectorAll('.chat-open-teacher-options');
-    var initialGreeting = 'Oi. Escolha uma op??o:';
+    var pendingTeacherHelpSubject = null;
+    var pendingTeacherHelpType = null;
+    var pendingGuidedSubject = null;
+    var pendingGuidedHelpType = null;
+    var initialGreeting = 'Oi. Escolha uma opção:';
     var initialActions = [
-        { label: 'Falar com o chat', action: 'focus_chat_input', kind: 'chat' },
-        { label: 'Falar com professor', action: 'choose_teacher_subject', kind: 'teacher_help' },
+        { label: 'Falar com o chat', action: 'choose_guided_subject', kind: 'chat' },
+        { label: 'Tirar dúvidas com professor', action: 'choose_teacher_subject', kind: 'teacher_help' },
         { label: 'Sair', action: 'close_chat_panel', kind: 'system' }
     ];
+    var postTeacherHelpActions = [
+        { label: 'Voltar ao menu inicial', action: 'go_main_menu', kind: 'chat' },
+        { label: 'Sair do chat', action: 'close_chat_panel', kind: 'system' }
+    ];
+
+    function buildTeacherHelpAssunto(rawText) {
+        var text = String(rawText || '').trim();
+        if (!text) return '';
+        var typeLabel = pendingTeacherHelpType ? ('[' + pendingTeacherHelpType + '] ') : '';
+        return (typeLabel + text).slice(0, 255);
+    }
+
+    function buildGuidedTutorMessage(rawText) {
+        var text = String(rawText || '').trim();
+        var subject = pendingGuidedSubject || 'Geral';
+        var kind = pendingGuidedHelpType || 'Outra dúvida';
+        return (
+            'Sou aluno do ensino fundamental e quero ajuda guiada. ' +
+            'Disciplina: ' + subject + '. ' +
+            'Tipo de dúvida: ' + kind + '. ' +
+            'Minha dúvida: ' + text
+        ).slice(0, 2000);
+    }
 
     function appendMessage(text, from, actions) {
         var wrap = document.createElement('div');
@@ -418,7 +484,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         sessionSelect.innerHTML = '';
         var placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = 'Sess?es';
+        placeholder.textContent = 'Sessões';
         sessionSelect.appendChild(placeholder);
         sessionsCache.slice(0, 10).forEach(function(s) {
             var opt = document.createElement('option');
@@ -435,13 +501,17 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             credentials: 'same-origin',
             headers: { 'Accept': 'application/json' }
         });
-        if (!listResp.ok) throw new Error('Falha ao listar sess?es de chat');
+        if (!listResp.ok) throw new Error('Falha ao listar sessões de chat');
         const sessions = await listResp.json();
         sessionsCache = Array.isArray(sessions) ? sessions : [];
         return sessionsCache;
     }
 
     function resetToGreeting() {
+        pendingTeacherHelpSubject = null;
+        pendingTeacherHelpType = null;
+        pendingGuidedSubject = null;
+        pendingGuidedHelpType = null;
         messages.innerHTML = '';
         appendMessage(initialGreeting, 'bot', initialActions);
     }
@@ -485,10 +555,10 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             if (!resp.ok) throw new Error('Falha ao enviar mensagem');
             const data = await resp.json();
             removeTypingBubble(typingNode);
-            appendMessage(data.assistant_message || 'N?o consegui responder agora.', 'bot', data.suggested_actions || []);
+            appendMessage(data.assistant_message || 'Não consegui responder agora.', 'bot', data.suggested_actions || []);
         } catch (err) {
             removeTypingBubble(typingNode);
-            appendMessage('N?o consegui conectar ao tutor agora. Tente novamente em instantes.', 'bot');
+            appendMessage('Não consegui conectar ao tutor agora. Tente novamente em instantes.', 'bot');
             console.error(err);
         }
     }
@@ -500,7 +570,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ titulo: 'Nova conversa' })
         });
-        if (!createResp.ok) throw new Error('Falha ao criar nova sess?o de chat');
+        if (!createResp.ok) throw new Error('Falha ao criar nova sessão de chat');
         const created = await createResp.json();
         sessionId = created.id;
         historyLoadedFor = created.id;
@@ -518,7 +588,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ titulo: 'Chat do aluno' })
         });
-        if (!createResp.ok) throw new Error('Falha ao criar sess?o de chat');
+        if (!createResp.ok) throw new Error('Falha ao criar sessão de chat');
         const created = await createResp.json();
         sessionId = created.id;
         await listSessions();
@@ -526,20 +596,34 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         return sessionId;
     }
 
-    async function createTeacherHelpRequest(disciplina) {
+    async function createTeacherHelpRequest(disciplina, assunto) {
+        var normalizedDisciplina = String(disciplina || '').trim();
+        var normalizedAssunto = String(assunto || '').trim();
+        if (normalizedAssunto.length < 2) {
+            throw new Error('Escreva sua dúvida com pelo menos 2 caracteres para enviar ao professor.');
+        }
         const sid = await ensureSession();
         const response = await fetch('/api/v1/live-support/teacher-help-requests', {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                disciplina: disciplina,
-                assunto: 'Aluno solicitou atendimento pelo chatbot',
+                disciplina: normalizedDisciplina,
+                assunto: normalizedAssunto,
                 session_id: sid
             })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.mensagem_amigavel || 'Falha ao encaminhar a solicita??o.');
+        if (!response.ok) {
+            var detail = data && data.detail ? data.detail : null;
+            if (Array.isArray(detail) && detail.length) {
+                throw new Error(detail[0].msg || 'Falha ao encaminhar a solicitação.');
+            }
+            if (typeof detail === 'string' && detail.trim()) {
+                throw new Error(detail);
+            }
+            throw new Error(data.mensagem_amigavel || 'Falha ao encaminhar a solicitação.');
+        }
         return data;
     }
 
@@ -572,32 +656,110 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     async function handleSuggestedAction(action) {
         if (!action || !action.action) return;
 
+        if (action.action === 'choose_guided_subject') {
+            pendingTeacherHelpSubject = null;
+            pendingTeacherHelpType = null;
+            appendMessage(
+                'Passo 1 de 3: escolha a disciplina para eu te ajudar no modo guiado.',
+                'bot',
+                [
+                    { label: 'Dúvida de Matemática', action: 'choose_guided_help_subject', kind: 'chat', subject: 'Matemática' },
+                    { label: 'Dúvida de Português', action: 'choose_guided_help_subject', kind: 'chat', subject: 'Língua Portuguesa' },
+                    { label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }
+                ]
+            );
+            return;
+        }
+
+        if (action.action === 'choose_guided_help_subject') {
+            pendingGuidedSubject = action.subject || 'Geral';
+            pendingGuidedHelpType = null;
+            appendMessage(
+                'Passo 2 de 3: escolha o tipo da sua dúvida em ' + pendingGuidedSubject + '.',
+                'bot',
+                [
+                    { label: 'Não entendi a explicação', action: 'choose_guided_help_type', kind: 'chat', help_type: 'Não entendi a explicação' },
+                    { label: 'Não consegui resolver exercício', action: 'choose_guided_help_type', kind: 'chat', help_type: 'Não consegui resolver exercício' },
+                    { label: 'Quero revisar para a prova', action: 'choose_guided_help_type', kind: 'chat', help_type: 'Quero revisar para a prova' },
+                    { label: 'Outra dúvida', action: 'choose_guided_help_type', kind: 'chat', help_type: 'Outra dúvida' },
+                    { label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }
+                ]
+            );
+            return;
+        }
+
+        if (action.action === 'choose_guided_help_type') {
+            pendingGuidedHelpType = action.help_type || 'Outra dúvida';
+            appendMessage(
+                'Passo 3 de 3: escreva sua dúvida e eu vou te ajudar passo a passo.',
+                'bot',
+                [{ label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }]
+            );
+            input.focus();
+            return;
+        }
+
         if (action.action === 'request_teacher_help' && action.disciplina) {
-            try {
-                await createTeacherHelpRequest(action.disciplina);
-                appendMessage('Encaminhei sua solicita??o para o professor respons?vel de ' + action.disciplina + '.', 'bot');
-            } catch (err) {
-                appendMessage('N?o consegui encaminhar sua solicita??o agora. Tente novamente em instantes.', 'bot');
-                console.error(err);
-            }
+            pendingGuidedSubject = null;
+            pendingGuidedHelpType = null;
+            pendingTeacherHelpSubject = action.disciplina;
+            pendingTeacherHelpType = null;
+            appendMessage(
+                'Ótimo. Passo 2 de 3: escolha o tipo da sua dúvida em ' + action.disciplina + '.',
+                'bot',
+                [
+                    { label: 'Não entendi a explicação', action: 'choose_teacher_help_type', kind: 'teacher_help', help_type: 'Não entendi a explicação' },
+                    { label: 'Não consegui resolver exercício', action: 'choose_teacher_help_type', kind: 'teacher_help', help_type: 'Não consegui resolver exercício' },
+                    { label: 'Quero revisar para a prova', action: 'choose_teacher_help_type', kind: 'teacher_help', help_type: 'Quero revisar para a prova' },
+                    { label: 'Outra dúvida', action: 'choose_teacher_help_type', kind: 'teacher_help', help_type: 'Outra dúvida' },
+                    { label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }
+                ]
+            );
+            return;
+        }
+
+        if (action.action === 'choose_teacher_help_type') {
+            pendingTeacherHelpType = action.help_type || 'Outra dúvida';
+            appendMessage(
+                'Perfeito. Passo 3 de 3: escreva sua dúvida para eu enviar ao professor.',
+                'bot',
+                [{ label: 'Cancelar e voltar ao menu', action: 'go_main_menu', kind: 'chat' }]
+            );
+            input.focus();
             return;
         }
 
         if (action.action === 'choose_teacher_subject') {
+            pendingGuidedSubject = null;
+            pendingGuidedHelpType = null;
             appendMessage(
-                'Escolha a disciplina para eu encaminhar sua d?vida ao professor.',
+                'Passo 1 de 3: escolha a disciplina para eu encaminhar sua dúvida ao professor.',
                 'bot',
                 [
-                    { label: 'Professor de Matem?tica', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Matem?tica' },
-                    { label: 'Professor de Portugu?s', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'L?ngua Portuguesa' }
+                    { label: 'Tirar dúvidas de Matemática', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Matemática' },
+                    { label: 'Tirar dúvidas de Português', action: 'request_teacher_help', kind: 'teacher_help', disciplina: 'Língua Portuguesa' }
                 ]
             );
             return;
         }
 
         if (action.action === 'close_chat_panel') {
+            pendingTeacherHelpSubject = null;
+            pendingTeacherHelpType = null;
+            pendingGuidedSubject = null;
+            pendingGuidedHelpType = null;
             await closeCurrentSession();
             panel.classList.add('d-none');
+            return;
+        }
+
+        if (action.action === 'go_main_menu') {
+            pendingTeacherHelpSubject = null;
+            pendingTeacherHelpType = null;
+            pendingGuidedSubject = null;
+            pendingGuidedHelpType = null;
+            appendMessage('Tudo certo. Escolha a próxima opção:', 'bot', initialActions);
+            input.focus();
             return;
         }
 
@@ -607,12 +769,16 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         }
 
         if (action.action === 'focus_chat_input') {
-            input.focus();
+            appendMessage(
+                'Para manter a conversa organizada, vamos usar o modo guiado.',
+                'bot',
+                [{ label: 'Continuar no chat', action: 'choose_guided_subject', kind: 'chat' }]
+            );
             return;
         }
 
         if (action.action === 'rephrase_question') {
-            input.value = 'Vou reformular minha pergunta para voc?.';
+            input.value = 'Vou reformular minha pergunta para você.';
             input.focus();
             return;
         }
@@ -642,6 +808,20 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         }
     });
 
+    openGuidedFromStatusBtn && openGuidedFromStatusBtn.addEventListener('click', async function() {
+        panel.classList.remove('d-none');
+        try {
+            if (!sessionId) {
+                resetToGreeting();
+            }
+            await loadHistoryIfNeeded();
+            await handleSuggestedAction({ action: 'choose_guided_subject', kind: 'chat' });
+            input && input.focus();
+        } catch (err) {
+            console.error(err);
+        }
+    });
+
     closeBtn && closeBtn.addEventListener('click', async function() {
         await closeCurrentSession();
         panel.classList.add('d-none');
@@ -657,21 +837,9 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             await createNewSession();
             input && input.focus();
         } catch (err) {
-            appendMessage('N?o consegui iniciar uma nova conversa agora. Tente novamente.', 'bot');
+            appendMessage('Não consegui iniciar uma nova conversa agora. Tente novamente.', 'bot');
             console.error(err);
         }
-    });
-
-    quickActionButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-            input && input.focus();
-        });
-    });
-
-    teacherOptionButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-            handleSuggestedAction({ action: 'choose_teacher_subject', kind: 'teacher_help' });
-        });
     });
 
     sessionSelect && sessionSelect.addEventListener('change', async function() {
@@ -684,7 +852,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             await loadHistoryIfNeeded();
             input && input.focus();
         } catch (err) {
-            appendMessage('N?o consegui carregar essa conversa agora.', 'bot');
+            appendMessage('Não consegui carregar essa conversa agora.', 'bot');
             console.error(err);
         }
     });
@@ -698,7 +866,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
                 credentials: 'same-origin',
                 headers: { 'Accept': 'application/json' }
             });
-            if (!resp.ok) throw new Error('Falha ao encerrar sess?o');
+            if (!resp.ok) throw new Error('Falha ao encerrar sessão');
 
             sessionId = null;
             historyLoadedFor = null;
@@ -707,7 +875,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             await listSessions();
             renderSessionOptions('');
         } catch (err) {
-            appendMessage('N?o consegui encerrar a conversa agora.', 'bot');
+            appendMessage('Não consegui encerrar a conversa agora.', 'bot');
             console.error(err);
         }
     });
@@ -716,6 +884,52 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
         e.preventDefault();
         var text = (input.value || '').trim();
         if (!text) return;
+        if (pendingGuidedSubject) {
+            appendMessage(text, 'user');
+            if (input) input.value = '';
+            var typingNodeGuided = appendTypingBubble();
+            try {
+                const sid = await ensureSession();
+                const payloadText = buildGuidedTutorMessage(text);
+                const resp = await fetch('/api/v1/chat/message', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sid, message: payloadText })
+                });
+                if (!resp.ok) throw new Error('Falha ao enviar mensagem guiada');
+                const data = await resp.json();
+                removeTypingBubble(typingNodeGuided);
+                appendMessage(data.assistant_message || 'Não consegui responder agora.', 'bot', data.suggested_actions || postTeacherHelpActions);
+            } catch (err) {
+                removeTypingBubble(typingNodeGuided);
+                appendMessage('Não consegui concluir sua dúvida guiada agora. Tente novamente em instantes.', 'bot');
+                console.error(err);
+            } finally {
+                pendingGuidedSubject = null;
+                pendingGuidedHelpType = null;
+            }
+            return;
+        }
+        if (pendingTeacherHelpSubject) {
+            appendMessage(text, 'user');
+            if (input) input.value = '';
+            try {
+                await createTeacherHelpRequest(pendingTeacherHelpSubject, buildTeacherHelpAssunto(text));
+                appendMessage(
+                    'Mensagem enviada com sucesso para o professor de ' + pendingTeacherHelpSubject + '.',
+                    'bot',
+                    postTeacherHelpActions
+                );
+            } catch (err) {
+                appendMessage((err && err.message) ? err.message : 'Não consegui enviar sua dúvida agora. Tente novamente em instantes.', 'bot');
+                console.error(err);
+            } finally {
+                pendingTeacherHelpSubject = null;
+                pendingTeacherHelpType = null;
+            }
+            return;
+        }
         await sendChatMessage(text);
     });
 })();
@@ -740,5 +954,6 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
     40% { transform: translateY(-4px); opacity: 1; }
 }
+
 </style>
 {% endblock %}

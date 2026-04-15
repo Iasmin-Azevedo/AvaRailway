@@ -93,19 +93,36 @@ class ChatRouterService:
         r"\bdashboard\b",
         r"\blogin\b",
     ]
+    MATH_STEMS = ("mat", "frac", "equa", "divis", "multi", "porcen", "geometr", "num")
+    PORTUGUESE_STEMS = ("port", "ling", "text", "interpre", "acent", "virgul", "gramat", "substant", "adjet")
+    TEACHER_HELP_STEMS = ("prof", "docent", "ajud", "duvid", "explic")
+    ACTIVITY_STEMS = ("ativ", "exerc", "taref", "quest", "prov", "simulad")
+    LIVE_CLASS_STEMS = ("aula", "vivo", "video", "reunia", "meet", "jitsi", "chamad")
+    PLATFORM_STEMS = ("plataform", "sistem", "trilh", "desempenh", "medalh", "pontu", "dashboard", "login")
 
     def _normalize(self, text: str) -> str:
         value = unicodedata.normalize("NFKD", text.lower().strip())
         return "".join(ch for ch in value if not unicodedata.combining(ch))
 
+    def _tokens(self, text: str) -> list[str]:
+        return re.findall(r"[a-z0-9]+", self._normalize(text))
+
+    def _has_stem(self, tokens: list[str], stems: tuple[str, ...]) -> bool:
+        return any(token.startswith(stem) for token in tokens for stem in stems)
+
     def classify(self, text: str) -> str:
         """Classifica a mensagem em contexto geral, pedagógico ou institucional."""
         value = self._normalize(text)
+        tokens = self._tokens(text)
         if any(re.search(pattern, value) for pattern in self.INSTITUTIONAL_PATTERNS):
+            return "institutional"
+        if self._has_stem(tokens, ("gest", "coord", "escol", "indic", "relat")):
             return "institutional"
         if any(re.search(pattern, value) for pattern in self.SYSTEM_PATTERNS):
             if any(re.search(pattern, value) for pattern in self.GENERAL_PATTERNS):
                 return "hybrid"
+            return "pedagogical"
+        if self._has_stem(tokens, self.ACTIVITY_STEMS + self.PLATFORM_STEMS):
             return "pedagogical"
         return "general"
 
@@ -136,24 +153,38 @@ class ChatRouterService:
     def detect_subject(self, text: str) -> str | None:
         """Identifica a disciplina principal citada na mensagem."""
         value = self._normalize(text)
+        tokens = self._tokens(text)
         if any(re.search(pattern, value) for pattern in self.MATH_PATTERNS):
             return "Matemática"
+        if self._has_stem(tokens, self.MATH_STEMS):
+            return "Matemática"
         if any(re.search(pattern, value) for pattern in self.PORTUGUESE_PATTERNS):
+            return "Língua Portuguesa"
+        if self._has_stem(tokens, self.PORTUGUESE_STEMS):
             return "Língua Portuguesa"
         return None
 
     def wants_teacher_help(self, text: str) -> bool:
         """Detecta quando o usuário quer encaminhamento para um professor."""
         value = self._normalize(text)
-        return any(re.search(pattern, value) for pattern in self.TEACHER_HELP_PATTERNS)
+        if any(re.search(pattern, value) for pattern in self.TEACHER_HELP_PATTERNS):
+            return True
+        return self._has_stem(self._tokens(text), self.TEACHER_HELP_STEMS)
 
     def detect_support_topic(self, text: str) -> str | None:
         """Identifica temas operacionais para respostas guiadas."""
         value = self._normalize(text)
+        tokens = self._tokens(text)
         if any(re.search(pattern, value) for pattern in self.ACTIVITY_PATTERNS):
+            return "atividade"
+        if self._has_stem(tokens, self.ACTIVITY_STEMS):
             return "atividade"
         if any(re.search(pattern, value) for pattern in self.LIVE_CLASS_PATTERNS):
             return "aula_ao_vivo"
+        if self._has_stem(tokens, self.LIVE_CLASS_STEMS):
+            return "aula_ao_vivo"
         if any(re.search(pattern, value) for pattern in self.PLATFORM_PATTERNS):
+            return "plataforma"
+        if self._has_stem(tokens, self.PLATFORM_STEMS):
             return "plataforma"
         return None

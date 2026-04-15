@@ -244,7 +244,7 @@
                             </div>
                             {% endif %}
                             <div style="min-width:0;" class="flex-grow-1">
-                                <a href="{{ MOODLE_URL }}/course/view.php?id={{ c.id }}" class="fw-bold text-decoration-none text-mj-dark moodle-course-preview-title d-block" target="_blank" rel="noopener">{{ c.fullname }}</a>
+                                <a href="/moodle/sso?course_id={{ c.id }}" class="fw-bold text-decoration-none text-mj-dark moodle-course-preview-title d-block" target="_blank" rel="noopener">{{ c.fullname }}</a>
                                 {% if c.shortname %}<div class="text-muted text-truncate d-block">{{ c.shortname }}</div>{% endif %}
                             </div>
                         </div>
@@ -269,6 +269,36 @@
                     <div class="list-group-item p-3">
                         <div class="fw-bold text-dark">{{ item.assunto }}</div>
                         <div class="text-muted">{{ item.disciplina }} · {{ item.requester.nome if item.requester else "Aluno" }}</div>
+                        <div class="mt-2 mb-2">
+                            {% set status_value = (item.status or '')|lower %}
+                            {% if status_value == 'pendente' %}
+                            <span class="badge rounded-pill bg-warning text-dark">Pendente</span>
+                            {% elif status_value == 'em_analise' or status_value == 'em_andamento' %}
+                            <span class="badge rounded-pill bg-info text-dark">Em análise</span>
+                            {% elif status_value == 'respondida' or status_value == 'resolvida' or status_value == 'concluida' %}
+                            <span class="badge rounded-pill bg-success text-white">Respondida</span>
+                            {% else %}
+                            <span class="badge rounded-pill bg-secondary text-white">Em andamento</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-info rounded-pill teacher-help-status-btn"
+                                data-request-id="{{ item.id }}"
+                                data-next-status="em_analise"
+                            >
+                                Marcar em análise
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-success rounded-pill teacher-help-status-btn"
+                                data-request-id="{{ item.id }}"
+                                data-next-status="respondida"
+                            >
+                                Marcar respondida
+                            </button>
+                        </div>
                         <div class="text-muted">{{ item.created_at.strftime("%d/%m/%Y %H:%M") }}</div>
                     </div>
                     {% endfor %}
@@ -370,6 +400,7 @@
     var medalhaAlvoSelect = document.getElementById('medalha-alvo-select');
     var medalhaAlunoWrap = document.getElementById('medalha-aluno-wrap');
     var medalhaAlunoInput = document.getElementById('medalha-aluno-id');
+    var teacherHelpStatusButtons = document.querySelectorAll('.teacher-help-status-btn');
 
     toggleBtn && toggleBtn.addEventListener('click', function(event) {
         event.preventDefault();
@@ -424,6 +455,33 @@
             feedback.textContent = error.message || 'Não foi possível salvar o agendamento.';
             feedback.className = 'small mt-2 text-danger';
         }
+    });
+
+    teacherHelpStatusButtons.forEach(function(button) {
+        button.addEventListener('click', async function() {
+            var requestId = Number(button.getAttribute('data-request-id') || 0);
+            var nextStatus = String(button.getAttribute('data-next-status') || '').trim();
+            if (!requestId || !nextStatus) return;
+
+            var originalLabel = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Salvando...';
+            try {
+                var response = await fetch('/api/v1/live-support/teacher-help-requests/' + encodeURIComponent(requestId) + '/status', {
+                    method: 'PATCH',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: nextStatus })
+                });
+                var payload = await response.json();
+                if (!response.ok) throw new Error(payload.detail || 'Não foi possível atualizar o status.');
+                window.location.reload();
+            } catch (error) {
+                button.disabled = false;
+                button.textContent = originalLabel;
+                alert(error.message || 'Não foi possível atualizar o status.');
+            }
+        });
     });
 })();
 </script>

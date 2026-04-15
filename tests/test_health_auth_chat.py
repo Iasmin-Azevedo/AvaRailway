@@ -444,7 +444,7 @@ class BackendFlowTestCase(unittest.TestCase):
         self.assertEqual(body["message_type"], "activity_guidance")
         self.assertIn("Desafio de Frações", body["assistant_message"])
 
-    def test_chat_admits_when_still_in_training(self):
+    def test_chat_redirects_student_when_question_is_out_of_scope(self):
         login = self.client.post(
             "/auth/login",
             json={"email": "aluno@avamj.com", "senha": "123456"},
@@ -459,8 +459,10 @@ class BackendFlowTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         body = response.json()
-        self.assertEqual(body["knowledge_status"], "training")
-        self.assertIn("Estou em treinamento", body["assistant_message"])
+        self.assertEqual(body["knowledge_status"], "redirected")
+        self.assertEqual(body["message_type"], "scope_guidance")
+        self.assertEqual(body["moderation_action"], "redirected_profile_scope")
+        self.assertIn("alunos do fundamental", body["assistant_message"])
 
     def test_professor_can_schedule_live_class_and_student_can_view(self):
         professor_login = self.client.post(
