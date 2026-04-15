@@ -29,6 +29,16 @@ class IAService:
         "é", "em", "para", "por", "com", "que", "como", "qual", "quais", "me",
         "te", "se", "eu", "voce", "você", "isso", "isto", "sobre",
     }
+    TRUSTED_SOURCE_LABELS = {
+        "contexto_aluno": "Contexto do aluno",
+        "atividade": "Atividade cadastrada",
+        "trilha": "Trilha de aprendizagem",
+        "avaliacao": "Avaliação cadastrada",
+        "descritor": "Descritor pedagógico",
+        "curso": "Curso cadastrado",
+        "faq": "Base pedagógica interna",
+        "moodle": "Conteúdo Moodle integrado",
+    }
 
     def gerar_feedback(self, acertos: int, total: int):
         percentual = (acertos / total) * 100 if total else 0
@@ -36,7 +46,134 @@ class IAService:
             return "Parabens! Voce dominou esse conteudo completamente."
         if percentual >= 70:
             return "Muito bom! Voce entendeu a maior parte, mas revise os erros."
-        return "Parece que voce teve dificuldades. Que tal revisarmos o material base?"
+        return "Parece que você teve dificuldades. Que tal revisarmos o material base?"
+
+    def _normalize_spaces(self, text: str) -> str:
+        return " ".join((text or "").strip().split())
+
+    def _ensure_terminal_punctuation(self, text: str) -> str:
+        if not text:
+            return text
+        if text.endswith((".", "!", "?")):
+            return text
+        return f"{text}."
+
+    def _polish_answer(self, answer: str, profile: str) -> str:
+        text = self._normalize_spaces(answer)
+        if not text:
+            return text
+        text = text.replace(" ,", ",").replace(" .", ".").replace(" !", "!").replace(" ?", "?").replace(" ;", ";")
+        if text and text[0].islower():
+            text = text[0].upper() + text[1:]
+        text = self._ensure_terminal_punctuation(text)
+        # Evita respostas extensas e dispersas para aluno.
+        if str(profile).lower() == "aluno" and len(text) > 900:
+            text = text[:900].rsplit(" ", 1)[0].strip() + "..."
+        return text
+
+    def _source_label(self, source: str) -> str:
+        return self.TRUSTED_SOURCE_LABELS.get((source or "").strip().lower(), "Fonte interna")
+
+    def _build_sources_footer(self, chunks: list[dict]) -> str:
+        if not chunks:
+            return ""
+        refs = []
+        for chunk in chunks[:2]:
+            title = (chunk.get("title") or "Fonte sem título").strip()
+            label = self._source_label(chunk.get("source") or "")
+            refs.append(f"{label}: {title}")
+        return " Fontes consultadas: " + " | ".join(refs) + "."
+
+    def _has_explicit_source_reference(self, answer: str, chunks: list[dict]) -> bool:
+        normalized = " ".join((answer or "").lower().split())
+        if "fonte" in normalized or "fontes" in normalized:
+            return True
+        for chunk in chunks[:2]:
+            title = (chunk.get("title") or "").strip().lower()
+            if title and title in normalized:
+                return True
+        return False
+
+    def _build_grounded_answer_from_chunks(self, question: str, chunks: list[dict], profile: str) -> str:
+        top = chunks[0]
+        top_content = (top.get("content") or "").strip()
+        topic = self._infer_topic(question)
+        role = str(profile or "").strip().lower()
+
+        if role == "aluno":
+            intro = "Com base nas fontes internas disponíveis, a resposta mais segura é:"
+            if topic in {"matematica", "portugues"}:
+                body = (
+                    f" {top_content} "
+                    "Se quiser, eu organizo em passos curtos com um exemplo simples."
+                )
+            else:
+                body = f" {top_content} "
+            return intro + body + self._build_sources_footer(chunks)
+
+        return (
+            "Com base nas fontes internas disponíveis, a melhor síntese é: "
+            + top_content
+            + self._build_sources_footer(chunks)
+        )
+
+    def _needs_grounding_rewrite(self, payload: IAChatPayload, answer: str) -> bool:
+        if self.is_weak_answer(payload.question, answer):
+            return True
+        if payload.retrieved_chunks and not self._has_explicit_source_reference(answer, payload.retrieved_chunks):
+            return True
+        normalized = " ".join((answer or "").lower().split())
+        if "não sei" in normalized and payload.retrieved_chunks:
+            return True
+        return False
+
+    def _infer_topic(self, question: str) -> str:
+        q = self._normalize_spaces(question).lower()
+        if any(term in q for term in ("fracao", "fração", "porcentagem", "matematica", "matemática", "equacao", "equação")):
+            return "matematica"
+        if any(term in q for term in ("portugues", "português", "texto", "gramatica", "gramática", "virgula", "vírgula")):
+            return "portugues"
+        if any(term in q for term in ("atividade", "tarefa", "exercicio", "exercício")):
+            return "atividade"
+        if any(term in q for term in ("aula ao vivo", "ao vivo", "meet", "jitsi", "agenda")):
+            return "aula_ao_vivo"
+        if any(term in q for term in ("plataforma", "sistema", "login", "dashboard", "perfil")):
+            return "plataforma"
+        return "geral"
+
+    def build_guided_training_answer(self, question: str, profile: str) -> str:
+        topic = self._infer_topic(question)
+        role = str(profile or "").strip().lower()
+        if role == "aluno":
+            if topic == "matematica":
+                return (
+                    "Ainda não encontrei base local suficiente para responder isso com total segurança. "
+                    "Posso te ajudar de um jeito útil agora: 1) identificamos os dados da questão, "
+                    "2) escolhemos a operação correta, 3) resolvemos passo a passo com exemplo simples."
+                )
+            if topic == "portugues":
+                return (
+                    "Ainda estou em treinamento para esse tipo de pergunta com base local completa. "
+                    "Mesmo assim, posso te orientar com um roteiro prático: 1) ler com calma, "
+                    "2) destacar palavras-chave, 3) responder usando trecho do texto."
+                )
+            return (
+                "Ainda estou em treinamento para esse caso e prefiro não improvisar. "
+                "Se você reformular em uma pergunta mais direta sobre atividade, aula ao vivo, "
+                "Matemática ou Português, eu te ajudo com mais precisão."
+            )
+
+        if role == "professor":
+            return (
+                "Ainda não encontrei base local suficiente para responder com segurança total. "
+                "Posso apoiar com um caminho objetivo: delimitar turma, indicador e período, "
+                "e então montar uma resposta precisa sem inventar dados."
+            )
+
+        return (
+            "Ainda não encontrei base local suficiente para responder com segurança total. "
+            "Posso continuar se você informar mais contexto objetivo (perfil, turma, tema e período)."
+        )
 
     async def chat(self, payload: IAChatPayload | dict) -> IAChatResult:
         if isinstance(payload, dict):
@@ -62,6 +199,20 @@ class IAService:
                 model=None,
             )
 
+        if payload.retrieved_chunks and self._needs_grounding_rewrite(payload, result.answer):
+            result = IAChatResult(
+                answer=self._build_grounded_answer_from_chunks(
+                    payload.question,
+                    payload.retrieved_chunks,
+                    payload.profile,
+                ),
+                provider="grounded_rewrite",
+                model=result.model,
+            )
+        elif payload.retrieved_chunks and not self._has_explicit_source_reference(result.answer, payload.retrieved_chunks):
+            result.answer = result.answer + self._build_sources_footer(payload.retrieved_chunks)
+
+        result.answer = self._polish_answer(result.answer, payload.profile)
         result.used_context = [chunk["title"] for chunk in payload.retrieved_chunks]
         return result
 
@@ -180,8 +331,10 @@ class IAService:
     def _fallback_answer(self, payload: IAChatPayload) -> IAChatResult:
         if payload.retrieved_chunks:
             top = payload.retrieved_chunks[0]
-            response = f"{top['content']}"
-            response += " Se quiser, eu posso explicar isso em passos curtos."
+            response = (
+                f"Com base no que tenho aqui, a melhor referência inicial é: {top['content']} "
+                "Se quiser, organizo essa explicação em passos curtos com exemplo prático."
+            )
             return IAChatResult(
                 answer=response,
                 provider="fallback_context",
@@ -190,16 +343,13 @@ class IAService:
 
         if "?" in payload.question:
             return IAChatResult(
-                answer=(
-                    "Ainda nao encontrei base suficiente para responder essa pergunta com seguranca. "
-                    "Estou em treinamento e prefiro nao inventar uma resposta."
-                ),
+                answer=self.build_guided_training_answer(payload.question, payload.profile),
                 provider="fallback_training",
                 model=None,
             )
 
         return IAChatResult(
-            answer="Escreva sua duvida em uma frase curta que eu tento te ajudar.",
+            answer="Escreva sua dúvida em uma frase curta que eu tento te ajudar.",
             provider="fallback_prompt",
             model=None,
         )

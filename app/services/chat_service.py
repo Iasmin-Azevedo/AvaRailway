@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from fastapi import HTTPException, status
@@ -172,6 +173,194 @@ class ChatService:
                 }
             )
         return actions
+
+    def _role_value(self, user: Usuario) -> str:
+        return str(getattr(getattr(user, "role", None), "value", getattr(user, "role", "")) or "").strip().lower()
+
+    def _build_profile_scope_actions(self, user: Usuario) -> list[dict]:
+        role = self._role_value(user)
+        if role == "aluno":
+            return [
+                {
+                    "label": "Ver atividades pendentes",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Quais atividades estão pendentes para mim?",
+                },
+                {
+                    "label": "Ver próxima aula ao vivo",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Qual é o horário da minha próxima aula ao vivo?",
+                },
+                {
+                    "label": "Dúvida de Matemática",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Explique Matemática em passos simples para o ensino fundamental.",
+                },
+                {
+                    "label": "Dúvida de Português",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Explique Português em linguagem simples para o ensino fundamental.",
+                },
+                {
+                    "label": "Falar com professor",
+                    "action": "choose_teacher_subject",
+                    "kind": "teacher_help",
+                },
+            ]
+        if role == "professor":
+            return [
+                {
+                    "label": "Resumo das minhas turmas",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Mostre um resumo das minhas turmas vinculadas.",
+                },
+                {
+                    "label": "Aulas ao vivo agendadas",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Quais aulas ao vivo estão agendadas para as minhas turmas?",
+                },
+                {
+                    "label": "Apoio em atividades",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Ajude com orientação para atividades da minha turma.",
+                },
+            ]
+        if role in {"gestor", "coordenador", "admin"}:
+            return [
+                {
+                    "label": "Indicadores institucionais",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Quais indicadores institucionais posso acompanhar no painel?",
+                },
+                {
+                    "label": "Acompanhamento de turmas",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Como acompanho desempenho por turma na plataforma?",
+                },
+                {
+                    "label": "Fluxos de gestão",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Explique os fluxos de gestão disponíveis para o meu perfil.",
+                },
+            ]
+        return [{"label": "Falar com o chat", "action": "focus_chat_input", "kind": "chat"}]
+
+    def _looks_like_basic_math_expression(self, message: str) -> bool:
+        return bool(re.search(r"[\d\+\-\*/=()]{3,}", message or ""))
+
+    def _is_ambiguous_question(
+        self,
+        message: str,
+        nlu_result: dict,
+        support_topic: str | None,
+        subject: str | None,
+    ) -> bool:
+        if not nlu_result.get("is_question"):
+            return False
+        if nlu_result.get("wants_teacher_help"):
+            return False
+        if support_topic or subject:
+            return False
+        normalized = self._normalize_text(message)
+        tokens = [item for item in re.findall(r"[a-z0-9]+", normalized) if item]
+        return len(tokens) <= 2
+
+    def _build_clarification_actions(self, user: Usuario) -> list[dict]:
+        role = self._role_value(user)
+        if role == "aluno":
+            return [
+                {
+                    "label": "Dúvida de Matemática",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Tenho dúvida de Matemática. Pode explicar em passos curtos?",
+                },
+                {
+                    "label": "Dúvida de Português",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Tenho dúvida de Português. Pode explicar de forma simples?",
+                },
+                {
+                    "label": "Atividades pendentes",
+                    "action": "send_message",
+                    "kind": "chat",
+                    "message": "Quais atividades estão pendentes para mim?",
+                },
+                {
+                    "label": "Falar com professor",
+                    "action": "choose_teacher_subject",
+                    "kind": "teacher_help",
+                },
+            ]
+        return self._build_profile_scope_actions(user)
+
+    def _build_out_of_scope_guidance(self, user: Usuario) -> tuple[str, list[dict]]:
+        role = self._role_value(user)
+        if role == "aluno":
+            return (
+                "Para alunos do fundamental, este chat atende dúvidas de Matemática e Língua Portuguesa, "
+                "atividades, aula ao vivo e uso da plataforma. Escolha uma opção guiada abaixo para eu te ajudar "
+                "do jeito certo.",
+                self._build_profile_scope_actions(user),
+            )
+        if role == "professor":
+            return (
+                "Para o perfil professor, este chat está direcionado a turmas vinculadas, atividades, aulas ao vivo "
+                "e orientações pedagógicas da plataforma. Escolha uma opção objetiva abaixo.",
+                self._build_profile_scope_actions(user),
+            )
+        if role in {"gestor", "coordenador", "admin"}:
+            return (
+                "Para este perfil institucional, o chat está direcionado a indicadores, turmas, relatórios e fluxos "
+                "de gestão da plataforma. Escolha uma opção guiada abaixo.",
+                self._build_profile_scope_actions(user),
+            )
+        return (
+            "Vamos manter a conversa em perguntas relacionadas ao seu uso da plataforma.",
+            self._build_profile_scope_actions(user),
+        )
+
+    def _is_within_profile_scope(
+        self,
+        user: Usuario,
+        message: str,
+        nlu_result: dict,
+        support_topic: str | None,
+        subject: str | None,
+    ) -> bool:
+        if nlu_result.get("is_greeting_only"):
+            return True
+        if nlu_result.get("wants_teacher_help"):
+            return True
+        if support_topic in {"atividade", "aula_ao_vivo", "plataforma"}:
+            return True
+        if subject in {"Matemática", "Língua Portuguesa"}:
+            return True
+        if self._looks_like_basic_math_expression(message):
+            return True
+        if self.math_service.try_answer(message):
+            return True
+
+        role = self._role_value(user)
+        message_type = (nlu_result.get("message_type") or "").strip().lower()
+        if role == "aluno":
+            return False
+        if role == "professor":
+            return message_type in {"pedagogical", "institutional", "hybrid"}
+        if role in {"gestor", "coordenador", "admin"}:
+            return message_type in {"institutional", "hybrid"}
+        return True
 
     def _build_teacher_choice_actions(self) -> list[dict]:
         return [
@@ -431,6 +620,33 @@ class ChatService:
         wants_teacher_help = bool(nlu_result.get("wants_teacher_help"))
         support_topic = self.router_service.detect_support_topic(message)
 
+        if not self._is_within_profile_scope(user, message, nlu_result, support_topic, subject):
+            guidance, actions = self._build_out_of_scope_guidance(user)
+            self._register_audit(user, "chat_escopo_direcionado", guidance)
+            return self._store_simple_response(
+                session,
+                message,
+                guidance,
+                "scope_guidance",
+                moderation_action="redirected_profile_scope",
+                knowledge_status="redirected",
+                suggested_actions=actions,
+            )
+
+        if self._is_ambiguous_question(message, nlu_result, support_topic, subject):
+            clarification = (
+                "Quero te responder com precisão, mas sua pergunta ficou muito curta. "
+                "Escolha uma opção abaixo ou escreva a dúvida com mais detalhes."
+            )
+            return self._store_simple_response(
+                session,
+                message,
+                clarification,
+                "clarification_guidance",
+                knowledge_status="clarification_needed",
+                suggested_actions=self._build_clarification_actions(user),
+            )
+
         if nlu_result.get("is_greeting_only"):
             return self._store_simple_response(
                 session,
@@ -548,9 +764,9 @@ class ChatService:
 
         knowledge_status = "grounded"
         if nlu_result.get("is_question") and not retrieved_chunks and self.ia_service.is_low_information_answer(ia_result.answer):
-            ia_result.answer = (
-                "Ainda não encontrei base suficiente para responder essa pergunta com segurança. "
-                "Estou em treinamento para esse tipo de dúvida e prefiro não improvisar uma resposta sem contexto confiável."
+            ia_result.answer = self.ia_service.build_guided_training_answer(
+                effective_question,
+                getattr(user.role, "value", user.role),
             )
             knowledge_status = "training"
         elif "estou em treinamento" in ia_result.answer.lower():
