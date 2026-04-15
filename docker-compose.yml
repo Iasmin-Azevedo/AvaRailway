@@ -4,6 +4,9 @@
 # Subir só app + banco: docker compose up -d
 # Redis / Ollama (opcional): docker compose --profile cache up -d
 # Desenvolvimento local com bind na máquina: altere temporariamente ports para "8000:8000".
+#
+# Após git pull que altere alembic/ ou ficheiros copiados no Dockerfile: reconstrua a imagem
+# (o código dentro do container não vem do disco do host): docker compose build --no-cache backend && docker compose up -d
 
 services:
   backend:

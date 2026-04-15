@@ -121,22 +121,65 @@ def upgrade() -> None:
         op.create_index("ix_saeb_descritores_codigo", "saeb_descritores", ["codigo"], unique=True)
 
     if not _table_exists(conn, "atividades_h5p"):
-        op.create_table(
-            "atividades_h5p",
-            sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-            sa.Column("titulo", sa.String(200), nullable=False),
-            sa.Column("tipo", sa.String(50), nullable=False),
-            sa.Column("path_ou_json", sa.String(500), nullable=False),
-            sa.Column("trilha_id", sa.Integer(), nullable=True),
-            sa.Column("descritor_id", sa.Integer(), nullable=True),
-            sa.Column("ordem", sa.Integer(), default=0),
-            sa.Column("ativo", sa.Boolean(), default=True),
-            sa.Column("created_at", sa.DateTime(), nullable=True),
-            sa.ForeignKeyConstraint(["descritor_id"], ["saeb_descritores.id"], ondelete="SET NULL"),
-            sa.ForeignKeyConstraint(["trilha_id"], ["trilhas.id"], ondelete="SET NULL"),
-            sa.PrimaryKeyConstraint("id"),
-        )
-        op.create_index(op.f("ix_atividades_h5p_id"), "atividades_h5p", ["id"], unique=False)
+        if dialeto == "mysql":
+            # Um único bloco SQL garante que saeb_descritores existe antes das FKs (evita 1824).
+            op.execute(
+                sa.text(
+                    """
+                    CREATE TABLE IF NOT EXISTS saeb_descritores (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        codigo VARCHAR(10) NULL,
+                        descricao VARCHAR(255) NULL,
+                        disciplina VARCHAR(50) NULL,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY uq_saeb_descritores_codigo (codigo)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """
+                )
+            )
+            op.execute(
+                sa.text(
+                    """
+                    CREATE TABLE IF NOT EXISTS atividades_h5p (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        titulo VARCHAR(200) NOT NULL,
+                        tipo VARCHAR(50) NOT NULL,
+                        path_ou_json VARCHAR(500) NOT NULL,
+                        trilha_id INT NULL,
+                        descritor_id INT NULL,
+                        ordem INT NULL DEFAULT 0,
+                        ativo TINYINT(1) NULL DEFAULT 1,
+                        created_at DATETIME NULL,
+                        PRIMARY KEY (id),
+                        CONSTRAINT fk_atividades_h5p_trilha_id
+                            FOREIGN KEY (trilha_id) REFERENCES trilhas (id) ON DELETE SET NULL,
+                        CONSTRAINT fk_atividades_h5p_descritor_id
+                            FOREIGN KEY (descritor_id) REFERENCES saeb_descritores (id) ON DELETE SET NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """
+                )
+            )
+        else:
+            op.create_table(
+                "atividades_h5p",
+                sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+                sa.Column("titulo", sa.String(200), nullable=False),
+                sa.Column("tipo", sa.String(50), nullable=False),
+                sa.Column("path_ou_json", sa.String(500), nullable=False),
+                sa.Column("trilha_id", sa.Integer(), nullable=True),
+                sa.Column("descritor_id", sa.Integer(), nullable=True),
+                sa.Column("ordem", sa.Integer(), default=0),
+                sa.Column("ativo", sa.Boolean(), default=True),
+                sa.Column("created_at", sa.DateTime(), nullable=True),
+                sa.ForeignKeyConstraint(
+                    ["descritor_id"], ["saeb_descritores.id"], ondelete="SET NULL"
+                ),
+                sa.ForeignKeyConstraint(["trilha_id"], ["trilhas.id"], ondelete="SET NULL"),
+                sa.PrimaryKeyConstraint("id"),
+            )
+            op.create_index(
+                op.f("ix_atividades_h5p_id"), "atividades_h5p", ["id"], unique=False
+            )
 
     if not _table_exists(conn, "progresso_h5p"):
         op.create_table(
