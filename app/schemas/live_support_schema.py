@@ -4,7 +4,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class AulaAoVivoCreateRequest(BaseModel):
-    turma_id: int
+    turma_id: int | None = None
+    escola_id: int | None = None
+    target_role: str | None = Field(default=None, max_length=30)
+    target_scope: str | None = Field(default=None, max_length=40)
+    target_label: str | None = Field(default=None, max_length=200)
     disciplina: str = Field(min_length=2, max_length=50)
     titulo: str = Field(min_length=3, max_length=150)
     descricao: str | None = Field(default=None, max_length=1000)
@@ -17,8 +21,13 @@ class AulaAoVivoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    professor_id: int
-    turma_id: int
+    organizador_user_id: int
+    professor_id: int | None
+    turma_id: int | None
+    escola_id: int | None
+    audience_role: str
+    audience_scope: str
+    target_label: str | None
     disciplina: str
     titulo: str
     descricao: str | None

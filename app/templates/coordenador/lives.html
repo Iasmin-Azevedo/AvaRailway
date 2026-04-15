@@ -1,0 +1,104 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Lives da Coordenação{% endblock %}
+{% block brand_link %}/coordenador{% endblock %}
+{% block menu_title %}Menu do Coordenador{% endblock %}
+
+{% block header_right %}
+{% include "coordenador/partials/coordenador_header_right.html" %}
+{% endblock %}
+
+{% block offcanvas_extra %}{% endblock %}
+
+{% block offcanvas_links %}
+{% include "coordenador/partials/coordenador_menu_links.html" %}
+{% endblock %}
+
+{% block main_content %}
+<div class="row g-4">
+    <div class="col-12 col-lg-5">
+        <div class="card dash-card">
+            <div class="dash-card-header d-flex align-items-center gap-2">
+                <i class="fa-solid fa-video text-mj-primary fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Agendar Live (Coordenação)</h6>
+            </div>
+            <div class="card-body">
+                {% if flash_ok %}
+                <div class="alert alert-success small py-2">Live agendada com sucesso.</div>
+                {% endif %}
+                {% if flash_err %}
+                <div class="alert alert-danger small py-2">{{ flash_err }}</div>
+                {% endif %}
+                <form method="post" action="/coordenador/lives/agendar" class="d-grid gap-2">
+                    <label class="small fw-bold mb-0">Público</label>
+                    <select class="form-select" name="target_scope" id="coord-target-scope" required>
+                        <option value="gestores_escolas">Gestores das minhas escolas</option>
+                        <option value="professores_todas_escolas">Professores de todas as escolas que coordeno</option>
+                        <option value="coordenadores_escola">Coordenadores de uma escola específica</option>
+                    </select>
+
+                    <div id="coord-escola-wrap" class="d-none">
+                        <label class="small fw-bold mb-0">Escola</label>
+                        <select class="form-select" name="escola_id" id="coord-escola-id">
+                            <option value="">Selecione a escola</option>
+                            {% for escola in escolas_scope %}
+                            <option value="{{ escola.id }}">{{ escola.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <label class="small fw-bold mb-0">Disciplina/tema</label>
+                    <input name="disciplina" class="form-control" maxlength="50" placeholder="Ex.: Planejamento de aprendizagem" required>
+                    <label class="small fw-bold mb-0">Título</label>
+                    <input name="titulo" class="form-control" maxlength="150" placeholder="Ex.: Encontro pedagógico da rede" required>
+                    <label class="small fw-bold mb-0">Data e hora</label>
+                    <input name="scheduled_at" type="datetime-local" class="form-control" required>
+                    <label class="small fw-bold mb-0">Descrição (opcional)</label>
+                    <textarea name="descricao" class="form-control" rows="2" maxlength="1000"></textarea>
+                    <button type="submit" class="btn btn-mj fw-bold mt-1">Agendar live</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-7">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header d-flex align-items-center gap-2">
+                <i class="fa-solid fa-calendar-check text-mj-primary fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Próximas Lives</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if upcoming_live_classes %}
+                <div class="list-group list-group-flush small">
+                    {% for item in upcoming_live_classes %}
+                    <div class="list-group-item p-3">
+                        <div class="fw-bold text-dark">{{ item.titulo }}</div>
+                        <div class="text-muted">{{ item.disciplina }}{% if item.target_label %} · {{ item.target_label }}{% endif %}</div>
+                        <div class="text-muted">{{ item.scheduled_at.strftime("%d/%m/%Y %H:%M") }}</div>
+                        <a href="{{ item.join_path }}" class="btn btn-sm btn-mj-outline mt-2">Entrar na sala</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-3 small text-muted">Nenhuma live agendada no momento.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var scope = document.getElementById('coord-target-scope');
+    var escolaWrap = document.getElementById('coord-escola-wrap');
+    var escolaInput = document.getElementById('coord-escola-id');
+    function syncScope() {
+        if (!scope || !escolaWrap || !escolaInput) return;
+        var needSchool = scope.value === 'coordenadores_escola';
+        escolaWrap.classList.toggle('d-none', !needSchool);
+        escolaInput.required = needSchool;
+        if (!needSchool) escolaInput.value = '';
+    }
+    if (scope) scope.addEventListener('change', syncScope);
+    syncScope();
+})();
+</script>
+{% endblock %}

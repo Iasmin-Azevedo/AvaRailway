@@ -6,6 +6,8 @@ from app.models.live_support import AulaAoVivo, SolicitacaoProfessor
 
 
 class AulaAoVivoRepository:
+    model = AulaAoVivo
+
     def create(self, db: Session, data: dict) -> AulaAoVivo:
         obj = AulaAoVivo(**data)
         db.add(obj)

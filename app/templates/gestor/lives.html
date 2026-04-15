@@ -1,0 +1,103 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Lives da Gestão{% endblock %}
+{% block brand_link %}/gestor{% endblock %}
+{% block menu_title %}Menu do Gestor{% endblock %}
+
+{% block header_right %}
+{% include "gestor/partials/gestor_header_right.html" %}
+{% endblock %}
+
+{% block offcanvas_extra %}{% endblock %}
+
+{% block offcanvas_links %}
+{% include "gestor/partials/gestor_menu_links.html" %}
+{% endblock %}
+
+{% block main_content %}
+<div class="row g-4">
+    <div class="col-12 col-lg-5">
+        <div class="card dash-card">
+            <div class="dash-card-header d-flex align-items-center gap-2">
+                <i class="fa-solid fa-video text-mj-primary fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Agendar Live (Gestor)</h6>
+            </div>
+            <div class="card-body">
+                {% if flash_ok %}
+                <div class="alert alert-success small py-2">Live agendada com sucesso.</div>
+                {% endif %}
+                {% if flash_err %}
+                <div class="alert alert-danger small py-2">{{ flash_err }}</div>
+                {% endif %}
+                <form method="post" action="/gestor/lives/agendar" class="d-grid gap-2">
+                    <label class="small fw-bold mb-0">Escopo</label>
+                    <select class="form-select" name="target_scope" id="gestor-target-scope" required>
+                        <option value="professores_escolas_gestor">Professores de todas as turmas da escola</option>
+                        <option value="professores_turma">Professores de uma turma específica</option>
+                    </select>
+
+                    <div id="gestor-turma-wrap" class="d-none">
+                        <label class="small fw-bold mb-0">Turma específica</label>
+                        <select class="form-select" name="turma_id" id="gestor-turma-id">
+                            <option value="">Selecione a turma</option>
+                            {% for turma in turmas_scope %}
+                            <option value="{{ turma.id }}">{{ turma.ano_escolar }}º {{ turma.nome }} · {{ turma.escola.nome if turma.escola else "Escola" }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <label class="small fw-bold mb-0">Disciplina/tema</label>
+                    <input name="disciplina" class="form-control" maxlength="50" placeholder="Ex.: Alinhamento pedagógico" required>
+                    <label class="small fw-bold mb-0">Título</label>
+                    <input name="titulo" class="form-control" maxlength="150" placeholder="Ex.: Live com professores do 5º ano" required>
+                    <label class="small fw-bold mb-0">Data e hora</label>
+                    <input name="scheduled_at" type="datetime-local" class="form-control" required>
+                    <label class="small fw-bold mb-0">Descrição (opcional)</label>
+                    <textarea name="descricao" class="form-control" rows="2" maxlength="1000"></textarea>
+                    <button type="submit" class="btn btn-mj fw-bold mt-1">Agendar live</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-7">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header d-flex align-items-center gap-2">
+                <i class="fa-solid fa-calendar-check text-mj-primary fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Próximas Lives</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if upcoming_live_classes %}
+                <div class="list-group list-group-flush small">
+                    {% for item in upcoming_live_classes %}
+                    <div class="list-group-item p-3">
+                        <div class="fw-bold text-dark">{{ item.titulo }}</div>
+                        <div class="text-muted">{{ item.disciplina }}{% if item.target_label %} · {{ item.target_label }}{% endif %}</div>
+                        <div class="text-muted">{{ item.scheduled_at.strftime("%d/%m/%Y %H:%M") }}</div>
+                        <a href="{{ item.join_path }}" class="btn btn-sm btn-mj-outline mt-2">Entrar na sala</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-3 small text-muted">Nenhuma live agendada no momento.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var scope = document.getElementById('gestor-target-scope');
+    var turmaWrap = document.getElementById('gestor-turma-wrap');
+    var turmaInput = document.getElementById('gestor-turma-id');
+    function syncScope() {
+        if (!scope || !turmaWrap || !turmaInput) return;
+        var isTurma = scope.value === 'professores_turma';
+        turmaWrap.classList.toggle('d-none', !isTurma);
+        turmaInput.required = isTurma;
+        if (!isTurma) turmaInput.value = '';
+    }
+    if (scope) scope.addEventListener('change', syncScope);
+    syncScope();
+})();
+</script>
+{% endblock %}

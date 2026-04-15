@@ -40,6 +40,10 @@ def list_upcoming_live_classes(
     role = getattr(current_user.role, "value", current_user.role)
     if role == "professor":
         return service.list_live_classes_for_professor(current_user)
+    if role == "gestor":
+        return service.list_live_classes_for_gestor(current_user)
+    if role == "coordenador":
+        return service.list_live_classes_for_coordenador(current_user)
     return service.list_live_classes_for_student(current_user)
 
 
@@ -78,7 +82,14 @@ def open_live_classroom(
     service = LiveSupportService(db)
     live_class = service.get_live_class_for_user(current_user, live_class_id)
     role = getattr(current_user.role, "value", current_user.role)
-    back_path = "/professor" if role == UserRole.PROFESSOR.value else "/aluno"
+    if role == UserRole.PROFESSOR.value:
+        back_path = "/professor"
+    elif role == UserRole.GESTOR.value:
+        back_path = "/gestor/lives"
+    elif role == UserRole.COORDENADOR.value:
+        back_path = "/coordenador/lives"
+    else:
+        back_path = "/aluno"
     return templates.TemplateResponse(
         request,
         "live_support/live_classroom.html",

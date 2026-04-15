@@ -157,7 +157,7 @@
                     {% for item in upcoming_live_classes %}
                     <div class="list-group-item p-3">
                         <div class="fw-bold text-dark">{{ item.titulo }}</div>
-                        <div class="text-muted">{{ item.disciplina }} · {{ item.turma.nome if item.turma else "Turma" }}</div>
+                        <div class="text-muted">{{ item.disciplina }} · {{ item.target_label if item.target_label else (item.turma.nome if item.turma else "Turma") }}</div>
                         <div class="text-muted">{{ item.scheduled_at.strftime("%d/%m/%Y %H:%M") }}</div>
                         <a href="{{ item.join_path }}" class="btn btn-sm btn-mj-outline mt-2">Entrar na sala</a>
                     </div>

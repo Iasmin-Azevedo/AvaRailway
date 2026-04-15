@@ -17,7 +17,7 @@ from app.main import app
 from app.models.aluno import Aluno
 from app.models.gestao import Curso, Escola, Trilha, Turma
 from app.models.h5p import AtividadeH5P
-from app.models.relacoes import ProfessorTurma
+from app.models.relacoes import CoordenadorEscola, GestorEscola, ProfessorTurma
 from app.models.user import Usuario
 from app.core.database import SessionLocal
 
@@ -55,6 +55,8 @@ class BackendFlowTestCase(unittest.TestCase):
                 db.refresh(turma)
 
             professor = db.query(Usuario).filter(Usuario.email == "professor@avamj.com").first()
+            gestor = db.query(Usuario).filter(Usuario.email == "gestor@avamj.com").first()
+            coordenador = db.query(Usuario).filter(Usuario.email == "coordenador@avamj.com").first()
             aluno_user = db.query(Usuario).filter(Usuario.email == "aluno@avamj.com").first()
 
             if professor and not db.query(ProfessorTurma).filter(
@@ -62,6 +64,19 @@ class BackendFlowTestCase(unittest.TestCase):
                 ProfessorTurma.turma_id == turma.id,
             ).first():
                 db.add(ProfessorTurma(professor_id=professor.id, turma_id=turma.id))
+                db.commit()
+
+            if gestor and not db.query(GestorEscola).filter(
+                GestorEscola.gestor_id == gestor.id,
+                GestorEscola.escola_id == escola.id,
+            ).first():
+                db.add(GestorEscola(gestor_id=gestor.id, escola_id=escola.id))
+                db.commit()
+
+            if coordenador and not db.query(CoordenadorEscola).filter(
+                CoordenadorEscola.coordenador_id == coordenador.id
+            ).first():
+                db.add(CoordenadorEscola(coordenador_id=coordenador.id, escola_id=escola.id))
                 db.commit()
 
             if aluno_user:
@@ -519,6 +534,83 @@ class BackendFlowTestCase(unittest.TestCase):
         body = response.json()
         self.assertTrue(body["success"])
         self.assertIn("encaminhada", body["message"])
+
+    def test_gestor_can_schedule_live_for_professores_da_turma(self):
+        gestor_login = self.client.post(
+            "/auth/login",
+            json={"email": "gestor@avamj.com", "senha": "123456"},
+        )
+        gestor_headers = {"Authorization": f"Bearer {gestor_login.json()['access_token']}"}
+
+        db = SessionLocal()
+        try:
+            turma = db.query(Turma).filter(Turma.nome == "Turma Teste").first()
+            self.assertIsNotNone(turma)
+            turma_id = turma.id
+        finally:
+            db.close()
+
+        create_response = self.client.post(
+            "/api/v1/live-support/live-classes",
+            json={
+                "turma_id": turma_id,
+                "target_scope": "professores_turma",
+                "disciplina": "Gestão Pedagógica",
+                "titulo": "Alinhamento com professores da turma",
+                "descricao": "Live para ajuste de planejamento.",
+                "meeting_url": None,
+                "scheduled_at": "2099-12-31T19:00:00",
+                "duration_minutes": 50,
+            },
+            headers=gestor_headers,
+        )
+        self.assertEqual(create_response.status_code, 201)
+
+        professor_login = self.client.post(
+            "/auth/login",
+            json={"email": "professor@avamj.com", "senha": "123456"},
+        )
+        professor_headers = {"Authorization": f"Bearer {professor_login.json()['access_token']}"}
+        list_response = self.client.get(
+            "/api/v1/live-support/live-classes/upcoming",
+            headers=professor_headers,
+        )
+        self.assertEqual(list_response.status_code, 200)
+        self.assertTrue(any(item["titulo"] == "Alinhamento com professores da turma" for item in list_response.json()))
+
+    def test_coordenador_can_schedule_live_for_gestores(self):
+        coordenador_login = self.client.post(
+            "/auth/login",
+            json={"email": "coordenador@avamj.com", "senha": "123456"},
+        )
+        coordenador_headers = {"Authorization": f"Bearer {coordenador_login.json()['access_token']}"}
+
+        create_response = self.client.post(
+            "/api/v1/live-support/live-classes",
+            json={
+                "target_scope": "gestores_escolas",
+                "disciplina": "Planejamento escolar",
+                "titulo": "Reunião com gestores da rede",
+                "descricao": "Acompanhamento de metas.",
+                "meeting_url": None,
+                "scheduled_at": "2099-12-31T20:00:00",
+                "duration_minutes": 40,
+            },
+            headers=coordenador_headers,
+        )
+        self.assertEqual(create_response.status_code, 201)
+
+        gestor_login = self.client.post(
+            "/auth/login",
+            json={"email": "gestor@avamj.com", "senha": "123456"},
+        )
+        gestor_headers = {"Authorization": f"Bearer {gestor_login.json()['access_token']}"}
+        list_response = self.client.get(
+            "/api/v1/live-support/live-classes/upcoming",
+            headers=gestor_headers,
+        )
+        self.assertEqual(list_response.status_code, 200)
+        self.assertTrue(any(item["titulo"] == "Reunião com gestores da rede" for item in list_response.json()))
 
     def test_chat_status_endpoint(self):
         login = self.client.post(

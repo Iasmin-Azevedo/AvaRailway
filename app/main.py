@@ -1988,6 +1988,20 @@ def _gestor_escola_ids(db: Session, gestor_user_id: int) -> list[int]:
     return [r[0] for r in rows]
 
 
+def _gestor_turmas_scope(db: Session, gestor_user_id: int):
+    from app.models.gestao import Turma
+
+    escola_ids = _gestor_escola_ids(db, gestor_user_id)
+    if not escola_ids:
+        return []
+    return (
+        db.query(Turma)
+        .filter(Turma.escola_id.in_(escola_ids))
+        .order_by(Turma.escola_id.asc(), Turma.ano_escolar.asc(), Turma.nome.asc())
+        .all()
+    )
+
+
 @app.get("/gestor")
 def gestor_dashboard(
     request: Request,
@@ -1995,10 +2009,12 @@ def gestor_dashboard(
     current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
 ):
     from app.services.descriptor_performance_service import DescriptorPerformanceService
+    from app.services.live_support_service import LiveSupportService
 
     stats = DashboardService().get_gestor_stats(db)
     escola_ids = _gestor_escola_ids(db, current_user.id)
     dsvc = DescriptorPerformanceService()
+    live_support = LiveSupportService(db)
     if escola_ids:
         aluno_ids = dsvc.aluno_ids_for_escolas(db, escola_ids)
         escolas_tbl = dsvc.escolas_engajamento(db, escola_ids)
@@ -2014,8 +2030,106 @@ def gestor_dashboard(
             "stats": stats,
             "escolas_engajamento": escolas_tbl,
             "descritores_resumo": dsvc.aggregates_for_alunos(db, aluno_ids)[:6],
+            "upcoming_live_classes": live_support.list_live_classes_for_gestor(current_user)[:4],
         },
     )
+
+
+@app.get("/gestor/lives")
+def gestor_lives_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
+):
+    from app.services.live_support_service import LiveSupportService
+
+    qp = request.query_params
+    service = LiveSupportService(db)
+    turmas_scope = _gestor_turmas_scope(db, current_user.id)
+    return templates.TemplateResponse(
+        request,
+        "gestor/lives.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "turmas_scope": turmas_scope,
+            "upcoming_live_classes": service.list_live_classes_for_gestor(current_user),
+            "flash_ok": (qp.get("ok") or "").strip(),
+            "flash_err": (qp.get("err") or "").strip(),
+        },
+    )
+
+
+@app.post("/gestor/lives/agendar")
+async def gestor_lives_agendar(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.GESTOR)),
+):
+    from datetime import datetime
+    from urllib.parse import quote
+
+    from app.schemas.live_support_schema import AulaAoVivoCreateRequest
+    from app.services.live_support_service import LiveSupportService
+    from pydantic import ValidationError
+    from sqlalchemy.exc import SQLAlchemyError
+
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+
+    form = await request.form()
+    turma_raw = (form.get("turma_id") or "").strip()
+    turma_id = int(turma_raw) if turma_raw.isdigit() else None
+    scope = (form.get("target_scope") or "professores_escolas_gestor").strip().lower()
+    disciplina = (form.get("disciplina") or "").strip()
+    titulo = (form.get("titulo") or "").strip()
+    scheduled_raw = (form.get("scheduled_at") or "").strip()
+    if not disciplina or not titulo or not scheduled_raw:
+        return RedirectResponse(
+            url="/gestor/lives?err=Preencha%20disciplina,%20t%C3%ADtulo%20e%20data/hora.",
+            status_code=303,
+        )
+    try:
+        scheduled_at = datetime.fromisoformat(scheduled_raw)
+    except Exception:
+        return RedirectResponse(
+            url="/gestor/lives?err=Data%20e%20hora%20inv%C3%A1lidas.",
+            status_code=303,
+        )
+    try:
+        payload = AulaAoVivoCreateRequest(
+            turma_id=turma_id,
+            target_scope=scope,
+            disciplina=disciplina,
+            titulo=titulo,
+            descricao=(form.get("descricao") or "").strip() or None,
+            meeting_url=None,
+            scheduled_at=scheduled_at,
+            duration_minutes=50,
+        )
+        LiveSupportService(db).create_live_class(current_user, payload)
+    except HTTPException as exc:
+        return RedirectResponse(
+            url=f"/gestor/lives?err={quote(str(exc.detail)[:200])}",
+            status_code=303,
+        )
+    except ValidationError as exc:
+        msg = exc.errors()[0].get("msg") if exc.errors() else "Dados inválidos."
+        return RedirectResponse(
+            url=f"/gestor/lives?err={quote(str(msg)[:200])}",
+            status_code=303,
+        )
+    except SQLAlchemyError:
+        return RedirectResponse(
+            url="/gestor/lives?err=Estrutura%20do%20banco%20desatualizada.%20Execute%20alembic%20upgrade%20head.",
+            status_code=303,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            url=f"/gestor/lives?err={quote(str(exc)[:220] or f'Falha ao processar agendamento ({exc.__class__.__name__}).')}",
+            status_code=303,
+        )
+    return RedirectResponse(url="/gestor/lives?ok=agendada", status_code=303)
 
 
 @app.get("/gestor/proficiencia")
@@ -2385,6 +2499,116 @@ def _coordenador_layout_context(db: Session, coord_user: Usuario) -> dict:
     return {"escola": escola, "avatar_iniciais": avatar_iniciais}
 
 
+def _coordenador_escolas_scope(db: Session, coordenador_user_id: int):
+    from app.models.gestao import Escola
+    from app.models.relacoes import CoordenadorEscola
+
+    return (
+        db.query(Escola)
+        .join(CoordenadorEscola, CoordenadorEscola.escola_id == Escola.id)
+        .filter(CoordenadorEscola.coordenador_id == coordenador_user_id)
+        .order_by(Escola.nome.asc())
+        .all()
+    )
+
+
+@app.get("/coordenador/lives")
+def coordenador_lives_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.COORDENADOR)),
+):
+    from app.services.live_support_service import LiveSupportService
+
+    qp = request.query_params
+    escolas_scope = _coordenador_escolas_scope(db, current_user.id)
+    service = LiveSupportService(db)
+    return templates.TemplateResponse(
+        request,
+        "coordenador/lives.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "escolas_scope": escolas_scope,
+            "upcoming_live_classes": service.list_live_classes_for_coordenador(current_user),
+            "flash_ok": (qp.get("ok") or "").strip(),
+            "flash_err": (qp.get("err") or "").strip(),
+        },
+    )
+
+
+@app.post("/coordenador/lives/agendar")
+async def coordenador_lives_agendar(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.COORDENADOR)),
+):
+    from datetime import datetime
+    from urllib.parse import quote
+
+    from app.schemas.live_support_schema import AulaAoVivoCreateRequest
+    from app.services.live_support_service import LiveSupportService
+    from pydantic import ValidationError
+    from sqlalchemy.exc import SQLAlchemyError
+
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+
+    form = await request.form()
+    escola_raw = (form.get("escola_id") or "").strip()
+    escola_id = int(escola_raw) if escola_raw.isdigit() else None
+    scope = (form.get("target_scope") or "gestores_escolas").strip().lower()
+    disciplina = (form.get("disciplina") or "").strip()
+    titulo = (form.get("titulo") or "").strip()
+    scheduled_raw = (form.get("scheduled_at") or "").strip()
+    if not disciplina or not titulo or not scheduled_raw:
+        return RedirectResponse(
+            url="/coordenador/lives?err=Preencha%20disciplina,%20t%C3%ADtulo%20e%20data/hora.",
+            status_code=303,
+        )
+    try:
+        scheduled_at = datetime.fromisoformat(scheduled_raw)
+    except Exception:
+        return RedirectResponse(
+            url="/coordenador/lives?err=Data%20e%20hora%20inv%C3%A1lidas.",
+            status_code=303,
+        )
+    try:
+        payload = AulaAoVivoCreateRequest(
+            escola_id=escola_id,
+            target_scope=scope,
+            disciplina=disciplina,
+            titulo=titulo,
+            descricao=(form.get("descricao") or "").strip() or None,
+            meeting_url=None,
+            scheduled_at=scheduled_at,
+            duration_minutes=50,
+        )
+        LiveSupportService(db).create_live_class(current_user, payload)
+    except HTTPException as exc:
+        return RedirectResponse(
+            url=f"/coordenador/lives?err={quote(str(exc.detail)[:200])}",
+            status_code=303,
+        )
+    except ValidationError as exc:
+        msg = exc.errors()[0].get("msg") if exc.errors() else "Dados inválidos."
+        return RedirectResponse(
+            url=f"/coordenador/lives?err={quote(str(msg)[:200])}",
+            status_code=303,
+        )
+    except SQLAlchemyError:
+        return RedirectResponse(
+            url="/coordenador/lives?err=Estrutura%20do%20banco%20desatualizada.%20Execute%20alembic%20upgrade%20head.",
+            status_code=303,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            url=f"/coordenador/lives?err={quote(str(exc)[:220] or f'Falha ao processar agendamento ({exc.__class__.__name__}).')}",
+            status_code=303,
+        )
+    return RedirectResponse(url="/coordenador/lives?ok=agendada", status_code=303)
+
+
 @app.get("/coordenador")
 def coordenador_dashboard(
     request: Request,
@@ -2392,11 +2616,13 @@ def coordenador_dashboard(
     current_user: Usuario = Depends(require_role_redirect(UserRole.COORDENADOR)),
 ):
     from app.services.descriptor_performance_service import DescriptorPerformanceService
+    from app.services.live_support_service import LiveSupportService
 
     layout = _coordenador_layout_context(db, current_user)
     escola = layout["escola"]
     stats = DashboardService().get_coordenador_stats(db, escola.id if escola else None)
     dsvc = DescriptorPerformanceService()
+    live_support = LiveSupportService(db)
     aluno_ids_escola = dsvc.aluno_ids_for_escolas(db, [escola.id]) if escola else []
     descritores_escola = dsvc.aggregates_for_alunos(db, aluno_ids_escola) if aluno_ids_escola else []
     lacunas_cards = []
@@ -2427,6 +2653,7 @@ def coordenador_dashboard(
             ),
             "riscos_por_turma": _coordenador_riscos_por_turma(db, escola.id if escola else None),
             "lacunas_cards": lacunas_cards,
+            "upcoming_live_classes": live_support.list_live_classes_for_coordenador(current_user)[:4],
         },
     )
 

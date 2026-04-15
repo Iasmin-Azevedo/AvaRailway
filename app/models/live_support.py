@@ -10,8 +10,13 @@ class AulaAoVivo(Base):
     __tablename__ = "aulas_ao_vivo"
 
     id = Column(Integer, primary_key=True, index=True)
-    professor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
-    turma_id = Column(Integer, ForeignKey("turmas.id"), nullable=False, index=True)
+    organizador_user_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
+    professor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, index=True)
+    turma_id = Column(Integer, ForeignKey("turmas.id"), nullable=True, index=True)
+    escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=True, index=True)
+    audience_role = Column(String(30), default="aluno", nullable=False, index=True)
+    audience_scope = Column(String(30), default="turma", nullable=False, index=True)
+    target_label = Column(String(200), nullable=True)
     disciplina = Column(String(50), nullable=False)
     titulo = Column(String(150), nullable=False)
     descricao = Column(Text, nullable=True)
@@ -23,8 +28,10 @@ class AulaAoVivo(Base):
     ativa = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+    organizador = relationship("Usuario", foreign_keys=[organizador_user_id])
     professor = relationship("Usuario", foreign_keys=[professor_id])
     turma = relationship("Turma")
+    escola = relationship("Escola")
 
 
 class SolicitacaoProfessor(Base):

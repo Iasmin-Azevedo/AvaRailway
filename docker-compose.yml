@@ -1,3 +1,10 @@
+# Produção na VPS (ex.: Hostinger): use Nginx no próprio servidor como reverse proxy.
+# O backend fica escutando apenas em 127.0.0.1:8000 — não exponha Uvicorn na internet.
+#
+# Subir só app + banco: docker compose up -d
+# Redis / Ollama (opcional): docker compose --profile cache up -d
+# Desenvolvimento local com bind na máquina: altere temporariamente ports para "8000:8000".
+
 version: "3.9"
 
 services:
@@ -7,12 +14,10 @@ services:
     env_file:
       - .env
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       - mysql
     restart: unless-stopped
-    volumes:
-      - ./:/app
 
   mysql:
     image: mysql:8.0
@@ -20,11 +25,10 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: avamj
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_USER: avamj
-      MYSQL_PASSWORD: avamj
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_USER: ${MYSQL_USER:-avamj}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-avamj}
+    # Sem publicação na rede do host: só o backend (rede Docker) acessa o MySQL.
     volumes:
       - mysql_data:/var/lib/mysql
 
@@ -35,7 +39,7 @@ services:
     profiles:
       - cache
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
 
   ollama:
     image: ollama/ollama:latest
@@ -44,20 +48,9 @@ services:
     profiles:
       - ai
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: avamj-nginx
-    restart: unless-stopped
-    depends_on:
-      - backend
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
   mysql_data:
