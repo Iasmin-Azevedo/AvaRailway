@@ -14,7 +14,8 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     restart: unless-stopped
 
   mysql:
@@ -29,6 +30,13 @@ services:
     # Sem publicação na rede do host: só o backend (rede Docker) acessa o MySQL.
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      # $$ vira $ no Compose — no container expande MYSQL_ROOT_PASSWORD.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 45s
 
   redis:
     image: redis:7-alpine
