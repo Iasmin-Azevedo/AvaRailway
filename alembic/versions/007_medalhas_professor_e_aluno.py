@@ -43,7 +43,11 @@ def upgrade() -> None:
         op.create_index("ix_medalha_tipos_ativo", "medalha_tipos", ["ativo"], unique=False)
         op.create_index("ix_medalha_tipos_ordem", "medalha_tipos", ["ordem"], unique=False)
 
-    if not _table_exists(conn, "professor_medalha_envios"):
+    if (
+        not _table_exists(conn, "professor_medalha_envios")
+        and _table_exists(conn, "usuarios")
+        and _table_exists(conn, "medalha_tipos")
+    ):
         op.create_table(
             "professor_medalha_envios",
             sa.Column("id", sa.Integer(), nullable=False),
@@ -82,7 +86,12 @@ def upgrade() -> None:
             unique=False,
         )
 
-    if not _table_exists(conn, "aluno_medalhas"):
+    if (
+        not _table_exists(conn, "aluno_medalhas")
+        and _table_exists(conn, "alunos")
+        and _table_exists(conn, "professor_medalha_envios")
+        and _table_exists(conn, "medalha_tipos")
+    ):
         op.create_table(
             "aluno_medalhas",
             sa.Column("id", sa.Integer(), nullable=False),

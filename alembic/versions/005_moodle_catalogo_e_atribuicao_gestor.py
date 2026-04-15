@@ -40,7 +40,7 @@ def upgrade() -> None:
             sa.UniqueConstraint("moodle_course_id", name="uq_moodle_course_catalog_moodle_id"),
         )
 
-    if not _table_exists(conn, "gestor_professor_moodle_course"):
+    if not _table_exists(conn, "gestor_professor_moodle_course") and _table_exists(conn, "usuarios"):
         op.create_table(
             "gestor_professor_moodle_course",
             sa.Column("id", sa.Integer(), nullable=False),

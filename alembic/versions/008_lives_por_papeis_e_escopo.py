@@ -86,14 +86,22 @@ def upgrade() -> None:
                 existing_type=sa.Integer(),
                 nullable=True,
             )
-        if "organizador_user_id" in cols and "fk_aulas_ao_vivo_organizador_user_id" not in fk_names:
+        if (
+            _table_exists(conn, "usuarios")
+            and "organizador_user_id" in cols
+            and "fk_aulas_ao_vivo_organizador_user_id" not in fk_names
+        ):
             batch_op.create_foreign_key(
                 "fk_aulas_ao_vivo_organizador_user_id",
                 "usuarios",
                 ["organizador_user_id"],
                 ["id"],
             )
-        if "escola_id" in cols and "fk_aulas_ao_vivo_escola_id" not in fk_names:
+        if (
+            _table_exists(conn, "escolas")
+            and "escola_id" in cols
+            and "fk_aulas_ao_vivo_escola_id" not in fk_names
+        ):
             batch_op.create_foreign_key(
                 "fk_aulas_ao_vivo_escola_id",
                 "escolas",

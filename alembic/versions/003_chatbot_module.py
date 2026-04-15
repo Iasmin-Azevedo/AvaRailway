@@ -25,6 +25,8 @@ def _table_exists(conn, name: str) -> bool:
 
 def upgrade() -> None:
     conn = op.get_bind()
+    if not _table_exists(conn, "usuarios"):
+        return
 
     if not _table_exists(conn, "chat_sessions"):
         op.create_table(

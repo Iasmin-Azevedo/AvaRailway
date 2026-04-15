@@ -25,8 +25,11 @@ def _table_exists(conn, name: str) -> bool:
 
 def upgrade() -> None:
     conn = op.get_bind()
+    # usuarios vem do create_all no startup; primeiro alembic sobre BD vazia não pode criar estas FKs.
+    if not _table_exists(conn, "usuarios"):
+        return
 
-    if not _table_exists(conn, "professores_turmas"):
+    if not _table_exists(conn, "professores_turmas") and _table_exists(conn, "turmas"):
         op.create_table(
             "professores_turmas",
             sa.Column("professor_id", sa.Integer(), nullable=False),
@@ -36,7 +39,7 @@ def upgrade() -> None:
             sa.PrimaryKeyConstraint("professor_id", "turma_id"),
         )
 
-    if not _table_exists(conn, "gestores_escolas"):
+    if not _table_exists(conn, "gestores_escolas") and _table_exists(conn, "escolas"):
         op.create_table(
             "gestores_escolas",
             sa.Column("gestor_id", sa.Integer(), nullable=False),
@@ -46,7 +49,7 @@ def upgrade() -> None:
             sa.PrimaryKeyConstraint("gestor_id", "escola_id"),
         )
 
-    if not _table_exists(conn, "coordenadores_escolas"):
+    if not _table_exists(conn, "coordenadores_escolas") and _table_exists(conn, "escolas"):
         op.create_table(
             "coordenadores_escolas",
             sa.Column("coordenador_id", sa.Integer(), nullable=False),
