@@ -164,7 +164,7 @@ class ChatService:
             actions.insert(
                 0,
                 {
-                    "label": "Falar com o chat (guiado)",
+                    "label": "Falar com o chat",
                     "action": "choose_guided_subject",
                     "kind": "chat",
                 },
@@ -213,7 +213,7 @@ class ChatService:
                     "message": "Explique Português em linguagem simples para o ensino fundamental.",
                 },
                 {
-                    "label": "Falar com o chat (guiado)",
+                    "label": "Falar com o chat",
                     "action": "choose_guided_subject",
                     "kind": "chat",
                 },
@@ -292,7 +292,7 @@ class ChatService:
         if role == "aluno":
             return [
                 {
-                    "label": "Falar com o chat (guiado)",
+                    "label": "Falar com o chat",
                     "action": "choose_guided_subject",
                     "kind": "chat",
                 },

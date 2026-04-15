@@ -188,6 +188,30 @@
     </div>
 
     <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 mb-4 dash-card border border-success border-opacity-25 hover-lift">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
+                        <i class="fa-solid fa-star fs-4"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0">Seu progresso de XP</h6>
+                </div>
+                <div class="small text-muted mb-2">
+                    Nível atual: <strong>{{ stats.nivel|default('LV 1') }}</strong>
+                </div>
+                <div class="small text-muted mb-2">
+                    XP total: <strong>{{ stats.xp_total|default(0) }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small fw-bold mb-2">
+                    <span>XP no nível</span>
+                    <span>{{ stats.xp_atual_nivel|default(0) }} / {{ stats.xp_meta_nivel|default(600) }}</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar bg-success" data-progress-width="{{ stats.xp_pct_nivel|default(0) }}"></div>
+                </div>
+            </div>
+        </div>
+
         <div class="card border-0 shadow-sm rounded-4 mb-4 dash-card border border-primary border-opacity-25 hover-lift">
             <div class="card-body p-4">
                 <div class="d-flex align-items-center gap-3 mb-3">
@@ -244,7 +268,7 @@
                 </p>
                 {% endif %}
                 <button id="chat-open-guided-from-status" class="btn btn-sm btn-warning text-dark fw-bold w-100 rounded-pill shadow-sm">
-                    Falar com o chat (guiado)
+                    Falar com o chat
                 </button>
             </div>
         </div>
@@ -342,7 +366,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     var pendingGuidedHelpType = null;
     var initialGreeting = 'Oi. Escolha uma opção:';
     var initialActions = [
-        { label: 'Falar com o chat (guiado)', action: 'choose_guided_subject', kind: 'chat' },
+        { label: 'Falar com o chat', action: 'choose_guided_subject', kind: 'chat' },
         { label: 'Tirar dúvidas com professor', action: 'choose_teacher_subject', kind: 'teacher_help' },
         { label: 'Sair', action: 'close_chat_panel', kind: 'system' }
     ];
@@ -573,19 +597,33 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
     }
 
     async function createTeacherHelpRequest(disciplina, assunto) {
+        var normalizedDisciplina = String(disciplina || '').trim();
+        var normalizedAssunto = String(assunto || '').trim();
+        if (normalizedAssunto.length < 2) {
+            throw new Error('Escreva sua dúvida com pelo menos 2 caracteres para enviar ao professor.');
+        }
         const sid = await ensureSession();
         const response = await fetch('/api/v1/live-support/teacher-help-requests', {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                disciplina: disciplina,
-                assunto: assunto,
+                disciplina: normalizedDisciplina,
+                assunto: normalizedAssunto,
                 session_id: sid
             })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.mensagem_amigavel || 'Falha ao encaminhar a solicitação.');
+        if (!response.ok) {
+            var detail = data && data.detail ? data.detail : null;
+            if (Array.isArray(detail) && detail.length) {
+                throw new Error(detail[0].msg || 'Falha ao encaminhar a solicitação.');
+            }
+            if (typeof detail === 'string' && detail.trim()) {
+                throw new Error(detail);
+            }
+            throw new Error(data.mensagem_amigavel || 'Falha ao encaminhar a solicitação.');
+        }
         return data;
     }
 
@@ -734,7 +772,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
             appendMessage(
                 'Para manter a conversa organizada, vamos usar o modo guiado.',
                 'bot',
-                [{ label: 'Continuar no chat guiado', action: 'choose_guided_subject', kind: 'chat' }]
+                [{ label: 'Continuar no chat', action: 'choose_guided_subject', kind: 'chat' }]
             );
             return;
         }
@@ -884,7 +922,7 @@ document.querySelectorAll('[data-progress-width]').forEach(function(el) {
                     postTeacherHelpActions
                 );
             } catch (err) {
-                appendMessage('Não consegui enviar sua dúvida agora. Tente novamente em instantes.', 'bot');
+                appendMessage((err && err.message) ? err.message : 'Não consegui enviar sua dúvida agora. Tente novamente em instantes.', 'bot');
                 console.error(err);
             } finally {
                 pendingTeacherHelpSubject = null;

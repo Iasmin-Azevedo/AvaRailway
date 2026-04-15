@@ -34,7 +34,7 @@ class AulaAoVivoResponse(BaseModel):
 
 class SolicitacaoProfessorCreateRequest(BaseModel):
     disciplina: str = Field(min_length=2, max_length=50)
-    assunto: str = Field(min_length=4, max_length=255)
+    assunto: str = Field(min_length=2, max_length=255)
     session_id: str | None = Field(default=None, max_length=36)
 
 
