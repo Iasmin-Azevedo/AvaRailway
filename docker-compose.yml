@@ -24,6 +24,8 @@ services:
   mysql:
     image: mysql:8.0
     container_name: avamj-mysql
+    ports:
+    - "3306:3306"
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: avamj
