@@ -23,6 +23,7 @@ from app.core.config import settings
 from app.core.media_urls import h5p_content_root
 from jose import jwt, JWTError
 from app.core.gamification_rules import calculate_xp_gain, get_level_progress
+from app.services.medalha_service import MedalhaService
 
 router = APIRouter()
 logger = logging.getLogger("ava_mj_backend.h5p")
@@ -263,6 +264,7 @@ async def concluir_atividade(
             aluno_id,
         )
 
+    MedalhaService().sync_auto_medalhas_aluno(db, aluno_id)
     return progresso
 
 
@@ -337,6 +339,7 @@ async def concluir_atividade_professor(
         gamificacao.xp_total = int((gamificacao.xp_total or 0) + ganho_xp)
         gamificacao.nivel = get_level_progress(gamificacao.xp_total)["nivel"]
         db.commit()
+    MedalhaService().sync_auto_medalhas_aluno(db, aluno.id)
     return {"aluno_id": aluno.id, "atividade_id": atividade.id, "concluido": True, "score": score}
 
 

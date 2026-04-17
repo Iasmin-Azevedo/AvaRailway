@@ -388,7 +388,8 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
             "answered_count": answered_count,
         }
     if aluno_id:
-        medalhas_mural = MedalhaService().list_mural_aluno(db, aluno_id, limit=6)
+        MedalhaService().sync_auto_medalhas_aluno(db, aluno_id)
+        medalhas_mural = MedalhaService().list_mural_aluno(db, aluno_id, limit=3)
         medalhas_total = MedalhaService().count_mural_aluno(db, aluno_id)
     if aluno_id:
         from sqlalchemy.orm import joinedload
@@ -610,6 +611,10 @@ def _render_trilhas_por_materia(
     aluno_id = ident["aluno_id"]
     aluno_ano = ident["aluno_ano"]
     aluno_turma_id = ident["aluno_turma_id"]
+    if aluno_id:
+        from app.services.medalha_service import MedalhaService
+
+        MedalhaService().sync_auto_medalhas_aluno(db, aluno_id)
 
     materia_map = {
         "portugues": ("Língua Portuguesa", "%portug%"),
@@ -997,6 +1002,7 @@ async def aluno_atividade_post(id: int, request: Request, db: Session = Depends(
     Registra conclusão/XP quando possível e redireciona para GET.
     """
     from app.repositories.h5p_repository import AtividadeH5PRepository, ProgressoH5PRepository
+    from app.services.medalha_service import MedalhaService
     from app.models.aluno import PontuacaoGamificacao
     from app.core.gamification_rules import calculate_xp_gain, get_level_progress
 
@@ -1041,6 +1047,7 @@ async def aluno_atividade_post(id: int, request: Request, db: Session = Depends(
             nivel_info = get_level_progress(gamificacao.xp_total)
             gamificacao.nivel = nivel_info["nivel"]
             db.commit()
+        MedalhaService().sync_auto_medalhas_aluno(db, aluno_id)
 
     return RedirectResponse(url=f"/aluno/atividade/{id}", status_code=303)
 
@@ -1132,6 +1139,7 @@ async def aluno_atividade_professor_post(id: int, request: Request, db: Session 
         ProfessorAtividadeH5PAluno,
         ProfessorProgressoH5P,
     )
+    from app.services.medalha_service import MedalhaService
 
     aluno_id = _get_aluno_id_from_request(request, db)
     if not aluno_id:
@@ -1196,8 +1204,39 @@ async def aluno_atividade_professor_post(id: int, request: Request, db: Session 
         gamificacao.xp_total = int((gamificacao.xp_total or 0) + ganho_xp)
         gamificacao.nivel = get_level_progress(gamificacao.xp_total)["nivel"]
         db.commit()
+    MedalhaService().sync_auto_medalhas_aluno(db, aluno_id)
 
     return RedirectResponse(url=f"/aluno/atividade-professor/{id}", status_code=303)
+
+
+@page_router.get("/aluno/medalhas")
+def aluno_medalhas(request: Request, db: Session = Depends(get_db)):
+    from app.services.dashboard_service import DashboardService
+    from app.services.medalha_service import MedalhaService
+
+    ident = _aluno_identity_bundle(request, db)
+    aluno_id = ident["aluno_id"]
+    if not aluno_id:
+        return RedirectResponse(url="/login", status_code=302)
+
+    medalha_service = MedalhaService()
+    medalhas = medalha_service.list_medalhas_aluno_com_status(db, aluno_id)
+    medalhas_conquistadas = sum(1 for m in medalhas if m.get("conquistada"))
+    stats = DashboardService().get_aluno_stats(db, aluno_id)
+    return templates.TemplateResponse(
+        request,
+        "aluno/medalhas.html",
+        {
+            "aluno_nome": ident["aluno_nome"],
+            "aluno_ano": ident["aluno_ano"],
+            "aluno_avatar_url": ident["aluno_avatar_url"],
+            "current_user": ident["current_user"],
+            "stats": stats,
+            "medalhas": medalhas,
+            "medalhas_total": len(medalhas),
+            "medalhas_conquistadas": medalhas_conquistadas,
+        },
+    )
 
 
 @page_router.post("/aluno")

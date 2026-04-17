@@ -246,7 +246,7 @@
                             </div>
                             {% endif %}
                             <div style="min-width:0;" class="flex-grow-1">
-                                <a href="/moodle/sso?course_id={{ c.id }}" class="fw-bold text-decoration-none text-mj-dark moodle-course-preview-title d-block" target="_blank" rel="noopener">{{ c.fullname }}</a>
+                                <a href="{{ MOODLE_URL }}/course/view.php?id={{ c.id }}" class="fw-bold text-decoration-none text-mj-dark moodle-course-preview-title d-block" target="_blank" rel="noopener">{{ c.fullname }}</a>
                                 <!-- {% if c.shortname %}<div class="text-muted text-truncate d-block">{{ c.shortname }}</div>{% endif %} -->
                             </div>
                         </div>

@@ -131,7 +131,7 @@
                             <div class="gm-progress mb-3">
                                 <span class="gm-progress__fill" data-progress-width="{{ turma_pct|round|int }}"></span>
                             </div>
-                            {% if atividades_turma_itens|length %}
+                            <!-- {% if atividades_turma_itens|length %}
                             <ul class="list-unstyled small mb-3 aluno-missao-atividade-list">
                                 {% for it in atividades_turma_itens[:6] %}
                                 <li class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom border-light">
@@ -147,7 +147,7 @@
                                 </li>
                                 {% endfor %}
                             </ul>
-                            {% endif %}
+                            {% endif %} -->
                             <a href="{{ (atividades_turma_itens[0].materia_trilha_url if atividades_turma_itens else '/aluno/portugues') }}#atividades-turma" class="btn gm-btn gm-btn--red w-100 text-center text-decoration-none">Ver na jornada</a>
                         </article>
                     </div>
@@ -167,7 +167,7 @@
                             <div class="gm-progress mb-3">
                                 <span class="gm-progress__fill" data-progress-width="{{ extra_pct|round|int }}"></span>
                             </div>
-                            {% if missoes_extras_itens|length %}
+                            <!-- {% if missoes_extras_itens|length %}
                             <ul class="list-unstyled small mb-3 aluno-missao-atividade-list">
                                 {% for it in missoes_extras_itens[:6] %}
                                 <li class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom border-light">
@@ -183,7 +183,7 @@
                                 </li>
                                 {% endfor %}
                             </ul>
-                            {% endif %}
+                            {% endif %} -->
                             <a href="{{ (missoes_extras_itens[0].materia_trilha_url if missoes_extras_itens else '/aluno/portugues') }}#missoes-extras-trilha" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Ver na jornada</a>
                         </article>
                     </div>
@@ -259,7 +259,10 @@
         <div class="card border-0 shadow-sm rounded-4 dash-card">
             <div class="dash-card-header d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0">Meu Mural de Medalhas</h6>
-                <span class="small text-mj-primary fw-semibold">{{ medalhas_total|default(0) }} no total</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small text-mj-primary fw-semibold">{{ medalhas_total|default(0) }} no total</span>
+                    <a href="/aluno/medalhas" class="btn btn-sm btn-mj-outline rounded-pill">Ver todas</a>
+                </div>
             </div>
             <div class="card-body p-4">
                 <div class="row g-3 text-center">

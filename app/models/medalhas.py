@@ -17,6 +17,7 @@ class MedalhaTipo(Base):
     icone = Column(String(80), nullable=False, default="fa-solid fa-medal")
     cor = Column(String(30), nullable=False, default="warning")
     ativo = Column(Boolean, nullable=False, default=True, index=True)
+    automatica = Column(Boolean, nullable=False, default=False, index=True)
     ordem = Column(Integer, nullable=False, default=100, index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
@@ -50,4 +51,21 @@ class AlunoMedalha(Base):
 
     aluno = relationship("Aluno")
     envio = relationship("ProfessorMedalhaEnvio")
+    medalha_tipo = relationship("MedalhaTipo")
+
+
+class AlunoMedalhaAutomatica(Base):
+    __tablename__ = "aluno_medalhas_automaticas"
+    __table_args__ = (
+        UniqueConstraint("aluno_id", "medalha_tipo_id", name="uq_aluno_medalha_auto_aluno_tipo"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    aluno_id = Column(Integer, ForeignKey("alunos.id", ondelete="CASCADE"), nullable=False, index=True)
+    medalha_tipo_id = Column(Integer, ForeignKey("medalha_tipos.id", ondelete="CASCADE"), nullable=False, index=True)
+    conquistada = Column(Boolean, nullable=False, default=False, index=True)
+    concedida_em = Column(DateTime, nullable=True, index=True)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    aluno = relationship("Aluno")
     medalha_tipo = relationship("MedalhaTipo")
