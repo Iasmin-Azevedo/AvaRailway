@@ -203,7 +203,7 @@
             </div>
             <div class="card-body p-0">
                 <div class="list-group list-group-flush small">
-                    {% for d in chat_duvidas %}
+                    {% for d in chat_duvidas[:3] %}
                     <div class="list-group-item p-3">
                         <div class="d-flex justify-content-between gap-2 mb-1 flex-wrap">
                             <span class="fw-bold text-dark text-break">{{ d.texto }}</span>
@@ -216,11 +216,13 @@
                 </div>
             </div>
             <div class="card-footer bg-white border-top text-center py-2">
-                <a href="/professor/chat-duvidas{{ turma_query_suffix }}" class="small text-decoration-none fw-bold text-mj-primary">Ver mais perguntas</a>
+                {% set tqs = turma_query_suffix or '' %}
+                {% set tsep = '&' if tqs else '?' %}
+                <a href="/professor/chat-duvidas{{ tqs }}{{ tsep }}tab=perguntas" class="btn btn-link btn-sm text-decoration-none fw-bold text-mj-primary">Ver mais perguntas</a>
             </div>
         </div>
 
-        <div class="card dash-card mt-4">
+        <div class="card dash-card">
             <div class="dash-card-header d-flex align-items-center gap-2">
                 <i class="fa-solid fa-graduation-cap text-mj-primary fs-5"></i>
                 <h6 class="fw-bold mb-0 text-dark">Cursos de formação</h6>
@@ -245,7 +247,7 @@
                             {% endif %}
                             <div style="min-width:0;" class="flex-grow-1">
                                 <a href="/moodle/sso?course_id={{ c.id }}" class="fw-bold text-decoration-none text-mj-dark moodle-course-preview-title d-block" target="_blank" rel="noopener">{{ c.fullname }}</a>
-                                {% if c.shortname %}<div class="text-muted text-truncate d-block">{{ c.shortname }}</div>{% endif %}
+                                <!-- {% if c.shortname %}<div class="text-muted text-truncate d-block">{{ c.shortname }}</div>{% endif %} -->
                             </div>
                         </div>
                     </li>
@@ -265,7 +267,7 @@
             <div class="card-body p-0">
                 {% if teacher_help_requests %}
                 <div class="list-group list-group-flush small">
-                    {% for item in teacher_help_requests %}
+                    {% for item in teacher_help_requests[:3] %}
                     <div class="list-group-item p-3">
                         <div class="fw-bold text-dark">{{ item.assunto }}</div>
                         <div class="text-muted">{{ item.disciplina }} · {{ item.requester.nome if item.requester else "Aluno" }}</div>
@@ -306,6 +308,11 @@
                 {% else %}
                 <div class="p-3 small text-muted">Nenhuma solicitação recente enviada pelo chatbot.</div>
                 {% endif %}
+            </div>
+            {% set tqs2 = turma_query_suffix or '' %}
+            {% set tsep2 = '&' if tqs2 else '?' %}
+            <div class="card-footer bg-white border-top text-center py-2">
+                <a href="/professor/chat-duvidas{{ tqs2 }}{{ tsep2 }}tab=solicitacoes" class="btn btn-link btn-sm text-decoration-none fw-bold text-mj-primary">Ver todas as solicitações</a>
             </div>
         </div>
 

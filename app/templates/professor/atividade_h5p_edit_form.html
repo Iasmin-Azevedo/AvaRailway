@@ -15,6 +15,8 @@
 </div>
 {% if request.query_params.get('erro') == 'alunos_obrigatorio' %}
 <div class="alert alert-warning">Selecione pelo menos um aluno ou marque &quot;Turma inteira&quot;.</div>
+{% elif request.query_params.get('erro') == 'materia_invalida' %}
+<div class="alert alert-warning">Selecione a <strong>matéria</strong> (Língua Portuguesa ou Matemática).</div>
 {% endif %}
 <div class="card dash-card border-0">
   <div class="card-body p-4">
@@ -65,6 +67,16 @@
           </div>
         </div>
         {% if scope == 'turma' %}
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Matéria (jornada do aluno)</label>
+          <select class="form-select" name="curso_id" required {% if not cursos_materia %}disabled{% endif %}>
+            <option value="">Selecione</option>
+            {% for c in cursos_materia %}
+            <option value="{{ c.id }}" {% if atividade.curso_id == c.id %}selected{% endif %}>{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+          <small class="text-muted d-block mt-1">Define se a atividade aparece na jornada de Português ou de Matemática.</small>
+        </div>
         <div class="col-12">
           <fieldset>
             <legend class="form-label fw-bold mb-2">Destinatários na turma</legend>

@@ -12,6 +12,9 @@ class ProfessorAtividadeH5P(Base):
     id = Column(Integer, primary_key=True, index=True)
     professor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
     turma_id = Column(Integer, ForeignKey("turmas.id"), nullable=False, index=True)
+    # Língua Portuguesa / Matemática: define em que jornada (/aluno/portugues vs /aluno/matematica) a atividade aparece.
+    # NULL = legado (mostrada nas duas jornadas).
+    curso_id = Column(Integer, ForeignKey("cursos.id"), nullable=True, index=True)
     titulo = Column(String(200), nullable=False)
     tipo = Column(String(50), nullable=False, default="outro")
     path_ou_json = Column(String(500), nullable=False)
@@ -25,6 +28,7 @@ class ProfessorAtividadeH5P(Base):
         back_populates="atividade",
         cascade="all, delete-orphan",
     )
+    curso = relationship("Curso", foreign_keys=[curso_id])
 
 
 class ProfessorAtividadeH5PAluno(Base):

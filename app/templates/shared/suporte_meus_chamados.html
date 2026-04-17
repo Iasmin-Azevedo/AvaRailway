@@ -1,0 +1,49 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Meus chamados{% endblock %}
+{% block brand_link %}{{ brand_link|default('/') }}{% endblock %}
+{% block menu_title %}{{ menu_title|default('Menu') }}{% endblock %}
+{% block header_right %}
+{% include "shared/header_right_user_simple.html" %}
+{% endblock %}
+{% block offcanvas_links %}
+{% include menu_partial %}
+{% endblock %}
+{% block main_content %}
+<div class="mb-3 d-flex align-items-center justify-content-between gap-2 flex-wrap">
+    <a href="{{ brand_link|default('/') }}" class="text-mj-primary text-decoration-none small">← Voltar</a>
+    <a href="/suporte/chamado" class="btn btn-sm btn-mj rounded-pill"><i class="fas fa-plus me-1"></i> Novo chamado</a>
+</div>
+<h1 class="h4 fw-bold text-mj-dark mb-3">Meus chamados de suporte</h1>
+{% if erro == "nao_encontrado" %}
+<div class="alert alert-warning py-2 small">Chamado não encontrado para sua conta.</div>
+{% endif %}
+{% if ok == "criado" %}
+<div class="alert alert-success py-2 small">Chamado criado com sucesso.</div>
+{% endif %}
+<div class="table-responsive rounded-4 border bg-white shadow-sm">
+    <table class="table table-hover mb-0 small align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Data</th>
+                <th>Assunto</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tickets %}
+            <tr>
+                <td>{{ t.id }}</td>
+                <td>{{ t.created_at.strftime('%d/%m/%Y %H:%M') if t.created_at else '—' }}</td>
+                <td class="text-break">{{ t.assunto }}</td>
+                <td><span class="badge rounded-pill bg-mj-light text-mj-primary">{{ t.status }}</span></td>
+                <td><a class="btn btn-sm btn-mj-outline rounded-pill" href="/suporte/meus-chamados/{{ t.id }}">Abrir</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">Você ainda não abriu chamados.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

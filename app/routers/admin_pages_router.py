@@ -26,6 +26,8 @@ from app.repositories.h5p_repository import AtividadeH5PRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.aluno_repository import AlunoRepository
 from app.models.aluno import Aluno
+from app.models.gestao import Trilha
+from app.models.h5p import AtividadeH5P
 from app.services.h5p_upload_service import save_h5p_upload
 
 router = APIRouter()
@@ -1004,15 +1006,45 @@ def atividades_h5p_list(
     request: Request,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin_redirect),
-    trilha_id: Optional[int] = None,
+    materia_id: Optional[str] = None,
+    ano: Optional[str] = None,
 ):
-    atividades = AtividadeH5PRepository().listar(db, trilha_id=trilha_id, ativo_only=False)
+    try:
+        selected_materia_id = int(str(materia_id or "").strip()) if materia_id is not None else None
+    except Exception:
+        selected_materia_id = None
+    try:
+        selected_ano = int(str(ano or "").strip()) if ano is not None else None
+    except Exception:
+        selected_ano = None
+
+    query = db.query(AtividadeH5P).outerjoin(Trilha, Trilha.id == AtividadeH5P.trilha_id)
+    if selected_materia_id is not None:
+        query = query.filter(Trilha.curso_id == selected_materia_id)
+    if selected_ano is not None:
+        query = query.filter(Trilha.ano_escolar == selected_ano)
+    atividades = query.order_by(AtividadeH5P.created_at.desc()).all()
     trilhas = TrilhaRepository().listar(db)
     trilha_nomes = {t.id: t.nome for t in trilhas}
+    trilha_curso_nomes = {t.id: (t.curso.nome if getattr(t, "curso", None) else "—") for t in trilhas}
+    trilha_anos = {t.id: t.ano_escolar for t in trilhas}
+    materias = CursoRepository().listar(db)
+    anos_disponiveis = sorted({t.ano_escolar for t in trilhas if t.ano_escolar is not None})
     return templates.TemplateResponse(
         request,
         "admin/atividades_h5p_list.html",
-        {"request": request, "atividades": atividades, "trilhas": trilhas, "trilha_nomes": trilha_nomes},
+        {
+            "request": request,
+            "atividades": atividades,
+            "trilhas": trilhas,
+            "trilha_nomes": trilha_nomes,
+            "trilha_curso_nomes": trilha_curso_nomes,
+            "trilha_anos": trilha_anos,
+            "filtro_materias": materias,
+            "filtro_anos": anos_disponiveis,
+            "selected_materia_id": selected_materia_id,
+            "selected_ano": selected_ano,
+        },
     )
 
 

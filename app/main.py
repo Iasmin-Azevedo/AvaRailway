@@ -411,6 +411,15 @@ def _professor_turma_query_suffix(has_turmas: bool, turma_all: bool, selected_tu
     return ""
 
 
+def _professor_help_request_turma_ids_filter(turma_all: bool, selected_turma_id: int | None) -> list[int] | None:
+    """None = todas as turmas; lista com um id = só pedidos dessa turma (coerente com o selector do professor)."""
+    if turma_all:
+        return None
+    if selected_turma_id is not None:
+        return [selected_turma_id]
+    return None
+
+
 def _professor_nav_context(db: Session, professor_user_id: int, request: Request) -> dict:
     professor_turmas = _professor_turmas_list(db, professor_user_id)
     selected_turma_id, turma_all = _resolve_professor_turma_selection(
@@ -582,12 +591,12 @@ def professor_dashboard(
         aluno_ids = dsvc.aluno_ids_for_turmas(db, turma_ids_prof)
         descritores_rows = dsvc.aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
         radar_alunos = dsvc.radar_alunos_turmas(db, turma_ids_prof)
-        chat_duvidas = dsvc.top_chat_questions_for_turmas(db, turma_ids_prof, limit=8)
+        chat_duvidas = dsvc.top_chat_questions_for_turmas(db, turma_ids_prof, limit=5)
     else:
         aluno_ids = dsvc.aluno_ids_for_turma(db, selected_turma_id)
         descritores_rows = dsvc.aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
         radar_alunos = dsvc.radar_alunos_turma(db, selected_turma_id)
-        chat_duvidas = dsvc.top_chat_questions_for_turma(db, selected_turma_id, limit=8)
+        chat_duvidas = dsvc.top_chat_questions_for_turma(db, selected_turma_id, limit=5)
     pior = descritores_rows[0] if descritores_rows else None
     ia_alerta_ativo = bool(pior and pior["taxa_pct"] < 50 and pior["alunos_elegiveis"] > 0)
     medalha_service = MedalhaService()
@@ -622,7 +631,11 @@ def professor_dashboard(
             "turma_all": turma_all,
             "turma_query_suffix": turma_query_suffix,
             "upcoming_live_classes": live_support.list_live_classes_for_professor(current_user),
-            "teacher_help_requests": live_support.list_teacher_help_requests(current_user),
+            "teacher_help_requests": live_support.list_teacher_help_requests(
+                current_user,
+                limit=25,
+                turma_ids=_professor_help_request_turma_ids_filter(turma_all, selected_turma_id),
+            ),
             "descritores_rows": descritores_rows,
             "descritores_preview": descritores_rows[:5],
             "radar_alunos": radar_alunos[:12],
@@ -832,6 +845,7 @@ def professor_chat_duvidas(
     current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
 ):
     from app.services.descriptor_performance_service import DescriptorPerformanceService
+    from app.services.live_support_service import LiveSupportService
 
     professor_turmas = _professor_turmas_list(db, current_user.id)
     selected_turma_id, turma_all = _resolve_professor_turma_selection(
@@ -843,9 +857,18 @@ def professor_chat_duvidas(
     )
     dsvc = DescriptorPerformanceService()
     if turma_all:
-        chat_duvidas = dsvc.top_chat_questions_for_turmas(db, turma_ids_prof, limit=30)
+        chat_duvidas = dsvc.top_chat_questions_for_turmas(db, turma_ids_prof, limit=80)
     else:
-        chat_duvidas = dsvc.top_chat_questions_for_turma(db, selected_turma_id, limit=30)
+        chat_duvidas = dsvc.top_chat_questions_for_turma(db, selected_turma_id, limit=80)
+    live_support = LiveSupportService(db)
+    teacher_help_requests = live_support.list_teacher_help_requests(
+        current_user,
+        limit=120,
+        turma_ids=_professor_help_request_turma_ids_filter(turma_all, selected_turma_id),
+    )
+    tab = (request.query_params.get("tab") or "perguntas").strip().lower()
+    if tab not in ("perguntas", "solicitacoes"):
+        tab = "perguntas"
     return templates.TemplateResponse(
         request,
         "professor/chat_duvidas.html",
@@ -857,6 +880,8 @@ def professor_chat_duvidas(
             "turma_all": turma_all,
             "turma_query_suffix": turma_query_suffix,
             "chat_duvidas": chat_duvidas,
+            "teacher_help_requests": teacher_help_requests,
+            "chat_insights_tab": tab,
         },
     )
 
@@ -1316,29 +1341,73 @@ def _professor_allowed_turma_ids(db: Session, professor_user_id: int) -> set[int
     return {r[0] for r in rows}
 
 
+def _cursos_portugues_matematica(db: Session):
+    """Cursos de LP e MAT para o professor escolher a matéria da atividade personalizada."""
+    from sqlalchemy import or_
+
+    from app.models.gestao import Curso
+
+    return (
+        db.query(Curso)
+        .filter(or_(Curso.nome.ilike("%portug%"), Curso.nome.ilike("%matem%")))
+        .order_by(Curso.nome.asc())
+        .all()
+    )
+
+
+def _parse_curso_materia_personalizada(db: Session, raw) -> tuple[int | None, str | None]:
+    """Valida curso_id do formulário para atividade de turma. Devolve (id, None) ou (None, código_erro)."""
+    rows = _cursos_portugues_matematica(db)
+    allowed = {c.id for c in rows}
+    try:
+        cid = int(str(raw or "").strip())
+    except Exception:
+        cid = 0
+    if not cid or cid not in allowed:
+        return None, "materia_invalida"
+    return cid, None
+
+
 @app.get("/professor/atividades")
 def professor_atividades_list(
     request: Request,
     db: Session = Depends(get_db),
     current_user: Usuario | RedirectResponse = Depends(require_role_redirect(UserRole.PROFESSOR)),
+    materia_id: str | None = None,
+    ano: str | None = None,
 ):
     if isinstance(current_user, RedirectResponse):
         return current_user
     from sqlalchemy import func
 
+    from sqlalchemy.orm import joinedload
+
     from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorAtividadeH5PAluno
-    from app.models.gestao import Turma
+    from app.models.gestao import Curso, Turma
     from app.models.h5p import AtividadeH5P
     from app.models.gestao import Trilha
 
-    pairs = (
-        db.query(ProfessorAtividadeH5P, Turma.nome)
+    try:
+        selected_materia_id = int(str(materia_id or "").strip()) if materia_id is not None else None
+    except Exception:
+        selected_materia_id = None
+    try:
+        selected_ano = int(str(ano or "").strip()) if ano is not None else None
+    except Exception:
+        selected_ano = None
+
+    pairs_query = (
+        db.query(ProfessorAtividadeH5P, Turma.nome, Turma.ano_escolar)
         .join(Turma, Turma.id == ProfessorAtividadeH5P.turma_id)
+        .options(joinedload(ProfessorAtividadeH5P.curso))
         .filter(ProfessorAtividadeH5P.professor_id == current_user.id)
-        .order_by(ProfessorAtividadeH5P.created_at.desc())
-        .all()
     )
-    act_ids = [a.id for a, _ in pairs]
+    if selected_materia_id is not None:
+        pairs_query = pairs_query.filter(ProfessorAtividadeH5P.curso_id == selected_materia_id)
+    if selected_ano is not None:
+        pairs_query = pairs_query.filter(Turma.ano_escolar == selected_ano)
+    pairs = pairs_query.order_by(ProfessorAtividadeH5P.created_at.desc()).all()
+    act_ids = [a.id for a, _, _ in pairs]
     dest_counts: dict[int, int] = {}
     if act_ids:
         for aid, cnt in (
@@ -1351,22 +1420,27 @@ def professor_atividades_list(
             .all()
         ):
             dest_counts[aid] = int(cnt)
-    atividades = [(a, tn, dest_counts.get(a.id, 0)) for a, tn in pairs]
+    atividades = [(a, tn, tano, dest_counts.get(a.id, 0)) for a, tn, tano in pairs]
     atividades_trilha_geral = []
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    anos_permitidos = sorted({t.ano_escolar for t in professor_turmas if t.ano_escolar is not None})
+    cursos_materia = _cursos_portugues_matematica(db)
     if bool(getattr(current_user, "permite_cadastro_trilha_geral", False)):
-        professor_turmas = _professor_turmas_list(db, current_user.id)
-        anos_permitidos = sorted({t.ano_escolar for t in professor_turmas if t.ano_escolar is not None})
         if anos_permitidos:
-            atividades_trilha_geral = (
-                db.query(AtividadeH5P, Trilha.nome)
+            trilha_query = (
+                db.query(AtividadeH5P, Trilha.nome, Trilha.ano_escolar, Curso.nome)
                 .join(Trilha, Trilha.id == AtividadeH5P.trilha_id)
+                .join(Curso, Curso.id == Trilha.curso_id)
                 .filter(
                     AtividadeH5P.ativo,
                     Trilha.ano_escolar.in_(anos_permitidos),
                 )
-                .order_by(AtividadeH5P.created_at.desc())
-                .all()
             )
+            if selected_materia_id is not None:
+                trilha_query = trilha_query.filter(Trilha.curso_id == selected_materia_id)
+            if selected_ano is not None:
+                trilha_query = trilha_query.filter(Trilha.ano_escolar == selected_ano)
+            atividades_trilha_geral = trilha_query.order_by(AtividadeH5P.created_at.desc()).all()
     nav = _professor_nav_context(db, current_user.id, request)
     return templates.TemplateResponse(
         request,
@@ -1378,6 +1452,10 @@ def professor_atividades_list(
             "atividades": atividades,
             "atividades_trilha_geral": atividades_trilha_geral,
             "permite_trilha_geral": bool(getattr(current_user, "permite_cadastro_trilha_geral", False)),
+            "filtro_materias": cursos_materia,
+            "filtro_anos": anos_permitidos,
+            "selected_materia_id": selected_materia_id,
+            "selected_ano": selected_ano,
         },
     )
 
@@ -1400,6 +1478,7 @@ def professor_atividades_nova(
         trilhas.extend(TrilhaRepository().listar(db, ano_escolar=ano))
     descritores = DescritorRepository().listar(db)
     alunos_destino = _alunos_destino_options(db, current_user.id)
+    cursos_materia = _cursos_portugues_matematica(db)
     nav = _professor_nav_context(db, current_user.id, request)
     return templates.TemplateResponse(
         request,
@@ -1412,6 +1491,7 @@ def professor_atividades_nova(
             "trilhas": trilhas,
             "descritores": descritores,
             "alunos_destino": alunos_destino,
+            "cursos_materia": cursos_materia,
             "permite_trilha_geral": bool(getattr(current_user, "permite_cadastro_trilha_geral", False)),
         },
     )
@@ -1493,9 +1573,14 @@ async def professor_atividades_criar(
     if destino_tipo == "turma_toda":
         aluno_set = set()
 
+    curso_id, err_curso = _parse_curso_materia_personalizada(db, form.get("curso_id"))
+    if err_curso:
+        return RedirectResponse(url=f"/professor/atividades/nova?erro={err_curso}", status_code=303)
+
     obj = ProfessorAtividadeH5P(
         professor_id=current_user.id,
         turma_id=turma_id,
+        curso_id=curso_id,
         titulo=titulo,
         tipo=tipo,
         path_ou_json=rel_path,
@@ -1588,6 +1673,7 @@ def professor_atividade_editar_form(
             }
         )
     selected_aluno_ids = [x.aluno_id for x in (atividade.alvos_alunos or [])]
+    cursos_materia = _cursos_portugues_matematica(db)
     nav = _professor_nav_context(db, current_user.id, request)
     destino_edicao_default = "alunos_especificos" if selected_aluno_ids else "turma_toda"
     return templates.TemplateResponse(
@@ -1602,6 +1688,7 @@ def professor_atividade_editar_form(
             "alunos_turma": alunos_turma,
             "selected_aluno_ids": selected_aluno_ids,
             "destino_edicao_default": destino_edicao_default,
+            "cursos_materia": cursos_materia,
             "scope": "turma",
         },
     )
@@ -1653,6 +1740,10 @@ async def professor_atividade_editar(
             )
     else:
         aluno_set = set()
+    curso_id, err_curso = _parse_curso_materia_personalizada(db, form.get("curso_id"))
+    if err_curso:
+        return RedirectResponse(url=f"/professor/atividades/{id}/editar?erro={err_curso}", status_code=303)
+    atividade.curso_id = curso_id
     _sync_professor_atividade_alvos(db, atividade.id, atividade.turma_id, aluno_set)
     db.commit()
     return RedirectResponse(url="/professor/atividades?ok=editado", status_code=303)
@@ -1885,12 +1976,16 @@ def professor_perfil_get(
     current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
 ):
     nav = _professor_nav_context(db, current_user.id, request)
+    from app.services.dashboard_service import DashboardService
+
+    perfil_stats = DashboardService().get_professor_stats(db)
+    perfil_stats["n_turmas_vinculadas"] = len(nav.get("professor_turmas") or [])
     return _perfil_form_response(
         request,
         current_user,
         "/professor",
         template_name="professor/perfil_form.html",
-        extra=nav,
+        extra={**nav, "perfil_stats": perfil_stats},
     )
 
 
@@ -1920,13 +2015,28 @@ async def aluno_perfil_post(
 @app.get("/gestor/perfil")
 def gestor_perfil_get(
     request: Request,
+    db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
 ):
+    from app.models.aluno import Aluno
+    from app.models.gestao import Turma
+
+    escola_ids = _gestor_escola_ids(db, current_user.id)
+    turmas_scope = _gestor_turmas_scope(db, current_user.id)
+    q_alunos = db.query(Aluno)
+    if escola_ids:
+        q_alunos = q_alunos.join(Turma, Aluno.turma_id == Turma.id).filter(Turma.escola_id.in_(escola_ids))
+    perfil_stats = {
+        "n_escolas_escopo": len(escola_ids),
+        "n_turmas_escopo": len(turmas_scope),
+        "n_alunos_escopo": int(q_alunos.count() or 0),
+    }
     return _perfil_form_response(
         request,
         current_user,
         "/gestor",
         template_name="gestor/perfil_form.html",
+        extra={"perfil_stats": perfil_stats},
     )
 
 
@@ -1945,12 +2055,17 @@ def coordenador_perfil_get(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role_redirect(UserRole.COORDENADOR)),
 ):
+    layout = _coordenador_layout_context(db, current_user)
+    from app.services.dashboard_service import DashboardService
+
+    escola = layout.get("escola")
+    perfil_stats = DashboardService().get_coordenador_stats(db, escola.id if escola else None)
     return _perfil_form_response(
         request,
         current_user,
         "/coordenador",
         template_name="coordenador/perfil_form.html",
-        extra=_coordenador_layout_context(db, current_user),
+        extra={**layout, "perfil_stats": perfil_stats},
     )
 
 
@@ -2008,6 +2123,11 @@ def gestor_dashboard(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role_redirect(UserRole.GESTOR)),
 ):
+    from app.models.aluno import Aluno
+    from app.models.gestao import Turma
+    from app.models.h5p import AtividadeH5P, ProgressoH5P
+    from app.models.interacao_ia import InteracaoIA
+    from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
     from app.services.descriptor_performance_service import DescriptorPerformanceService
     from app.services.live_support_service import LiveSupportService
 
@@ -2021,6 +2141,46 @@ def gestor_dashboard(
     else:
         aluno_ids = dsvc.aluno_ids_all(db)
         escolas_tbl = dsvc.escolas_engajamento(db, None)
+
+    h5p_trilha_ativas = db.query(func.count(AtividadeH5P.id)).filter(AtividadeH5P.ativo).scalar() or 0
+
+    q_h5p_trilha_conc = (
+        db.query(func.count(ProgressoH5P.id))
+        .join(Aluno, Aluno.id == ProgressoH5P.aluno_id)
+        .filter(ProgressoH5P.concluido)
+    )
+    q_h5p_prof_conc = (
+        db.query(func.count(ProfessorProgressoH5P.id))
+        .join(Aluno, Aluno.id == ProfessorProgressoH5P.aluno_id)
+        .filter(ProfessorProgressoH5P.concluido)
+    )
+    q_ia_interacoes = (
+        db.query(func.count(InteracaoIA.id))
+        .join(Aluno, Aluno.id == InteracaoIA.aluno_id)
+    )
+    q_h5p_prof_ativas = db.query(func.count(ProfessorAtividadeH5P.id)).filter(ProfessorAtividadeH5P.ativo)
+    if escola_ids:
+        q_h5p_trilha_conc = (
+            q_h5p_trilha_conc.join(Turma, Turma.id == Aluno.turma_id).filter(Turma.escola_id.in_(escola_ids))
+        )
+        q_h5p_prof_conc = (
+            q_h5p_prof_conc.join(Turma, Turma.id == Aluno.turma_id).filter(Turma.escola_id.in_(escola_ids))
+        )
+        q_ia_interacoes = (
+            q_ia_interacoes.join(Turma, Turma.id == Aluno.turma_id).filter(Turma.escola_id.in_(escola_ids))
+        )
+        q_h5p_prof_ativas = (
+            q_h5p_prof_ativas.join(Turma, Turma.id == ProfessorAtividadeH5P.turma_id).filter(Turma.escola_id.in_(escola_ids))
+        )
+
+    resource_usage = {
+        "h5p_trilha_ativas": int(h5p_trilha_ativas),
+        "h5p_trilha_conclusoes": int(q_h5p_trilha_conc.scalar() or 0),
+        "h5p_professor_ativas": int(q_h5p_prof_ativas.scalar() or 0),
+        "h5p_professor_conclusoes": int(q_h5p_prof_conc.scalar() or 0),
+        "ia_interacoes": int(q_ia_interacoes.scalar() or 0),
+    }
+
     return templates.TemplateResponse(
         request,
         "gestor/dashboard.html",
@@ -2031,6 +2191,7 @@ def gestor_dashboard(
             "escolas_engajamento": escolas_tbl,
             "descritores_resumo": dsvc.aggregates_for_alunos(db, aluno_ids)[:6],
             "upcoming_live_classes": live_support.list_live_classes_for_gestor(current_user)[:4],
+            "resource_usage": resource_usage,
         },
     )
 
@@ -2865,6 +3026,192 @@ def coordenador_relatorios_export(
     )
 
 
+def _role_value_for_ui(role) -> str:
+    rv = getattr(role, "value", role)
+    return (str(rv or "")).strip().lower()
+
+
+def _support_user_scope_filter(user: Usuario):
+    from app.models.support_ticket import SupportTicket
+
+    clauses = [SupportTicket.usuario_id == user.id]
+    email = (getattr(user, "email", "") or "").strip().lower()
+    if email:
+        clauses.append(func.lower(SupportTicket.email) == email)
+    expr = clauses[0]
+    for clause in clauses[1:]:
+        expr = expr | clause
+    return expr
+
+
+def _support_nav_context_for_role(role_value: str) -> dict:
+    rv = (role_value or "").strip().lower()
+    if rv == "aluno":
+        return {
+            "brand_link": "/aluno",
+            "menu_title": "Menu do Aluno",
+            "menu_partial": "aluno/partials/aluno_menu_default.html",
+        }
+    if rv == "professor":
+        return {
+            "brand_link": "/professor",
+            "menu_title": "Menu do Professor",
+            "menu_partial": "professor/partials/professor_menu_links.html",
+        }
+    if rv == "gestor":
+        return {
+            "brand_link": "/gestor",
+            "menu_title": "Menu do Gestor",
+            "menu_partial": "gestor/partials/gestor_menu_links.html",
+        }
+    if rv == "coordenador":
+        return {
+            "brand_link": "/coordenador",
+            "menu_title": "Menu do Coordenador",
+            "menu_partial": "coordenador/partials/coordenador_menu_links.html",
+        }
+    return {
+        "brand_link": "/",
+        "menu_title": "Menu",
+        "menu_partial": "partials/empty.html",
+    }
+
+
+@app.get("/suporte/meus-chamados")
+def suporte_meus_chamados(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(
+        require_role_redirect(UserRole.ALUNO, UserRole.PROFESSOR, UserRole.GESTOR, UserRole.COORDENADOR)
+    ),
+):
+    from app.models.support_ticket import SupportTicket
+
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+
+    role_value = _role_value_for_ui(current_user.role)
+    tickets = (
+        db.query(SupportTicket)
+        .filter(_support_user_scope_filter(current_user))
+        .order_by(SupportTicket.updated_at.desc(), SupportTicket.created_at.desc())
+        .all()
+    )
+    return templates.TemplateResponse(
+        request,
+        "shared/suporte_meus_chamados.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "role_value": role_value,
+            "tickets": tickets,
+            "erro": (request.query_params.get("erro") or "").strip(),
+            "ok": (request.query_params.get("ok") or "").strip(),
+            **_support_nav_context_for_role(role_value),
+        },
+    )
+
+
+@app.get("/suporte/meus-chamados/{ticket_id}")
+def suporte_meus_chamados_detalhe(
+    request: Request,
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(
+        require_role_redirect(UserRole.ALUNO, UserRole.PROFESSOR, UserRole.GESTOR, UserRole.COORDENADOR)
+    ),
+):
+    from app.models.support_ticket import SupportTicket, SupportTicketMessage
+
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+
+    ticket = (
+        db.query(SupportTicket)
+        .filter(SupportTicket.id == ticket_id)
+        .filter(_support_user_scope_filter(current_user))
+        .first()
+    )
+    if not ticket:
+        return RedirectResponse(url="/suporte/meus-chamados?erro=nao_encontrado", status_code=303)
+    mensagens = (
+        db.query(SupportTicketMessage)
+        .filter(SupportTicketMessage.ticket_id == ticket_id)
+        .order_by(SupportTicketMessage.created_at.asc())
+        .all()
+    )
+    role_value = _role_value_for_ui(current_user.role)
+    return templates.TemplateResponse(
+        request,
+        "shared/suporte_ticket_usuario.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "role_value": role_value,
+            "ticket": ticket,
+            "mensagens": mensagens,
+            "erro": (request.query_params.get("erro") or "").strip(),
+            "ok": (request.query_params.get("ok") or "").strip(),
+            **_support_nav_context_for_role(role_value),
+        },
+    )
+
+
+@app.post("/suporte/meus-chamados/{ticket_id}/responder")
+async def suporte_meus_chamados_responder(
+    request: Request,
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario | RedirectResponse = Depends(
+        require_role_redirect(UserRole.ALUNO, UserRole.PROFESSOR, UserRole.GESTOR, UserRole.COORDENADOR)
+    ),
+):
+    from datetime import datetime
+
+    from app.models.support_ticket import SupportTicket, SupportTicketMessage
+
+    if isinstance(current_user, RedirectResponse):
+        return current_user
+
+    ticket = (
+        db.query(SupportTicket)
+        .filter(SupportTicket.id == ticket_id)
+        .filter(_support_user_scope_filter(current_user))
+        .first()
+    )
+    if not ticket:
+        return RedirectResponse(url="/suporte/meus-chamados?erro=nao_encontrado", status_code=303)
+
+    form = await request.form()
+    corpo = (form.get("corpo") or "").strip()
+    if not corpo:
+        return RedirectResponse(
+            url=f"/suporte/meus-chamados/{ticket_id}?erro=mensagem_vazia",
+            status_code=303,
+        )
+    if ticket.status == "resolvido":
+        return RedirectResponse(
+            url=f"/suporte/meus-chamados/{ticket_id}?erro=resolvido",
+            status_code=303,
+        )
+
+    db.add(
+        SupportTicketMessage(
+            ticket_id=ticket.id,
+            autor_role=_role_value_for_ui(current_user.role) or "usuario",
+            corpo=corpo[:8000],
+            created_at=datetime.utcnow(),
+        )
+    )
+    ticket.updated_at = datetime.utcnow()
+    db.add(ticket)
+    db.commit()
+    return RedirectResponse(
+        url=f"/suporte/meus-chamados/{ticket_id}?ok=respondido",
+        status_code=303,
+    )
+
+
 @app.get("/suporte/chamado")
 def suporte_chamado_get(
     request: Request,
@@ -2922,6 +3269,9 @@ async def suporte_chamado_post(
         )
     )
     db.commit()
+    rv = _role_value_for_ui(getattr(current_user, "role", None))
+    if current_user and rv in {"aluno", "professor", "gestor", "coordenador"}:
+        return RedirectResponse(url=f"/suporte/meus-chamados/{ticket.id}?ok=criado", status_code=303)
     return RedirectResponse(url="/suporte/chamado?ok=1", status_code=303)
 
 

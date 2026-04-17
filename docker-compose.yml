@@ -12,6 +12,8 @@ services:
   backend:
     build: .
     container_name: avamj-backend
+    volumes:
+      - .:/app
     env_file:
       - .env
     ports:

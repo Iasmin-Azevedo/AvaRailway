@@ -214,18 +214,19 @@
         <div class="card dash-card h-100">
             <div class="dash-card-header fw-bold">Status de Recursos Digitais (Matriz vs Uso)</div>
             <div class="card-body">
+                {% set ru = resource_usage|default({}) %}
                 <ul class="list-group list-group-flush small">
                     <li class="list-group-item d-flex justify-content-between">
-                        <span>Videoaulas SAEB assistidas</span>
-                        <span class="badge bg-info">12.450 visualizações</span>
+                        <span>Atividades da trilha geral</span>
+                        <span class="badge bg-info">{{ "{:,}".format(ru.get('h5p_trilha_ativas', 0)).replace(",", ".") }} Atividades</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between">
-                        <span>Simulados Adaptativos concluídos</span>
-                        <span class="badge bg-mj-primary">3.200 realizados</span>
+                        <span>Atividades personalizadas do professor</span>
+                        <span class="badge bg-mj-primary">{{ "{:,}".format(ru.get('h5p_professor_ativas', 0)).replace(",", ".") }} Atividades</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between">
                         <span>Interações com Tutor IA</span>
-                        <span class="badge bg-mj-dark">8.900 dúvidas sanadas</span>
+                        <span class="badge bg-mj-dark">{{ "{:,}".format(ru.get('ia_interacoes', 0)).replace(",", ".") }} interações</span>
                     </li>
                 </ul>
             </div>

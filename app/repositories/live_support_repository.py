@@ -1,8 +1,11 @@
 from datetime import datetime
 
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
+from app.models.aluno import Aluno
 from app.models.live_support import AulaAoVivo, SolicitacaoProfessor
+from app.models.relacoes import ProfessorTurma
 
 
 class AulaAoVivoRepository:
@@ -53,21 +56,74 @@ class SolicitacaoProfessorRepository:
         db.refresh(obj)
         return obj
 
-    def list_for_professor(self, db: Session, professor_id: int, limit: int = 10) -> list[SolicitacaoProfessor]:
+    def _turma_ids_do_professor(self, db: Session, professor_usuario_id: int) -> list[int]:
+        return [
+            r[0]
+            for r in db.query(ProfessorTurma.turma_id)
+            .filter(ProfessorTurma.professor_id == professor_usuario_id)
+            .all()
+        ]
+
+    def _usuario_ids_alunos_nas_turmas(self, db: Session, turma_ids: list[int]) -> list[int]:
+        if not turma_ids:
+            return []
+        rows = (
+            db.query(Aluno.usuario_id)
+            .filter(Aluno.turma_id.in_(turma_ids))
+            .distinct()
+            .all()
+        )
+        return [r[0] for r in rows]
+
+    def _filtro_legado_sem_vinculo(self):
+        """Registros antigos sem professor/turma vinculados explicitamente."""
+        return and_(
+            SolicitacaoProfessor.professor_id.is_(None),
+            SolicitacaoProfessor.turma_id.is_(None),
+        )
+
+    def list_for_professor(
+        self,
+        db: Session,
+        professor_usuario_id: int,
+        limit: int = 10,
+        turma_ids: list[int] | None = None,
+    ) -> list[SolicitacaoProfessor]:
+        """Solicitações visíveis ao docente: atribuídas a si, turmas em que leciona ou pedidos de alunos dessas turmas."""
+        turmas_docente = self._turma_ids_do_professor(db, professor_usuario_id)
+        vis = SolicitacaoProfessor.professor_id == professor_usuario_id
+        vis = or_(vis, self._filtro_legado_sem_vinculo())
+        if turmas_docente:
+            vis = or_(vis, SolicitacaoProfessor.turma_id.in_(turmas_docente))
+            alum_docente = self._usuario_ids_alunos_nas_turmas(db, turmas_docente)
+            if alum_docente:
+                vis = or_(vis, SolicitacaoProfessor.requester_user_id.in_(alum_docente))
+        q = db.query(SolicitacaoProfessor).filter(vis)
+        if turma_ids is not None:
+            alum_filtro = self._usuario_ids_alunos_nas_turmas(db, turma_ids)
+            tfilter = SolicitacaoProfessor.turma_id.in_(turma_ids)
+            if alum_filtro:
+                tfilter = or_(tfilter, SolicitacaoProfessor.requester_user_id.in_(alum_filtro))
+            tfilter = or_(tfilter, self._filtro_legado_sem_vinculo())
+            q = q.filter(tfilter)
         return (
-            db.query(SolicitacaoProfessor)
-            .filter(SolicitacaoProfessor.professor_id == professor_id)
-            .order_by(SolicitacaoProfessor.created_at.desc())
+            q.order_by(SolicitacaoProfessor.created_at.desc())
             .limit(limit)
             .all()
         )
 
-    def get_for_professor(self, db: Session, professor_id: int, request_id: int) -> SolicitacaoProfessor | None:
+    def get_for_professor(self, db: Session, professor_usuario_id: int, request_id: int) -> SolicitacaoProfessor | None:
+        turmas_docente = self._turma_ids_do_professor(db, professor_usuario_id)
+        vis = SolicitacaoProfessor.professor_id == professor_usuario_id
+        vis = or_(vis, self._filtro_legado_sem_vinculo())
+        if turmas_docente:
+            vis = or_(vis, SolicitacaoProfessor.turma_id.in_(turmas_docente))
+            alum_docente = self._usuario_ids_alunos_nas_turmas(db, turmas_docente)
+            if alum_docente:
+                vis = or_(vis, SolicitacaoProfessor.requester_user_id.in_(alum_docente))
         return (
             db.query(SolicitacaoProfessor)
-            .filter(
-                SolicitacaoProfessor.id == request_id,
-                SolicitacaoProfessor.professor_id == professor_id,
-            )
+            .filter(SolicitacaoProfessor.id == request_id)
+            .filter(vis)
             .first()
         )

@@ -13,6 +13,34 @@
   <h4 class="fw-bold mb-0">Minhas Atividades</h4>
   <a href="/professor/atividades/nova" class="btn btn-mj rounded-pill">Nova atividade</a>
 </div>
+<form method="get" action="/professor/atividades" class="card dash-card border-0 mb-3">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label for="filtroMateria" class="form-label small fw-semibold mb-1">Matéria</label>
+        <select id="filtroMateria" name="materia_id" class="form-select form-select-sm">
+          <option value="">Todas</option>
+          {% for m in filtro_materias %}
+          <option value="{{ m.id }}" {% if selected_materia_id == m.id %}selected{% endif %}>{{ m.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label for="filtroAno" class="form-label small fw-semibold mb-1">Ano</label>
+        <select id="filtroAno" name="ano" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          {% for a in filtro_anos %}
+          <option value="{{ a }}" {% if selected_ano == a %}selected{% endif %}>{{ a }}º ano</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-mj rounded-pill">Filtrar</button>
+        <a href="/professor/atividades" class="btn btn-sm btn-mj-outline rounded-pill">Limpar</a>
+      </div>
+    </div>
+  </div>
+</form>
 {% if request.query_params.get('ok') == 'criado' %}
 <div class="alert alert-success">Atividade personalizada criada com sucesso.</div>
 {% elif request.query_params.get('ok') == 'trilha' %}
@@ -30,18 +58,22 @@
         <tr>
           <th class="ps-3" style="min-width: 10rem;">Título</th>
           <th style="min-width: 6rem;">Turma</th>
+          <th style="min-width: 5rem;">Ano</th>
           <th style="min-width: 8rem;">Destinatários</th>
+          <th style="min-width: 9rem;">Matéria</th>
           <th style="min-width: 8rem;">Tipo</th>
           <th style="min-width: 5rem;">Status</th>
           <th class="text-end pe-3" style="min-width: 9rem;">Ações</th>
         </tr>
       </thead>
       <tbody>
-      {% for atividade, turma_nome, n_dest in atividades %}
+      {% for atividade, turma_nome, turma_ano, n_dest in atividades %}
         <tr>
           <td class="ps-3">{{ atividade.titulo }}</td>
           <td>{{ turma_nome }}</td>
+          <td>{% if turma_ano %}{{ turma_ano }}º{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{% if n_dest == 0 %}Turma inteira{% else %}{{ n_dest }} aluno(s){% endif %}</td>
+          <td class="small">{% if atividade.curso %}{{ atividade.curso.nome }}{% else %}<span class="text-muted">Ambas (legado)</span>{% endif %}</td>
           <td>
             <span class="badge rounded-pill jornada-atividade-tipo-badge jornada-atividade-tipo-badge--{{ h5p_tipo.css(atividade.tipo) }} d-inline-flex align-items-center gap-1">
               <i class="fas {{ h5p_tipo.icon(atividade.tipo) }}"></i> {{ h5p_tipo.label(atividade.tipo) }}
@@ -56,7 +88,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma atividade cadastrada.</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-4">Nenhuma atividade cadastrada para os filtros selecionados.</td></tr>
       {% endfor %}
       </tbody>
     </table>
@@ -71,16 +103,20 @@
         <tr>
           <th class="ps-3" style="min-width: 10rem;">Título</th>
           <th style="min-width: 8rem;">Trilha</th>
+          <th style="min-width: 9rem;">Matéria</th>
+          <th style="min-width: 5rem;">Ano</th>
           <th style="min-width: 8rem;">Tipo</th>
           <th style="min-width: 5rem;">Status</th>
           <th class="text-end pe-3" style="min-width: 9rem;">Ações</th>
         </tr>
       </thead>
       <tbody>
-      {% for atividade, trilha_nome in atividades_trilha_geral %}
+      {% for atividade, trilha_nome, trilha_ano, curso_nome in atividades_trilha_geral %}
         <tr>
           <td class="ps-3">{{ atividade.titulo }}</td>
           <td>{{ trilha_nome }}</td>
+          <td>{{ curso_nome }}</td>
+          <td>{% if trilha_ano %}{{ trilha_ano }}º{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>
             <span class="badge rounded-pill jornada-atividade-tipo-badge jornada-atividade-tipo-badge--{{ h5p_tipo.css(atividade.tipo) }} d-inline-flex align-items-center gap-1">
               <i class="fas {{ h5p_tipo.icon(atividade.tipo) }}"></i> {{ h5p_tipo.label(atividade.tipo) }}
@@ -95,7 +131,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma atividade de trilha geral encontrada para os anos das suas turmas.</td></tr>
+        <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma atividade de trilha geral encontrada para os filtros selecionados.</td></tr>
       {% endfor %}
       </tbody>
     </table>

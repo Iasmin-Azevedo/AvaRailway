@@ -2575,6 +2575,51 @@ body.a11y-high-contrast #chat-panel .btn-outline-danger:hover {
     color: var(--a11y-hc-accent-hover) !important;
 }
 
+/* Página pública (index): .app-header-mj usava bg-mj-dark-soft + text-mj-white — variáveis de HC clareavam o fundo e sumia o contraste */
+body.a11y-high-contrast .app-header-mj {
+    border-bottom: 2px solid var(--a11y-hc-border) !important;
+    color: #f8fafc !important;
+}
+body.a11y-high-contrast .app-header-mj.bg-mj-dark-soft {
+    background: #0f172a !important;
+}
+body.a11y-high-contrast .app-header-mj.bg-mj-primary {
+    background: #0e7490 !important;
+}
+body.a11y-high-contrast .app-header-mj.bg-mj-gradient {
+    background: linear-gradient(135deg, #0e7490 0%, #155e75 45%, #164e63 100%) !important;
+}
+body.a11y-high-contrast .app-header-mj .text-mj-white {
+    color: #f8fafc !important;
+}
+body.a11y-high-contrast .app-body-mj {
+    background: var(--a11y-hc-surface) !important;
+    color: var(--a11y-hc-text) !important;
+}
+body.a11y-high-contrast .app-body-mj li span {
+    color: var(--a11y-hc-text) !important;
+}
+
+/* Dashboard coordenador: cartões tipo .btn-light com texto herdado claro sobre fundo branco */
+body.a11y-high-contrast a.btn.btn-light,
+body.a11y-high-contrast button.btn.btn-light {
+    background: var(--a11y-hc-raised) !important;
+    color: var(--a11y-hc-text) !important;
+    border: 2px solid var(--a11y-hc-border) !important;
+}
+body.a11y-high-contrast a.btn.btn-light .text-dark,
+body.a11y-high-contrast a.btn.btn-light .fw-bold {
+    color: var(--a11y-hc-text) !important;
+}
+body.a11y-high-contrast a.btn.btn-light .text-muted {
+    color: var(--a11y-hc-muted) !important;
+}
+
+/* Insights professor: evitar sublinhado herdado de regras genéricas de links no alto contraste */
+body.a11y-high-contrast .professor-insights-tabnav a.btn {
+    text-decoration: none !important;
+}
+
 a:focus-visible,
 button:focus-visible {
     outline: 2px solid var(--mj-primary);
@@ -2720,6 +2765,57 @@ button:focus-visible {
 .aluno-picker-meta {
     font-size: 0.78rem;
     color: var(--mj-muted, #6c757d);
+}
+
+/* Professor: destino da atividade + seletor de alunos — alto contraste (alinhado ao modo escuro) */
+body.a11y-high-contrast .professor-destino-card-inner {
+    background: var(--a11y-hc-surface) !important;
+    border-color: var(--a11y-hc-border) !important;
+    color: var(--a11y-hc-text) !important;
+}
+body.a11y-high-contrast .professor-destino-card:hover .professor-destino-card-inner {
+    border-color: var(--a11y-hc-accent) !important;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.12) !important;
+}
+body.a11y-high-contrast .professor-destino-card--active .professor-destino-card-inner {
+    border-color: var(--a11y-hc-accent) !important;
+    background: var(--a11y-hc-raised) !important;
+    box-shadow: 0 0 0 1px var(--a11y-hc-accent), 0 4px 18px rgba(56, 189, 248, 0.15) !important;
+}
+body.a11y-high-contrast .professor-destino-card-title {
+    color: var(--a11y-hc-text) !important;
+}
+body.a11y-high-contrast .professor-destino-card-desc {
+    color: var(--a11y-hc-muted) !important;
+}
+body.a11y-high-contrast .aluno-picker-grid {
+    background: var(--a11y-hc-bg) !important;
+    border-color: var(--a11y-hc-border) !important;
+}
+body.a11y-high-contrast .aluno-picker-face {
+    background: var(--a11y-hc-surface) !important;
+    border-color: transparent !important;
+}
+body.a11y-high-contrast .aluno-picker-item:hover .aluno-picker-face {
+    border-color: var(--a11y-hc-border) !important;
+}
+body.a11y-high-contrast .aluno-picker-face:has(.aluno-picker-cb:checked) {
+    border-color: var(--a11y-hc-accent) !important;
+    background: var(--a11y-hc-raised) !important;
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.18) !important;
+}
+body.a11y-high-contrast .aluno-picker-name {
+    color: var(--a11y-hc-text) !important;
+}
+body.a11y-high-contrast .aluno-picker-meta {
+    color: var(--a11y-hc-muted) !important;
+}
+body.a11y-high-contrast .aluno-picker-avatar {
+    border-color: var(--a11y-hc-border) !important;
+}
+body.a11y-high-contrast .aluno-picker-avatar--fallback {
+    background: rgba(56, 189, 248, 0.18) !important;
+    color: var(--a11y-hc-accent) !important;
 }
 
 /* Lista de atividades (turma / extras) no dashboard do aluno */

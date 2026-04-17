@@ -10,8 +10,14 @@
 {% block main_content %}
 {% import 'partials/h5p_tipo_display.html' as h5p_tipo %}
 <h4 class="fw-bold mb-3">Cadastrar atividade</h4>
-{% if request.query_params.get('erro') %}
-<div class="alert alert-warning">Não foi possível salvar: {{ request.query_params.get('erro') }}</div>
+{% set err = request.query_params.get('erro') %}
+{% if err == 'materia_invalida' %}
+<div class="alert alert-warning">Selecione a <strong>matéria</strong> (Língua Portuguesa ou Matemática) para a atividade aparecer na jornada correta do aluno.</div>
+{% elif err %}
+<div class="alert alert-warning">Não foi possível salvar: {{ err }}</div>
+{% endif %}
+{% if not cursos_materia %}
+<div class="alert alert-info border-0">Não há cursos de Português/Matemática cadastrados. Peça ao administrador para criar os cursos antes de publicar atividades por matéria.</div>
 {% endif %}
 <div class="card dash-card border-0">
   <div class="card-body">
@@ -73,6 +79,16 @@
             {% endfor %}
           </select>
         </div>
+        <div class="col-md-6" id="panel-materia">
+          <label class="form-label fw-bold">Matéria (jornada do aluno)</label>
+          <select class="form-select" name="curso_id" id="curso_id_select" {% if not cursos_materia %}disabled{% endif %}>
+            <option value="">Selecione</option>
+            {% for c in cursos_materia %}
+            <option value="{{ c.id }}">{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+          <small class="text-muted d-block mt-1">Turma inteira, um aluno ou vários: a atividade aparece só na jornada desta disciplina.</small>
+        </div>
         <div class="col-md-6">
           <label class="form-label fw-bold">Tipo</label>
           <select class="form-select" name="tipo" required>
@@ -104,7 +120,7 @@
         </div>
         <div class="col-12" id="panel-alunos-picker" style="display: none;">
           <label class="form-label fw-bold">Alunos</label>
-          <p class="small text-muted mb-2">Marque um ou mais alunos da turma selecionada.</p>
+          <p class="small text-muted mb-2">Marque um ou mais alunos da turma selecionada (para <strong>um</strong> aluno, deixe apenas uma caixa assinalada).</p>
           <div class="aluno-picker-grid" id="aluno-picker-grid">
             {% for a in alunos_destino %}
             <label class="aluno-picker-item" data-turma-id="{{ a.turma_id }}">
@@ -140,6 +156,8 @@
   var trilhaSel = document.getElementById('trilha_id_select');
   var panelTrilha = document.getElementById('panel-trilha-select');
   var panelAlunos = document.getElementById('panel-alunos-picker');
+  var panelMateria = document.getElementById('panel-materia');
+  var cursoSel = document.getElementById('curso_id_select');
   var turmaHelpTrilha = document.getElementById('turma-help-trilha');
 
   function currentDestino() {
@@ -177,8 +195,14 @@
     var d = currentDestino();
     var trilha = d === 'trilha';
     var alunos = d === 'alunos';
+    var personalizada = !trilha;
     if (panelTrilha) panelTrilha.style.display = trilha ? '' : 'none';
     if (panelAlunos) panelAlunos.style.display = alunos ? '' : 'none';
+    if (panelMateria) panelMateria.style.display = personalizada ? '' : 'none';
+    if (cursoSel) {
+      cursoSel.required = personalizada && !cursoSel.disabled;
+      if (trilha) cursoSel.value = '';
+    }
     if (turmaHelpTrilha) turmaHelpTrilha.style.display = trilha ? '' : 'none';
     if (trilhaSel) {
       trilhaSel.required = trilha;

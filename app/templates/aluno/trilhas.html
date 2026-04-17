@@ -159,61 +159,95 @@
             </div>
         </article>
 
-        {% if atividades_professor_turma %}
-        <article class="card dash-card border-0 mb-4" id="atividades-turma">
+        {% if atividades_professor_turma or atividades_professor_extras %}
+        <article class="card dash-card hover-lift border mb-4 border-mj-primary border-1">
             <div class="card-body p-4">
-                <h4 class="h6 fw-bold text-mj-dark mb-3"><i
-                        class="fas fa-chalkboard-teacher me-2 text-mj-primary"></i>Atividades da sua turma</h4>
-                <p class="small text-mj-muted mb-3">As atividades cadastradas pelo seu professor aparecem nesta seção.
-                </p>
-                <div class="row g-3">
-                    {% for ap in atividades_professor_turma %}
-                    <div class="col-12 col-md-6">
-                        <div class="border rounded-4 p-3 h-100">
-                            <div class="d-flex justify-content-between align-items-start gap-2">
-                                <div>
-                                    <div class="fw-bold text-mj-dark">{{ ap.titulo }}</div>
-                                    <div class="small text-mj-muted">{{ h5p_tipo.label(ap.tipo) }}</div>
-                                </div>
-                                {% if ap.id in atividades_professor_concluidas %}
-                                <span class="badge bg-success">Concluída</span>
-                                {% endif %}
-                            </div>
-                            <a href="/aluno/atividade-professor/{{ ap.id }}"
-                                class="btn btn-sm btn-mj mt-3 rounded-pill">Abrir atividade</a>
-                        </div>
-                    </div>
-                    {% endfor %}
+                <div class="mb-4">
+                    <span class="mission-chip-mj mb-2 d-inline-block">Extras</span>
                 </div>
-            </div>
-        </article>
-        {% endif %}
 
-        {% if atividades_professor_extras %}
-        <article class="card dash-card border-0 mb-4" id="missoes-extras-trilha"
-            style="border-left: 4px solid var(--mj-blue, #FF9800) !important;">
-            <div class="card-body p-4">
-                <h4 class="h6 fw-bold text-mj-dark mb-3"><i class="fas fa-bullseye me-2 text-warning"></i>Missões extras
-                    (somente você)</h4>
-                <p class="small text-mj-muted mb-3">Atividades que o professor direcionou para o seu perfil.</p>
-                <div class="row g-3">
-                    {% for ap in atividades_professor_extras %}
-                    <div class="col-12 col-md-6">
-                        <div class="border rounded-4 p-3 h-100 border-warning border-opacity-50">
-                            <div class="d-flex justify-content-between align-items-start gap-2">
-                                <div>
-                                    <div class="fw-bold text-mj-dark">{{ ap.titulo }}</div>
-                                    <div class="small text-mj-muted">{{ h5p_tipo.label(ap.tipo) }}</div>
-                                </div>
-                                {% if ap.id in atividades_professor_concluidas %}
-                                <span class="badge bg-success">Concluída</span>
-                                {% endif %}
-                            </div>
-                            <a href="/aluno/atividade-professor/{{ ap.id }}"
-                                class="btn btn-sm btn-warning text-dark mt-3 rounded-pill fw-bold">Abrir atividade</a>
+                <div class="row g-4">
+                    <div class="col-12 col-lg-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-chalkboard-teacher me-2 text-mj-primary"></i>
+                            <h4 class="h6 fw-bold text-mj-dark mb-0">Atividades da sua turma</h4>
                         </div>
+                        <!-- <p class="small text-mj-muted mb-3">As atividades cadastradas pelo seu professor aparecem nesta seção.</p> -->
+
+                        <ul class="list-unstyled mb-0 jornada-atividades-list">
+                            {% for ap in atividades_professor_turma %}
+                            <li id="atividade-turma-{{ ap.id }}"
+                                class="card p-3 mb-3 border-0 shadow-sm rounded-4 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-3 transition-hover">
+                                <div class="jornada-atividade-icon--{{ h5p_tipo.css(ap.tipo) }} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                    style="width: 50px; height: 50px;">
+                                    <i class="fas {{ h5p_tipo.icon(ap.tipo) }} fs-5"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0 text-break">
+                                    <div class="mb-1">
+                                        <span
+                                            class="badge rounded-pill fw-medium px-2 py-1 small jornada-atividade-tipo-badge--{{ h5p_tipo.css(ap.tipo) }}"
+                                            style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                            {{ h5p_tipo.label(ap.tipo) }}
+                                        </span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-0 text-truncate" title="{{ ap.titulo }}">{{
+                                        ap.titulo }}</h6>
+                                </div>
+                                <div class="ms-sm-auto flex-shrink-0 d-flex justify-content-sm-end">
+                                    {% if ap.id in atividades_professor_concluidas %}
+                                    <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-2">
+                                        <i class="fas fa-check-circle me-1"></i> Concluída
+                                    </span>
+                                    {% else %}
+                                    <a href="/aluno/atividade-professor/{{ ap.id }}"
+                                        class="btn btn-mj px-4 rounded-pill fw-bold shadow-sm">Abrir</a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
                     </div>
-                    {% endfor %}
+
+                    <div class="col-12 col-lg-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-bullseye me-2 text-warning"></i>
+                            <h4 class="h6 fw-bold text-mj-dark mb-0">Missões exclusivas para você</h4>
+                        </div>
+                        <!-- <p class="small text-mj-muted mb-3">Atividades que o professor direcionou para o seu perfil.</p> -->
+
+                        <ul class="list-unstyled mb-0 jornada-atividades-list">
+                            {% for ap in atividades_professor_extras %}
+                            <li id="atividade-extra-{{ ap.id }}"
+                                class="card p-3 mb-3 border-0 shadow-sm rounded-4 d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-3 transition-hover">
+                                <div class="jornada-atividade-icon--{{ h5p_tipo.css(ap.tipo) }} bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                    style="width: 50px; height: 50px;">
+                                    <i class="fas {{ h5p_tipo.icon(ap.tipo) }} fs-5"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0 text-break">
+                                    <div class="mb-1">
+                                        <span
+                                            class="badge rounded-pill fw-medium px-2 py-1 small jornada-atividade-tipo-badge--{{ h5p_tipo.css(ap.tipo) }}"
+                                            style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                            {{ h5p_tipo.label(ap.tipo) }}
+                                        </span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-0 text-truncate" title="{{ ap.titulo }}">{{
+                                        ap.titulo }}</h6>
+                                </div>
+                                <div class="ms-sm-auto flex-shrink-0 d-flex justify-content-sm-end">
+                                    {% if ap.id in atividades_professor_concluidas %}
+                                    <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-2">
+                                        <i class="fas fa-check-circle me-1"></i> Concluída
+                                    </span>
+                                    {% else %}
+                                    <a href="/aluno/atividade-professor/{{ ap.id }}"
+                                        class="btn btn-mj px-4 rounded-pill fw-bold shadow-sm">Abrir</a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 </div>
             </div>
         </article>

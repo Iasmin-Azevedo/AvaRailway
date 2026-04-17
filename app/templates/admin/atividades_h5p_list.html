@@ -19,6 +19,34 @@
 {% if request.query_params.get("ok") == "deletado" %}
 <div class="alert alert-success py-2">Atividade H5P removida com sucesso.</div>
 {% endif %}
+<form method="get" action="/admin/atividades-h5p" class="card dash-card border-0 mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label for="filtroMateria" class="form-label small fw-semibold mb-1">Matéria</label>
+                <select id="filtroMateria" name="materia_id" class="form-select form-select-sm">
+                    <option value="">Todas</option>
+                    {% for m in filtro_materias %}
+                    <option value="{{ m.id }}" {% if selected_materia_id == m.id %}selected{% endif %}>{{ m.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filtroAno" class="form-label small fw-semibold mb-1">Ano</label>
+                <select id="filtroAno" name="ano" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    {% for a in filtro_anos %}
+                    <option value="{{ a }}" {% if selected_ano == a %}selected{% endif %}>{{ a }}º ano</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-mj rounded-pill">Filtrar</button>
+                <a href="/admin/atividades-h5p" class="btn btn-sm btn-mj-outline rounded-pill">Limpar</a>
+            </div>
+        </div>
+    </div>
+</form>
 <div class="card dash-card border-0">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -27,6 +55,8 @@
                     <tr>
                         <th class="ps-4">Título</th>
                         <th>Tipo</th>
+                        <th>Matéria</th>
+                        <th>Ano</th>
                         <th>Trilha</th>
                         <th>Ordem</th>
                         <th>Status</th>
@@ -42,6 +72,8 @@
                                 <i class="fas {{ h5p_tipo.icon(a.tipo) }}"></i> {{ h5p_tipo.label(a.tipo) }}
                             </span>
                         </td>
+                        <td>{{ trilha_curso_nomes.get(a.trilha_id, "—") if a.trilha_id else "—" }}</td>
+                        <td>{% if a.trilha_id and trilha_anos.get(a.trilha_id) %}{{ trilha_anos.get(a.trilha_id) }}º{% else %}—{% endif %}</td>
                         <td>{{ trilha_nomes.get(a.trilha_id, "—") if a.trilha_id else "—" }}</td>
                         <td>{{ a.ordem }}</td>
                         <td>
@@ -65,7 +97,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma atividade H5P cadastrada.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">Nenhuma atividade H5P encontrada para os filtros selecionados.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

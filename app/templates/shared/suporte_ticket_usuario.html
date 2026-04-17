@@ -1,0 +1,57 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Chamado #{{ ticket.id }}{% endblock %}
+{% block brand_link %}{{ brand_link|default('/') }}{% endblock %}
+{% block menu_title %}{{ menu_title|default('Menu') }}{% endblock %}
+{% block header_right %}
+{% include "shared/header_right_user_simple.html" %}
+{% endblock %}
+{% block offcanvas_links %}
+{% include menu_partial %}
+{% endblock %}
+{% block main_content %}
+<div class="mb-3 d-flex flex-wrap gap-2">
+    <a href="/suporte/meus-chamados" class="text-mj-primary text-decoration-none small">← Meus chamados</a>
+</div>
+<h1 class="h4 fw-bold text-mj-dark mb-1">#{{ ticket.id }} — {{ ticket.assunto }}</h1>
+<p class="small text-mj-muted mb-3">{{ ticket.email }} · <span class="badge bg-secondary">{{ ticket.status }}</span></p>
+{% if erro == "mensagem_vazia" %}
+<div class="alert alert-warning py-2 small">Digite uma mensagem antes de enviar.</div>
+{% elif erro == "resolvido" %}
+<div class="alert alert-warning py-2 small">Esse chamado está resolvido e não aceita novas mensagens.</div>
+{% elif erro == "nao_encontrado" %}
+<div class="alert alert-warning py-2 small">Chamado não encontrado para sua conta.</div>
+{% endif %}
+{% if ok == "respondido" %}
+<div class="alert alert-success py-2 small">Mensagem enviada ao suporte.</div>
+{% elif ok == "criado" %}
+<div class="alert alert-success py-2 small">Chamado aberto com sucesso.</div>
+{% endif %}
+<div class="card dash-card border-0 mb-4">
+    <div class="card-body">
+        <h2 class="h6 fw-bold">Histórico</h2>
+        <ul class="list-unstyled mb-0">
+            {% for m in mensagens %}
+            <li class="mb-3 pb-3 border-bottom">
+                <span class="badge {% if m.autor_role == 'admin' %}bg-mj-primary{% else %}bg-light text-dark{% endif %} mb-1">{{ m.autor_role }}</span>
+                <span class="small text-muted">{{ m.created_at.strftime('%d/%m/%Y %H:%M') if m.created_at else '' }}</span>
+                <p class="mb-0 mt-1 text-break">{{ m.corpo }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% if ticket.status != 'resolvido' %}
+<div class="card dash-card border-0 mb-3">
+    <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">Responder chamado</h2>
+        <form action="/suporte/meus-chamados/{{ ticket.id }}/responder" method="post">
+            <textarea name="corpo" class="form-control mb-3" rows="4" required maxlength="8000" placeholder="Escreva sua resposta ao suporte"></textarea>
+            <button type="submit" class="btn btn-mj rounded-pill">Enviar mensagem</button>
+        </form>
+    </div>
+</div>
+{% else %}
+<p class="text-success small"><i class="fas fa-check-circle me-1"></i> Chamado resolvido.</p>
+{% endif %}
+{% endblock %}

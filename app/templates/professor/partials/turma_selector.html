@@ -1,6 +1,10 @@
 {% if professor_turmas %}
 {% set _tsid = turma_select_id|default('selTurmaProf') %}
 <form method="get" action="{{ form_action|default('') }}" class="d-flex flex-wrap align-items-center gap-2 w-100 mw-100">
+    {% if request and '/professor/chat-duvidas' in (request.url.path or '') %}
+    {% set _tab_keep = (request.query_params.get('tab') or 'perguntas')|lower|trim %}
+    <input type="hidden" name="tab" value="{{ _tab_keep if _tab_keep in ['perguntas', 'solicitacoes'] else 'perguntas' }}">
+    {% endif %}
     <label class="small fw-bold text-mj-dark mb-0 flex-shrink-0" for="{{ _tsid }}">Turma</label>
     <select name="turma_id" id="{{ _tsid }}" class="form-select form-select-sm flex-grow-1 professor-turma-select" style="min-width: 0; max-width: 100%;" onchange="this.form.submit()">
         <option value="all" {% if turma_all %}selected{% endif %}>Todas as turmas</option>

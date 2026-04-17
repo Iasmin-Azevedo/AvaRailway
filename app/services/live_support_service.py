@@ -440,10 +440,10 @@ class LiveSupportService:
             },
         )
 
-    def list_teacher_help_requests(self, user: Usuario):
+    def list_teacher_help_requests(self, user: Usuario, limit: int = 25, turma_ids: list[int] | None = None):
         if user.role != UserRole.PROFESSOR:
             return []
-        return self.solicitacao_repo.list_for_professor(self.db, user.id)
+        return self.solicitacao_repo.list_for_professor(self.db, user.id, limit=limit, turma_ids=turma_ids)
 
     def update_teacher_help_request_status(self, user: Usuario, request_id: int, next_status: str):
         if user.role != UserRole.PROFESSOR:

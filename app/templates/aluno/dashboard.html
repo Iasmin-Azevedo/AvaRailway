@@ -135,7 +135,10 @@
                             <ul class="list-unstyled small mb-3 aluno-missao-atividade-list">
                                 {% for it in atividades_turma_itens[:6] %}
                                 <li class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom border-light">
-                                    <a href="/aluno/atividade-professor/{{ it.id }}" class="text-truncate text-decoration-none text-mj-dark">{{ it.titulo }}</a>
+                                    <div class="min-w-0">
+                                        <a href="/aluno/atividade-professor/{{ it.id }}" class="text-truncate text-decoration-none text-mj-dark d-block">{{ it.titulo }}</a>
+                                        <span class="badge bg-light text-muted border mt-1">{{ it.materia_label }}</span>
+                                    </div>
                                     {% if it.concluida %}
                                     <span class="badge bg-success flex-shrink-0">Concluída</span>
                                     {% else %}
@@ -145,7 +148,7 @@
                                 {% endfor %}
                             </ul>
                             {% endif %}
-                            <a href="/aluno/portugues#atividades-turma" class="btn gm-btn gm-btn--red w-100 text-center text-decoration-none">Ver todas na trilha</a>
+                            <a href="{{ (atividades_turma_itens[0].materia_trilha_url if atividades_turma_itens else '/aluno/portugues') }}#atividades-turma" class="btn gm-btn gm-btn--red w-100 text-center text-decoration-none">Ver na jornada</a>
                         </article>
                     </div>
                     <div class="col-md-6">
@@ -168,7 +171,10 @@
                             <ul class="list-unstyled small mb-3 aluno-missao-atividade-list">
                                 {% for it in missoes_extras_itens[:6] %}
                                 <li class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom border-light">
-                                    <a href="/aluno/atividade-professor/{{ it.id }}" class="text-truncate text-decoration-none text-mj-dark">{{ it.titulo }}</a>
+                                    <div class="min-w-0">
+                                        <a href="/aluno/atividade-professor/{{ it.id }}" class="text-truncate text-decoration-none text-mj-dark d-block">{{ it.titulo }}</a>
+                                        <span class="badge bg-light text-muted border mt-1">{{ it.materia_label }}</span>
+                                    </div>
                                     {% if it.concluida %}
                                     <span class="badge bg-success flex-shrink-0">Concluída</span>
                                     {% else %}
@@ -178,7 +184,7 @@
                                 {% endfor %}
                             </ul>
                             {% endif %}
-                            <a href="/aluno/portugues#missoes-extras-trilha" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Ver todas na trilha</a>
+                            <a href="{{ (missoes_extras_itens[0].materia_trilha_url if missoes_extras_itens else '/aluno/portugues') }}#missoes-extras-trilha" class="btn gm-btn gm-btn--orange w-100 text-center text-decoration-none">Ver na jornada</a>
                         </article>
                     </div>
                 </div>
@@ -188,29 +194,6 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 mb-4 dash-card border border-success border-opacity-25 hover-lift">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
-                        <i class="fa-solid fa-star fs-4"></i>
-                    </div>
-                    <h6 class="fw-bold mb-0">Seu progresso de XP</h6>
-                </div>
-                <div class="small text-muted mb-2">
-                    Nível atual: <strong>{{ stats.nivel|default('LV 1') }}</strong>
-                </div>
-                <div class="small text-muted mb-2">
-                    XP total: <strong>{{ stats.xp_total|default(0) }}</strong>
-                </div>
-                <div class="d-flex justify-content-between small fw-bold mb-2">
-                    <span>XP no nível</span>
-                    <span>{{ stats.xp_atual_nivel|default(0) }} / {{ stats.xp_meta_nivel|default(600) }}</span>
-                </div>
-                <div class="progress" style="height: 10px;">
-                    <div class="progress-bar bg-success" data-progress-width="{{ stats.xp_pct_nivel|default(0) }}"></div>
-                </div>
-            </div>
-        </div>
 
         <div class="card border-0 shadow-sm rounded-4 mb-4 dash-card border border-primary border-opacity-25 hover-lift">
             <div class="card-body p-4">

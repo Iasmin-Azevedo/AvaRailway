@@ -25,6 +25,24 @@ user_repo = UserRepository()
 aluno_repo = AlunoRepository()
 
 
+def _professor_h5p_visivel_na_jornada(ap, curso_pagina_ids: set[int] | None) -> bool:
+    """Atividade do professor na jornada LP/MAT. Sem curso_id = legado (aparece nas duas)."""
+    cid = getattr(ap, "curso_id", None)
+    if cid is None or not curso_pagina_ids:
+        return True
+    return int(cid) in curso_pagina_ids
+
+
+def _jornada_url_por_curso_id(db: Session, curso_id: int | None) -> str:
+    from app.models.gestao import Curso
+
+    if not curso_id:
+        return "/aluno/portugues"
+    c = db.query(Curso).filter(Curso.id == curso_id).first()
+    nome = (c.nome or "").lower() if c else ""
+    return "/aluno/matematica" if "mat" in nome else "/aluno/portugues"
+
+
 def _get_aluno_nome(request: Request, db: Session) -> str:
     aluno_nome = "Aluno"
     token = request.cookies.get(settings.ACCESS_COOKIE_NAME)
@@ -84,11 +102,14 @@ def _smart_trilha_mission_info(
         "chip_label": "Jornada",
         "progresso_label": "Concluídas",
     }
-    curso = db.query(Curso).filter(Curso.nome.ilike(curso_ilike)).first()
-    if not curso:
+    cursos = db.query(Curso).filter(Curso.nome.ilike(curso_ilike)).order_by(Curso.id.asc()).all()
+    if not cursos:
         return out
-    out["curso_nome"] = curso.nome or ""
-    trilhas_all = TrilhaRepository().listar(db, curso_id=curso.id, ano_escolar=aluno_ano)
+    out["curso_nome"] = cursos[0].nome or ""
+    trilhas_all = []
+    for curso in cursos:
+        trilhas_all.extend(TrilhaRepository().listar(db, curso_id=curso.id, ano_escolar=aluno_ano))
+    trilhas_all.sort(key=lambda t: ((t.ordem if t.ordem is not None else 0), t.id))
     if not trilhas_all:
         return out
     trilhas = trilhas_all[:4]
@@ -370,6 +391,8 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
         medalhas_mural = MedalhaService().list_mural_aluno(db, aluno_id, limit=6)
         medalhas_total = MedalhaService().count_mural_aluno(db, aluno_id)
     if aluno_id:
+        from sqlalchemy.orm import joinedload
+
         from app.models.professor_h5p import ProfessorAtividadeH5P, ProfessorProgressoH5P
         from app.models.professor_h5p import ProfessorAtividadeH5PAluno
 
@@ -387,6 +410,7 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
 
             acts_turma = (
                 db.query(ProfessorAtividadeH5P)
+                .options(joinedload(ProfessorAtividadeH5P.curso))
                 .filter(
                     ProfessorAtividadeH5P.turma_id == aluno.turma_id,
                     ProfessorAtividadeH5P.ativo,
@@ -402,11 +426,14 @@ def aluno_home(request: Request, db: Session = Depends(get_db)):
                     .filter(ProfessorAtividadeH5PAluno.atividade_id == act.id)
                     .count()
                 )
+                mat_label = act.curso.nome if getattr(act, "curso", None) else "LP e MAT"
                 item = {
                     "id": act.id,
                     "titulo": act.titulo or f"Atividade #{act.id}",
                     "tipo": act.tipo or "outro",
                     "concluida": act.id in prof_done_ids,
+                    "materia_trilha_url": _jornada_url_por_curso_id(db, getattr(act, "curso_id", None)),
+                    "materia_label": mat_label,
                 }
                 if n_alvo == 0:
                     ids_sem_alvo.append(act.id)
@@ -574,7 +601,7 @@ def _render_trilhas_por_materia(
     template_name: str,
 ):
     """Renderiza trilhas filtradas por matéria (português/matemática)."""
-    from app.models.gestao import Curso
+    from app.models.gestao import Curso, Trilha
     from app.models.saeb import Descritor
     from app.repositories.gestao_repository import TrilhaRepository
     from app.repositories.h5p_repository import AtividadeH5PRepository
@@ -593,12 +620,15 @@ def _render_trilhas_por_materia(
         ("Língua Portuguesa", "%portug%"),
     )
 
-    curso = db.query(Curso).filter(Curso.nome.ilike(curso_like)).first()
-    trilhas = (
-        TrilhaRepository().listar(db, curso_id=curso.id, ano_escolar=aluno_ano)
-        if curso
-        else []
-    )
+    cursos = db.query(Curso).filter(Curso.nome.ilike(curso_like)).order_by(Curso.id.asc()).all()
+    curso_pagina_ids = {c.id for c in cursos}
+    trilhas_q = db.query(Trilha).filter(Trilha.curso_id.in_(curso_pagina_ids)) if curso_pagina_ids else None
+    if trilhas_q is None:
+        trilhas = []
+    else:
+        if aluno_ano is not None:
+            trilhas_q = trilhas_q.filter(Trilha.ano_escolar == aluno_ano)
+        trilhas = trilhas_q.order_by(Trilha.ordem.asc(), Trilha.id.asc()).all()
 
     atividades_por_trilha = {}
     desc_ids = set()
@@ -648,6 +678,8 @@ def _render_trilhas_por_materia(
     atividades_professor_extras = []
     atividades_professor_concluidas: set[int] = set()
     if aluno_turma_id and aluno_id:
+        from sqlalchemy.orm import joinedload
+
         from app.models.professor_h5p import (
             ProfessorAtividadeH5P,
             ProfessorAtividadeH5PAluno,
@@ -656,6 +688,7 @@ def _render_trilhas_por_materia(
 
         acts_prof = (
             db.query(ProfessorAtividadeH5P)
+            .options(joinedload(ProfessorAtividadeH5P.curso))
             .filter(
                 ProfessorAtividadeH5P.turma_id == aluno_turma_id,
                 ProfessorAtividadeH5P.ativo,
@@ -664,6 +697,8 @@ def _render_trilhas_por_materia(
             .all()
         )
         for ap in acts_prof:
+            if not _professor_h5p_visivel_na_jornada(ap, curso_pagina_ids):
+                continue
             n_alvo = (
                 db.query(ProfessorAtividadeH5PAluno)
                 .filter(ProfessorAtividadeH5PAluno.atividade_id == ap.id)
@@ -1046,6 +1081,8 @@ def aluno_atividade_professor(request: Request, id: int, db: Session = Depends(g
     ):
         return RedirectResponse(url="/aluno/portugues?acesso_negado_ano=1", status_code=302)
 
+    trilhas_url = _jornada_url_por_curso_id(db, getattr(atividade, "curso_id", None))
+
     progresso = db.query(ProfessorProgressoH5P).filter(
         ProfessorProgressoH5P.aluno_id == aluno_id,
         ProfessorProgressoH5P.atividade_id == id,
@@ -1076,8 +1113,8 @@ def aluno_atividade_professor(request: Request, id: int, db: Session = Depends(g
             "atividade": atividade,
             "content_base_url": content_base_url,
             "content_missing_reason": None if content_base_url else "Conteúdo H5P não encontrado.",
-            "trilhas_url": "/aluno/portugues",
-            "next_atividade_url": "/aluno/portugues",
+            "trilhas_url": trilhas_url,
+            "next_atividade_url": trilhas_url,
             "completion_token": "",
             "atividade_concluida": atividade_concluida,
             "completion_endpoint": f"/api/h5p/professor-atividades/{id}/concluir",
