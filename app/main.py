@@ -61,7 +61,7 @@ from app.models import (
 configure_logging()
 logger = logging.getLogger("ava_mj_backend")
 
-app = FastAPI(title="AVA MJ Enterprise")
+app = FastAPI(title="Mj Connect Edu Enterprise")
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -232,11 +232,11 @@ def seed_default_users() -> None:
     from app.schemas.user_schema import UserCreate
 
     defaults = [
-        {"nome": "Admin AVA MJ", "email": "admin@avajmj.com", "role": UserRole.ADMIN},
-        {"nome": "Professor AVA MJ", "email": "professor@avamj.com", "role": UserRole.PROFESSOR},
-        {"nome": "Aluno AVA MJ", "email": "aluno@avamj.com", "role": UserRole.ALUNO},
-        {"nome": "Gestor AVA MJ", "email": "gestor@avamj.com", "role": UserRole.GESTOR},
-        {"nome": "Coordenador AVA MJ", "email": "coordenador@avamj.com", "role": UserRole.COORDENADOR},
+        {"nome": "Admin Mj Connect Edu", "email": "admin@avajmj.com", "role": UserRole.ADMIN},
+        {"nome": "Professor Mj Connect Edu", "email": "professor@avamj.com", "role": UserRole.PROFESSOR},
+        {"nome": "Aluno Mj Connect Edu", "email": "aluno@avamj.com", "role": UserRole.ALUNO},
+        {"nome": "Gestor Mj Connect Edu", "email": "gestor@avamj.com", "role": UserRole.GESTOR},
+        {"nome": "Coordenador Mj Connect Edu", "email": "coordenador@avamj.com", "role": UserRole.COORDENADOR},
     ]
 
     db = SessionLocal()
@@ -1130,7 +1130,7 @@ def _professor_relatorio_print_context(
         "back_href": back_href,
         "report_author_label": "Professor(a)",
         "report_author_name": (current_user.nome or "").strip(),
-        "report_kicker": "AVA MJ — Relatório",
+        "report_kicker": "Mj Connect Edu — Relatório",
     }
 
 
@@ -1298,7 +1298,7 @@ def _gestor_relatorio_print_context(db: Session, current_user: Usuario, tipo: st
         "back_href": "/gestor/relatorios",
         "report_author_label": "Gestor(a)",
         "report_author_name": (current_user.nome or "").strip(),
-        "report_kicker": "AVA MJ — Relatório estratégico",
+        "report_kicker": "Mj Connect Edu — Relatório estratégico",
     }
 
 
@@ -1330,7 +1330,7 @@ def _coordenador_relatorio_print_context(db: Session, current_user: Usuario, tip
         "back_href": "/coordenador/relatorios",
         "report_author_label": "Coordenador(a)",
         "report_author_name": (current_user.nome or "").strip(),
-        "report_kicker": "AVA MJ — Relatório de coordenação",
+        "report_kicker": "Mj Connect Edu — Relatório de coordenação",
     }
 
 
@@ -2819,6 +2819,66 @@ def coordenador_dashboard(
     )
 
 
+@app.get("/coordenador/turmas/{turma_id}/analise")
+def coordenador_turma_analise_page(
+    request: Request,
+    turma_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.COORDENADOR)),
+    disciplina: str = "geral",
+    q: str = "",
+    faixa: str = "todas",
+    risco: str = "todos",
+    ordenar: str = "adesao_asc",
+):
+    disc = (disciplina or "geral").strip().lower()
+    if disc not in ("geral", "lp", "mat"):
+        disc = "geral"
+    fx = (faixa or "todas").strip().lower()
+    if fx not in ("todas", "baixa", "media", "alta"):
+        fx = "todas"
+    rk = (risco or "todos").strip().lower()
+    if rk not in ("todos", "baixo", "elevado"):
+        rk = "todos"
+    ord_key = (ordenar or "adesao_asc").strip().lower()
+    if ord_key not in ("adesao_asc", "adesao_desc", "nome"):
+        ord_key = "adesao_asc"
+
+    escola_id = _coordenador_escola_id_for_user(db, current_user.id)
+    if not escola_id:
+        raise HTTPException(status_code=400, detail="Coordenador sem escola vinculada")
+
+    bundle = _coordenador_turma_analise_detalhe(
+        db,
+        escola_id,
+        turma_id,
+        disciplina_key=disc,
+        busca_nome=(q or "").strip(),
+        faixa_adesao=fx,
+        risco_filtro=rk,
+        ordenar=ord_key,
+    )
+    if bundle is None:
+        raise HTTPException(status_code=404, detail="Turma não encontrada")
+
+    layout = _coordenador_layout_context(db, current_user)
+    return templates.TemplateResponse(
+        request,
+        "coordenador/turma_analise.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            **layout,
+            **bundle,
+            "filtro_disciplina": disc,
+            "filtro_q": (q or "").strip(),
+            "filtro_faixa": fx,
+            "filtro_risco": rk,
+            "filtro_ordenar": ord_key,
+        },
+    )
+
+
 def _coordenador_atividade_ids_por_disciplina(db: Session, disciplina_key: str) -> list[int] | None:
     """None = todas as ativas (visão geral). Lista vazia = nenhuma atividade classificada na disciplina."""
     from sqlalchemy import and_, or_
@@ -2917,6 +2977,7 @@ def _coordenador_turmas_monitoramento(
             status = "Sem atividades"
         out.append(
             {
+                "turma_id": t.id,
                 "turma": f"{t.ano_escolar}º Ano {t.nome}",
                 "professor": professor_nome,
                 "adesao_pct": adesao,
@@ -2925,6 +2986,245 @@ def _coordenador_turmas_monitoramento(
             }
         )
     return out
+
+
+def _coordenador_escola_id_for_user(db: Session, coordenador_user_id: int) -> int | None:
+    from app.models.gestao import Escola
+    from app.models.relacoes import CoordenadorEscola
+
+    return (
+        db.query(CoordenadorEscola.escola_id)
+        .join(Escola, CoordenadorEscola.escola_id == Escola.id)
+        .filter(CoordenadorEscola.coordenador_id == coordenador_user_id)
+        .scalar()
+    )
+
+
+def _coordenador_turma_analise_detalhe(
+    db: Session,
+    escola_id: int,
+    turma_id: int,
+    *,
+    disciplina_key: str,
+    busca_nome: str,
+    faixa_adesao: str,
+    risco_filtro: str,
+    ordenar: str,
+) -> dict | None:
+    """Dados para a página de análise da turma; None se a turma não pertencer à escola."""
+    from app.models.aluno import Aluno
+    from app.models.gestao import Turma
+    from app.models.h5p import AtividadeH5P, ProgressoH5P
+    from app.models.relacoes import ProfessorTurma
+    from app.models.user import Usuario
+
+    t = db.query(Turma).filter(Turma.id == turma_id, Turma.escola_id == escola_id).first()
+    if not t:
+        return None
+
+    professor_nome = (
+        db.query(Usuario.nome)
+        .join(ProfessorTurma, ProfessorTurma.professor_id == Usuario.id)
+        .filter(ProfessorTurma.turma_id == t.id)
+        .limit(1)
+        .scalar()
+        or "Sem professor"
+    )
+
+    act_ids = _coordenador_atividade_ids_por_disciplina(db, disciplina_key)
+    if act_ids is None:
+        total_atividades = db.query(AtividadeH5P).filter(AtividadeH5P.ativo.is_(True)).count()
+    else:
+        total_atividades = len(act_ids)
+
+    aluno_rows = (
+        db.query(Aluno.id, Usuario.nome)
+        .join(Usuario, Aluno.usuario_id == Usuario.id)
+        .filter(Aluno.turma_id == t.id)
+        .order_by(Usuario.nome.asc())
+        .all()
+    )
+    aluno_ids = [r[0] for r in aluno_rows]
+    n_alunos = len(aluno_ids)
+
+    done_by_aluno: dict[int, int] = {}
+    avg_by_aluno: dict[int, float] = {}
+    risco_by_aluno: dict[int, str] = {}
+
+    if aluno_ids:
+        for aid, nr in db.query(Aluno.id, Aluno.nivel_risco).filter(Aluno.id.in_(aluno_ids)).all():
+            risco_by_aluno[aid] = (nr or "BAIXO").strip().upper() or "BAIXO"
+
+    if aluno_ids and total_atividades:
+        dq = db.query(ProgressoH5P.aluno_id, func.count(ProgressoH5P.id)).filter(
+            ProgressoH5P.aluno_id.in_(aluno_ids),
+            ProgressoH5P.concluido.is_(True),
+        )
+        aq = db.query(ProgressoH5P.aluno_id, func.avg(ProgressoH5P.score)).filter(
+            ProgressoH5P.aluno_id.in_(aluno_ids),
+            ProgressoH5P.concluido.is_(True),
+            ProgressoH5P.score.isnot(None),
+        )
+        if act_ids is not None:
+            dq = dq.filter(ProgressoH5P.atividade_id.in_(act_ids))
+            aq = aq.filter(ProgressoH5P.atividade_id.in_(act_ids))
+        for aid, cnt in dq.group_by(ProgressoH5P.aluno_id).all():
+            done_by_aluno[int(aid)] = int(cnt or 0)
+        for aid, av in aq.group_by(ProgressoH5P.aluno_id).all():
+            if av is not None:
+                avg_by_aluno[int(aid)] = round(float(av), 1)
+
+    adesao_turma_pct = 0.0
+    status_turma = "Sem dados"
+    if n_alunos and total_atividades:
+        done_total = sum(done_by_aluno.values())
+        adesao_turma_pct = round(
+            min(100.0, (done_total / (float(n_alunos) * float(total_atividades))) * 100.0), 1
+        )
+        status_turma = "Crítico" if adesao_turma_pct < 60 else ("Bom" if adesao_turma_pct < 85 else "Adequado")
+    elif n_alunos and total_atividades == 0:
+        status_turma = "Sem atividades"
+
+    media_prof_turma = 0.0
+    if aluno_ids and total_atividades:
+        pq = db.query(func.avg(ProgressoH5P.score)).filter(
+            ProgressoH5P.aluno_id.in_(aluno_ids),
+            ProgressoH5P.concluido.is_(True),
+            ProgressoH5P.score.isnot(None),
+        )
+        if act_ids is not None:
+            pq = pq.filter(ProgressoH5P.atividade_id.in_(act_ids))
+        media_prof_turma = round(float(pq.scalar() or 0), 1)
+
+    alunos_out: list[dict] = []
+    for aid, nome in aluno_rows:
+        nome_s = (nome or "").strip() or "—"
+        if busca_nome and busca_nome.lower() not in nome_s.lower():
+            continue
+        if total_atividades:
+            done = done_by_aluno.get(aid, 0)
+            adesao = round(min(100.0, (done / float(total_atividades)) * 100.0), 1)
+        else:
+            done = 0
+            adesao = 0.0
+        prof_m = avg_by_aluno.get(aid, 0.0)
+
+        if not total_atividades:
+            st = "Sem atividades"
+        else:
+            st = "Crítico" if adesao < 60 else ("Bom" if adesao < 85 else "Adequado")
+
+        if faixa_adesao == "baixa" and adesao >= 60:
+            continue
+        if faixa_adesao == "media" and (adesao < 60 or adesao >= 85):
+            continue
+        if faixa_adesao == "alta" and adesao < 85:
+            continue
+
+        risco = risco_by_aluno.get(aid, "BAIXO")
+        if risco_filtro == "elevado" and risco == "BAIXO":
+            continue
+        if risco_filtro == "baixo" and risco != "BAIXO":
+            continue
+
+        alunos_out.append(
+            {
+                "aluno_id": aid,
+                "nome": nome_s,
+                "adesao_pct": adesao,
+                "proficiencia": prof_m,
+                "status": st,
+                "nivel_risco": risco,
+                "concluidas": done_by_aluno.get(aid, 0),
+                "total_atividades": total_atividades,
+            }
+        )
+
+    if ordenar == "adesao_desc":
+        alunos_out.sort(key=lambda x: (-x["adesao_pct"], x["nome"].lower()))
+    elif ordenar == "nome":
+        alunos_out.sort(key=lambda x: x["nome"].lower())
+    else:
+        alunos_out.sort(key=lambda x: (x["adesao_pct"], x["nome"].lower()))
+
+    atividades_criticas: list[dict] = []
+    if aluno_ids and total_atividades and (act_ids is None or act_ids):
+        # Prioriza atividades efetivamente concluídas por alunos da turma para evitar
+        # listas zeradas na visão "Geral" por conta de atividades sem relação com a turma.
+        progress_q = db.query(
+            ProgressoH5P.atividade_id,
+            func.count(func.distinct(ProgressoH5P.aluno_id)).label("alunos_concluiram"),
+        ).filter(
+            ProgressoH5P.aluno_id.in_(aluno_ids),
+            ProgressoH5P.concluido.is_(True),
+        )
+        if act_ids is not None:
+            progress_q = progress_q.filter(ProgressoH5P.atividade_id.in_(act_ids))
+        progress_rows = (
+            progress_q.group_by(ProgressoH5P.atividade_id)
+            .order_by(text("alunos_concluiram ASC"), ProgressoH5P.atividade_id.asc())
+            .limit(120)
+            .all()
+        )
+
+        if progress_rows:
+            ids_only = [int(aid) for aid, _ in progress_rows]
+            title_rows = (
+                db.query(AtividadeH5P.id, AtividadeH5P.titulo)
+                .filter(AtividadeH5P.id.in_(ids_only))
+                .all()
+            )
+            title_map = {int(aid): (ttl or f"Atividade #{aid}") for aid, ttl in title_rows}
+            for aid, c in progress_rows:
+                aid_i = int(aid)
+                concluidas = int(c or 0)
+                pct = round(min(100.0, (float(concluidas) / float(n_alunos)) * 100.0), 1)
+                atividades_criticas.append(
+                    {
+                        "titulo": title_map.get(aid_i, f"Atividade #{aid_i}")[:80],
+                        "pct_turma": pct,
+                        "concluiram": concluidas,
+                        "total_alunos": n_alunos,
+                    }
+                )
+        elif act_ids:
+            # Fallback quando existe escopo de atividades, mas ainda sem conclusões.
+            act_list = (
+                db.query(AtividadeH5P.id, AtividadeH5P.titulo)
+                .filter(AtividadeH5P.ativo.is_(True), AtividadeH5P.id.in_(act_ids))
+                .order_by(AtividadeH5P.ordem.asc(), AtividadeH5P.id.asc())
+                .limit(12)
+                .all()
+            )
+            for aid, titulo in act_list:
+                atividades_criticas.append(
+                    {
+                        "titulo": (titulo or f"Atividade #{aid}")[:80],
+                        "pct_turma": 0.0,
+                        "concluiram": 0,
+                        "total_alunos": n_alunos,
+                    }
+                )
+
+        atividades_criticas.sort(key=lambda x: (x["pct_turma"], x["concluiram"]))
+        atividades_criticas = atividades_criticas[:12]
+
+    return {
+        "turma_id": t.id,
+        "turma_label": f"{t.ano_escolar}º Ano {t.nome}",
+        "ano_escolar": t.ano_escolar,
+        "nome_turma": t.nome or "",
+        "professor": professor_nome,
+        "disciplina_key": disciplina_key,
+        "total_atividades": total_atividades,
+        "n_alunos": n_alunos,
+        "n_alunos_filtrados": len(alunos_out),
+        "adesao_turma_pct": adesao_turma_pct,
+        "media_proficiencia_turma": media_prof_turma,
+        "status_turma": status_turma,
+        "atividades_criticas": atividades_criticas,
+        "alunos": alunos_out,
+    }
 
 
 def _coordenador_riscos_por_turma(db: Session, escola_id: int | None) -> list[dict]:
@@ -3279,7 +3579,7 @@ async def suporte_chamado_post(
 def home(request: Request):
     dados = {
         "status": "online",
-        "system": "AVA MJ Backend",
+        "system": "Mj Connect Edu Backend",
         "features": ["Auth", "Alunos", "Dashboard", "Avaliacoes", "IA", "Chatbot"],
         "optimizations": ["GZip Compression", "Rate Limiting", "DB Error Handling"],
     }

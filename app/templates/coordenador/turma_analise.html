@@ -1,0 +1,200 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Análise — {{ turma_label }}{% endblock %}
+{% block brand_link %}/coordenador{% endblock %}
+{% block menu_title %}Menu do Coordenador{% endblock %}
+
+{% block main_a11y_attrs %}data-a11y-caption="Análise detalhada da turma: filtros por disciplina, adesão à plataforma e risco pedagógico; tabela de alunos com proficiência e atividades com menor engajamento coletivo."{% endblock %}
+
+{% block header_right %}
+{% include "coordenador/partials/coordenador_header_right.html" %}
+{% endblock %}
+
+{% block offcanvas_links %}
+{% include "coordenador/partials/coordenador_menu_links.html" %}
+{% endblock %}
+
+{% block main_content %}
+<div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+    <a href="/coordenador#monitoramento" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Painel</a>
+    <span class="text-muted small" aria-hidden="true">·</span>
+    <a href="/coordenador/relatorios" class="text-mj-primary text-decoration-none small">Relatórios</a>
+</div>
+
+<h1 class="h4 fw-bold text-mj-dark mb-1">Análise pedagógica da turma</h1>
+<p class="text-mj-muted small mb-4">{{ turma_label }} · Professor(a): <strong class="text-mj-dark">{{ professor }}</strong></p>
+
+<form method="get" action="/coordenador/turmas/{{ turma_id }}/analise" class="card dash-card border-0 mb-4 analise-filtros-card" id="filtros-analise-turma">
+    <div class="dash-card-header py-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h2 class="h6 fw-bold mb-0 text-dark"><i class="fas fa-sliders me-2 text-mj-primary"></i> Filtros e ordenação</h2>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6 col-lg-3">
+                <label class="form-label small fw-bold text-mj-dark mb-1" for="fDisc">Disciplina (escopo H5P)</label>
+                <select name="disciplina" id="fDisc" class="form-select form-select-sm shadow-sm">
+                    <option value="geral" {% if filtro_disciplina == 'geral' %}selected{% endif %}>Geral (todas)</option>
+                    <option value="lp" {% if filtro_disciplina == 'lp' %}selected{% endif %}>Língua Portuguesa</option>
+                    <option value="mat" {% if filtro_disciplina == 'mat' %}selected{% endif %}>Matemática</option>
+                </select>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <label class="form-label small fw-bold text-mj-dark mb-1" for="fFaixa">Faixa de adesão (aluno)</label>
+                <select name="faixa" id="fFaixa" class="form-select form-select-sm shadow-sm">
+                    <option value="todas" {% if filtro_faixa == 'todas' %}selected{% endif %}>Todas</option>
+                    <option value="baixa" {% if filtro_faixa == 'baixa' %}selected{% endif %}>Crítica (&lt; 60%)</option>
+                    <option value="media" {% if filtro_faixa == 'media' %}selected{% endif %}>Intermediária (60–84%)</option>
+                    <option value="alta" {% if filtro_faixa == 'alta' %}selected{% endif %}>Adequada (≥ 85%)</option>
+                </select>
+            </div>
+            <div class="col-md-6 col-lg-2">
+                <label class="form-label small fw-bold text-mj-dark mb-1" for="fRisco">Risco (cadastro)</label>
+                <select name="risco" id="fRisco" class="form-select form-select-sm shadow-sm">
+                    <option value="todos" {% if filtro_risco == 'todos' %}selected{% endif %}>Todos</option>
+                    <option value="elevado" {% if filtro_risco == 'elevado' %}selected{% endif %}>Diferente de baixo</option>
+                    <option value="baixo" {% if filtro_risco == 'baixo' %}selected{% endif %}>Somente baixo</option>
+                </select>
+            </div>
+            <div class="col-md-6 col-lg-2">
+                <label class="form-label small fw-bold text-mj-dark mb-1" for="fOrd">Ordenar alunos</label>
+                <select name="ordenar" id="fOrd" class="form-select form-select-sm shadow-sm">
+                    <option value="adesao_asc" {% if filtro_ordenar == 'adesao_asc' %}selected{% endif %}>Adesão (menor primeiro)</option>
+                    <option value="adesao_desc" {% if filtro_ordenar == 'adesao_desc' %}selected{% endif %}>Adesão (maior primeiro)</option>
+                    <option value="nome" {% if filtro_ordenar == 'nome' %}selected{% endif %}>Nome (A–Z)</option>
+                </select>
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-bold text-mj-dark mb-1" for="fQ">Buscar aluno(a)</label>
+                <input type="search" name="q" id="fQ" value="{{ filtro_q }}" class="form-control form-control-sm shadow-sm" placeholder="Nome…" autocomplete="off">
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3 analise-filtros-actions">
+            <button type="submit" class="btn btn-mj btn-sm rounded-pill px-4"><i class="fas fa-filter me-1"></i> Aplicar</button>
+            <a class="btn btn-mj-outline btn-sm rounded-pill" href="/coordenador/turmas/{{ turma_id }}/analise">Limpar filtros</a>
+        </div>
+        <div class="analise-filtros-resumo small mt-3">
+            <span class="analise-filtro-chip"><i class="fas fa-book-open me-1"></i> Disciplina: <strong>{{ 'Geral' if filtro_disciplina == 'geral' else ('Português' if filtro_disciplina == 'lp' else 'Matemática') }}</strong></span>
+            <span class="analise-filtro-chip"><i class="fas fa-signal me-1"></i> Faixa: <strong>{{ 'Todas' if filtro_faixa == 'todas' else ('Crítica' if filtro_faixa == 'baixa' else ('Intermediária' if filtro_faixa == 'media' else 'Adequada')) }}</strong></span>
+            <span class="analise-filtro-chip"><i class="fas fa-user-shield me-1"></i> Risco: <strong>{{ 'Todos' if filtro_risco == 'todos' else ('Somente baixo' if filtro_risco == 'baixo' else 'Diferente de baixo') }}</strong></span>
+            <span class="analise-filtro-chip"><i class="fas fa-arrow-down-wide-short me-1"></i> Ordenação: <strong>{{ 'Adesão (menor)' if filtro_ordenar == 'adesao_asc' else ('Adesão (maior)' if filtro_ordenar == 'adesao_desc' else 'Nome') }}</strong></span>
+            {% if filtro_q %}
+            <span class="analise-filtro-chip"><i class="fas fa-magnifying-glass me-1"></i> Busca: <strong>{{ filtro_q }}</strong></span>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card dash-stat-card h-100 border-0">
+            <span class="dash-stat-label">Adesão da turma</span>
+            <div class="dash-stat-value {% if adesao_turma_pct < 60 %}text-danger{% elif adesao_turma_pct < 85 %}text-mj-primary{% else %}text-success{% endif %}">{{ adesao_turma_pct }}%</div>
+            <small class="text-muted">Uso H5P no escopo da disciplina</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card dash-stat-card dash-stat-card--success h-100 border-0">
+            <span class="dash-stat-label">Proficiência média</span>
+            <div class="dash-stat-value text-success">{{ media_proficiencia_turma }}</div>
+            <small class="text-muted">Score médio (concluídas com nota)</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card dash-stat-card h-100 border-0">
+            <span class="dash-stat-label">Status</span>
+            <div class="mt-1">
+                <span class="badge {% if status_turma == 'Crítico' %}bg-danger text-white{% elif status_turma == 'Bom' %}bg-primary bg-opacity-25 text-mj-primary border border-mj-primary{% elif status_turma == 'Sem dados' or status_turma == 'Sem atividades' %}bg-secondary bg-opacity-25 text-dark border border-secondary{% else %}bg-success bg-opacity-25 text-success border border-success{% endif %}">
+                    {{ status_turma }}
+                </span>
+            </div>
+            <small class="text-muted d-block mt-2">Mesma lógica do painel</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card dash-stat-card dash-stat-card--info h-100 border-0">
+            <span class="dash-stat-label">Alunos / Atividades</span>
+            <div class="dash-stat-value text-info">{{ n_alunos }}</div>
+            <small class="text-muted">{{ total_atividades }} atividade(s) no escopo · {{ n_alunos_filtrados }} na tabela</small>
+        </div>
+    </div>
+</div>
+
+{% if atividades_criticas %}
+<div class="card dash-card border-0 mb-4">
+    <div class="dash-card-header d-flex align-items-center gap-2">
+        <i class="fas fa-chart-line text-danger"></i>
+        <h2 class="h6 fw-bold mb-0 text-dark">Atividades com menor engajamento na turma</h2>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="table-light text-uppercase text-muted">
+                    <tr>
+                        <th class="ps-4">Atividade</th>
+                        <th>Alunos que concluíram</th>
+                        <th class="pe-4 text-end">% da turma</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in atividades_criticas %}
+                    <tr>
+                        <td class="ps-4 fw-semibold text-dark">{{ a.titulo }}</td>
+                        <td>{{ a.concluiram }} / {{ a.total_alunos }}</td>
+                        <td class="pe-4 text-end fw-bold {% if a.pct_turma < 40 %}text-danger{% elif a.pct_turma < 70 %}text-mj-primary{% else %}text-success{% endif %}">{{ a.pct_turma }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted px-3 py-2 mb-0">Ordenadas da menor para a maior taxa de conclusão entre os alunos desta turma (amostra das primeiras no escopo).</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="card dash-card border-0" id="analise-turma-alunos">
+    <div class="dash-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h2 class="h6 fw-bold mb-0 text-dark"><i class="fas fa-user-graduate me-2 text-mj-primary"></i> Alunos</h2>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive mj-table-horizontal-scroll">
+            <table class="table table-hover align-middle mb-0 small mj-table-min-wide">
+                <thead class="table-light text-uppercase text-muted">
+                    <tr>
+                        <th class="ps-4">Nome</th>
+                        <th>Risco</th>
+                        <th>Concluídas</th>
+                        <th>Adesão</th>
+                        <th>Proficiência</th>
+                        <th class="pe-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for al in alunos %}
+                    <tr class="{% if al.status == 'Crítico' %}table-warning border-warning{% endif %}">
+                        <td class="ps-4 fw-semibold text-dark">{{ al.nome }}</td>
+                        <td>
+                            {% if al.nivel_risco == 'BAIXO' %}
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success">Baixo</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark border border-warning">{{ al.nivel_risco }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ al.concluidas }} / {{ al.total_atividades }}</td>
+                        <td><span class="fw-bold {% if al.adesao_pct < 60 %}text-danger{% elif al.adesao_pct < 85 %}text-mj-primary{% else %}text-success{% endif %}">{{ al.adesao_pct }}%</span></td>
+                        <td>{{ al.proficiencia }}</td>
+                        <td class="pe-4">
+                            <span class="badge {% if al.status == 'Crítico' %}bg-danger text-white{% elif al.status == 'Bom' %}bg-primary bg-opacity-25 text-mj-primary border border-mj-primary{% elif al.status == 'Sem atividades' %}bg-secondary bg-opacity-25 text-dark border border-secondary{% else %}bg-success bg-opacity-25 text-success border border-success{% endif %}">{{ al.status }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="ps-4 py-4 text-muted">Nenhum aluno com os filtros atuais. Ajuste a busca ou limpe os filtros.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

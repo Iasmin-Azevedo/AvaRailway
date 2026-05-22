@@ -1,5 +1,6 @@
 /* ========== Variáveis ========== */
 :root {
+    --mj-blue-50: #e6f3f5;
     --mj-blue-100: #f1f9fa;
     --mj-blue-200: #dbeef2;
     --mj-blue-300: #bbdde6;
@@ -28,15 +29,15 @@
     --mj-gradient: linear-gradient(135deg, var(--mj-blue-600) 0%, var(--mj-blue-400) 40%, var(--mj-blue-700) 100%);
     --mj-gradient-soft: #E8EEF2;
 
-    --mj-border-color: rgba(194, 208, 4, 0.2);
-    --mj-border-color-soft: rgba(194, 208, 4, 0.12);
+    --mj-border-color: rgba(4, 99, 208, 0.2);
+    --mj-border-color-soft: rgba(4, 133, 208, 0.12);
     --mj-border-width: 4px;
     --mj-radius: 1rem;
     --mj-radius-lg: 1.25rem;
     --mj-radius-pill: 50rem;
 
     --mj-shadow: 0 0.5rem 1rem rgba(194, 208, 4, 0.1);
-    --mj-shadow-hover: 0 1rem 2.5rem rgba(194, 208, 4, 0.15);
+    --mj-shadow-hover: 0 1rem 2.5rem rgba(4, 143, 208, 0.15);
     --mj-shadow-card: 0 1.25rem 3rem rgba(0, 0, 0, 0.08);
 
     --mj-font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -248,12 +249,12 @@ body {
 }
 
 .differential-item-mj {
-    background: rgba(194, 208, 4, 0.04);
+    background: rgba(4, 99, 208, 0.02);
     border: 1px solid var(--mj-border-color-soft);
     transition: background 0.2s ease, border-color 0.2s ease;
 }
 .differential-item-mj:hover {
-    background: rgba(194, 208, 4, 0.08);
+    background: rgba(4, 92, 208, 0.08);
     border-color: var(--mj-border-color);
 }
 
@@ -2965,4 +2966,177 @@ body.report-print-body {
     body.relatorio-embed-print-active {
         background: #fff !important;
     }
+}
+
+/* Alto contraste: relatório timbrado embutido (evita texto claro sobre fundo claro da folha) */
+body.a11y-high-contrast.relatorio-embed-print-active,
+body.a11y-high-contrast.relatorio-embed-print-active.mission-page-mj {
+    background: var(--a11y-hc-bg) !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active #main-content {
+    background: transparent !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .relatorio-embed-root {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-toolbar {
+    background: var(--a11y-hc-surface) !important;
+    border-bottom: 2px solid var(--a11y-hc-border) !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-toolbar .text-muted {
+    color: var(--a11y-hc-muted) !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-sheet {
+    background: var(--a11y-hc-surface) !important;
+    color: var(--a11y-hc-text) !important;
+    border: 2px solid var(--a11y-hc-border) !important;
+    box-shadow: none !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-brand {
+    background: var(--a11y-hc-raised) !important;
+    border-bottom: 2px solid var(--a11y-hc-accent) !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-brand h1,
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-brand .text-mj-dark,
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-brand .fw-bold {
+    color: var(--a11y-hc-text) !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-brand .text-mj-primary {
+    color: var(--a11y-hc-accent) !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-brand .text-muted,
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-footer {
+    color: var(--a11y-hc-muted) !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-table {
+    color: var(--a11y-hc-text) !important;
+    --bs-table-color: var(--a11y-hc-text);
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-table thead th {
+    background: var(--a11y-hc-raised) !important;
+    color: var(--a11y-hc-text) !important;
+    border-color: var(--a11y-hc-border) !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-table td,
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-table th {
+    border-color: var(--a11y-hc-border) !important;
+    color: var(--a11y-hc-text) !important;
+}
+body.a11y-high-contrast.relatorio-embed-print-active .report-print-table tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Painel: linha crítica (table-warning) legível no alto contraste */
+body.a11y-high-contrast #monitoramento tbody tr.table-warning > td {
+    background: var(--a11y-hc-raised) !important;
+    color: var(--a11y-hc-text) !important;
+    box-shadow: inset 4px 0 0 #fca5a5 !important;
+}
+body.a11y-high-contrast #monitoramento tbody tr.table-warning .text-danger {
+    color: #fecaca !important;
+    font-weight: 800 !important;
+}
+body.a11y-high-contrast #analise-turma-alunos tbody tr.table-warning > td {
+    background: var(--a11y-hc-raised) !important;
+    color: var(--a11y-hc-text) !important;
+    box-shadow: inset 4px 0 0 #fca5a5 !important;
+}
+body.a11y-high-contrast #analise-turma-alunos tbody tr.table-warning .text-danger {
+    color: #fecaca !important;
+    font-weight: 800 !important;
+}
+
+@media print {
+    body.a11y-high-contrast.relatorio-embed-print-active .report-print-sheet,
+    body.a11y-high-contrast.relatorio-embed-print-active .report-print-toolbar {
+        background: #fff !important;
+        color: #000 !important;
+    }
+    body.a11y-high-contrast.relatorio-embed-print-active .report-print-brand,
+    body.a11y-high-contrast.relatorio-embed-print-active .report-print-table thead th {
+        background: #f1f3f5 !important;
+        color: #000 !important;
+    }
+    body.a11y-high-contrast.relatorio-embed-print-active .report-print-table td,
+    body.a11y-high-contrast.relatorio-embed-print-active .report-print-table th {
+        color: #000 !important;
+        border-color: #333 !important;
+    }
+    body.a11y-high-contrast.relatorio-embed-print-active .report-print-brand .text-muted,
+    body.a11y-high-contrast.relatorio-embed-print-active .report-print-footer {
+        color: #333 !important;
+    }
+    body.a11y-high-contrast.relatorio-embed-print-active .report-print-brand .text-mj-primary {
+        color: #0b3d6d !important;
+    }
+}
+
+/* Análise da turma: barra de filtros mais elaborada */
+.analise-filtros-card {
+    border: 1px solid var(--mj-border-color-soft, rgba(13, 110, 253, 0.18)) !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.analise-filtros-card .dash-card-header {
+    border-bottom: 1px dashed rgba(13, 110, 253, 0.22);
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.06) 0%, rgba(255, 255, 255, 0.9) 100%);
+}
+
+#filtros-analise-turma .form-label {
+    letter-spacing: 0.01em;
+}
+
+#filtros-analise-turma .form-select,
+#filtros-analise-turma .form-control {
+    border-radius: 0.7rem;
+    border-color: rgba(13, 110, 253, 0.22);
+}
+
+#filtros-analise-turma .form-select:focus,
+#filtros-analise-turma .form-control:focus {
+    border-color: rgba(13, 110, 253, 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+}
+
+.analise-filtros-actions {
+    padding-top: 0.2rem;
+}
+
+.analise-filtros-resumo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.analise-filtro-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+    background: rgba(13, 110, 253, 0.06);
+    color: var(--mj-dark, #212529);
+    border-radius: 999px;
+    padding: 0.22rem 0.6rem;
+    font-size: 0.76rem;
+}
+
+body.a11y-high-contrast .analise-filtros-card {
+    border-color: var(--a11y-hc-border) !important;
+    box-shadow: none !important;
+}
+
+body.a11y-high-contrast .analise-filtros-card .dash-card-header {
+    background: var(--a11y-hc-raised) !important;
+    border-bottom-color: var(--a11y-hc-border) !important;
+}
+
+body.a11y-high-contrast #filtros-analise-turma .form-select,
+body.a11y-high-contrast #filtros-analise-turma .form-control {
+    border-color: var(--a11y-hc-border) !important;
+}
+
+body.a11y-high-contrast .analise-filtro-chip {
+    border-color: var(--a11y-hc-border) !important;
+    background: rgba(125, 211, 252, 0.1) !important;
+    color: var(--a11y-hc-text) !important;
 }
