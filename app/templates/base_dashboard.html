@@ -2,9 +2,12 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>{% block page_title %}Dashboard{% endblock %} - Mj Connect Edu</title>
     <link rel="shortcut icon" href="/static/img/icon.png" type="image/x-icon">
+    <link rel="manifest" href="/static/manifest.json">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,9 +80,10 @@
                 var href = link.getAttribute('href') || '';
                 if (!href || href === '#') return;
                 var linkPath = href.split('?')[0].replace(/\/+$/, '') || '/';
+                var exactOnly = (link.getAttribute('data-exact-match') || '').toLowerCase() === 'true';
                 if (
                     linkPath === currentPath ||
-                    (linkPath !== '/' && currentPath.indexOf(linkPath + '/') === 0)
+                    (!exactOnly && linkPath !== '/' && currentPath.indexOf(linkPath + '/') === 0)
                 ) {
                     link.classList.add('is-current');
                 }

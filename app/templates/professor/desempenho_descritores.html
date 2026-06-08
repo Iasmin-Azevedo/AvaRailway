@@ -9,25 +9,43 @@
 <div class="mb-3">
     <a href="/professor{{ turma_query_suffix }}" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar ao painel</a>
 </div>
-<h1 class="h4 fw-bold text-mj-dark mb-3">Desempenho por descritores SAEB</h1>
-<p class="text-mj-muted small mb-4">Dados agregados das atividades H5P concluídas pelos alunos {% if turma_all %}de todas as suas turmas{% else %}da turma selecionada{% endif %}.</p>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <h1 class="h4 fw-bold text-mj-dark mb-0">Desempenho por descritor</h1>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-mj-outline rounded-pill" href="/professor/desempenho-descritores?imprimir=1{% if turma_query_suffix %}{{ turma_query_suffix|replace('?', '&') }}{% endif %}">
+            <i class="fas fa-print me-1"></i> Imprimir / PDF
+        </a>
+        <a class="btn btn-mj-outline rounded-pill" href="/professor/desempenho-descritores/export.csv{% if turma_query_suffix %}{{ turma_query_suffix }}{% endif %}">
+            <i class="fas fa-download me-1"></i> CSV
+        </a>
+    </div>
+</div>
+<!-- <p class="text-mj-muted small mb-4">Dados agregados das atividades H5P concluídas pelos alunos {% if turma_all %}de todas as suas turmas{% else %}da turma selecionada{% endif %}.</p> -->
 {% if not descritores_rows %}
 <div class="alert alert-light border rounded-4">Sem dados de descritores para {% if turma_all %}esta seleção{% else %}esta turma{% endif %} (nenhuma atividade vinculada ou sem conclusões).</div>
 {% else %}
 <div class="card dash-card border-0 mb-3">
     <div class="dash-card-header">
-        <h6 class="mb-0 fw-bold">Gráfico de desempenho por descritor</h6>
+        <h6 class="mb-0 fw-bold">Gráfico: Atividades x Prova</h6>
+        <div class="small text-muted mt-1"><span class="text-info">■</span> Atividades <span class="text-success ms-1">■</span> Provas</div>
     </div>
     <div class="card-body">
         <div class="row text-center small">
             {% for r in descritores_rows[:8] %}
-            {% set pct = r.taxa_pct|default(0)|int %}
+            {% set pct_h5p = r.engajamento_pct|default(0)|int %}
+            {% set pct_prova = (((r.desempenho_score_10 if r.desempenho_score_10 is not none else 0) * 10))|int %}
             <div class="col">
                 <p class="mb-1 text-muted text-truncate" title="{{ r.codigo }} - {{ r.descricao }}">{{ r.codigo }}</p>
-                <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
-                    <div class="progress-bar {% if pct < 45 %}bg-danger{% elif pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="height: {{ pct }}%"></div>
+                <div class="d-flex justify-content-center align-items-end gap-2 mb-2 mx-auto" style="height: 100px; max-width: 4rem;">
+                    <div class="progress flex-grow-1" style="height: 100px; display: flex; flex-direction: column-reverse;" title="Engajamento">
+                        <div class="progress-bar bg-info" style="height: {{ pct_h5p }}%"></div>
+                    </div>
+                    <div class="progress flex-grow-1" style="height: 100px; display: flex; flex-direction: column-reverse;" title="Desempenho Prova">
+                        <div class="progress-bar bg-success" style="height: {{ pct_prova }}%"></div>
+                    </div>
                 </div>
-                <span class="fw-bold">{{ pct }}%</span>
+                
+                <span class="fw-bold"><span class="text-info">{{ pct_h5p }}%</span> · <span class="text-success">{{ r.desempenho_score_10 if r.desempenho_score_10 is not none else '—' }}/10</span></span>
             </div>
             {% endfor %}
         </div>
@@ -39,9 +57,8 @@
             <tr>
                 <th>Código</th>
                 <th>Descrição</th>
-                <th class="text-end">Alunos c/ conclusão</th>
-                <th class="text-end">Taxa</th>
-                <th class="text-end">Score médio / máximo</th>
+                <th class="text-end">Engajamento</th>
+                <th class="text-end">Média em prova</th>
             </tr>
         </thead>
         <tbody>
@@ -49,15 +66,8 @@
             <tr>
                 <td class="fw-bold text-mj-primary">{{ r.codigo }}</td>
                 <td>{{ r.descricao }}</td>
-                <td class="text-end">{{ r.alunos_com_conclusao }} / {{ r.alunos_elegiveis }}</td>
-                <td class="text-end">{{ r.taxa_pct }}%</td>
-                <td class="text-end">
-                    {% if r.score_medio_10 is not none %}
-                    {{ r.score_medio_10 }}/{{ r.score_maximo|default(10) }}
-                    {% else %}
-                    —
-                    {% endif %}
-                </td>
+                <td class="text-end">{{ r.engajamento_pct if r.engajamento_pct is not none else '—' }}%</td>
+                <td class="text-end">{{ r.desempenho_score_10 if r.desempenho_score_10 is not none else '—' }}/10</td>
             </tr>
             {% endfor %}
         </tbody>

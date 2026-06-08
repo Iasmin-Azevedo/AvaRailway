@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
+from app.core.catalogs import FUNDAMENTAL_SUBJECTS
 from app.models.gestao import Escola, Turma, Curso, Trilha
 from app.schemas.gestao_schema import (
     EscolaCreate,
@@ -55,6 +56,11 @@ class EscolaRepository:
 
 
 class TurmaRepository:
+    @staticmethod
+    def build_nome(ano_escolar: int, sigla: Optional[str] = None) -> str:
+        sigla_limpa = (sigla or "").strip().upper()
+        return f"{ano_escolar}º ano {sigla_limpa}".strip()
+
     def listar(
         self,
         db: Session,
@@ -66,14 +72,15 @@ class TurmaRepository:
             q = q.filter(Turma.escola_id == escola_id)
         if ano_escolar is not None:
             q = q.filter(Turma.ano_escolar == ano_escolar)
-        return q.order_by(Turma.escola_id, Turma.ano_escolar, Turma.nome).all()
+        return q.order_by(Turma.escola_id, Turma.ano_escolar, Turma.sigla, Turma.nome).all()
 
     def get(self, db: Session, id: int) -> Optional[Turma]:
         return db.query(Turma).filter(Turma.id == id).first()
 
     def create(self, db: Session, data: TurmaCreate) -> Turma:
         obj = Turma(
-            nome=data.nome,
+            nome=self.build_nome(data.ano_escolar, data.sigla),
+            sigla=(data.sigla or "").strip().upper() or None,
             ano_escolar=data.ano_escolar,
             escola_id=data.escola_id,
             ano_letivo=data.ano_letivo,
@@ -87,14 +94,19 @@ class TurmaRepository:
         obj = self.get(db, id)
         if not obj:
             return None
-        if data.nome is not None:
-            obj.nome = data.nome
+        next_sigla = obj.sigla
+        next_ano = obj.ano_escolar
+        if data.sigla is not None:
+            next_sigla = (data.sigla or "").strip().upper() or None
         if data.ano_escolar is not None:
-            obj.ano_escolar = data.ano_escolar
+            next_ano = data.ano_escolar
         if data.escola_id is not None:
             obj.escola_id = data.escola_id
         if data.ano_letivo is not None:
             obj.ano_letivo = data.ano_letivo
+        obj.sigla = next_sigla
+        obj.ano_escolar = next_ano
+        obj.nome = self.build_nome(next_ano, next_sigla)
         db.commit()
         db.refresh(obj)
         return obj
@@ -109,10 +121,20 @@ class TurmaRepository:
 
 
 class CursoRepository:
+    @staticmethod
+    def _ensure_default_courses(db: Session) -> None:
+        existentes = {str(nome).strip().lower() for (nome,) in db.query(Curso.nome).all()}
+        novos = [Curso(nome=nome) for nome in FUNDAMENTAL_SUBJECTS if nome.strip().lower() not in existentes]
+        if novos:
+            db.add_all(novos)
+            db.commit()
+
     def listar(self, db: Session) -> List[Curso]:
+        self._ensure_default_courses(db)
         return db.query(Curso).order_by(Curso.nome).all()
 
     def get(self, db: Session, id: int) -> Optional[Curso]:
+        self._ensure_default_courses(db)
         return db.query(Curso).filter(Curso.id == id).first()
 
     def create(self, db: Session, data: CursoCreate) -> Curso:
@@ -165,6 +187,7 @@ class TrilhaRepository:
             nome=data.nome,
             curso_id=data.curso_id,
             ano_escolar=data.ano_escolar,
+            semestre=data.semestre,
             ordem=data.ordem,
         )
         db.add(obj)
@@ -182,6 +205,8 @@ class TrilhaRepository:
             obj.curso_id = data.curso_id
         if data.ano_escolar is not None:
             obj.ano_escolar = data.ano_escolar
+        if data.semestre is not None:
+            obj.semestre = data.semestre
         if data.ordem is not None:
             obj.ordem = data.ordem
         db.commit()

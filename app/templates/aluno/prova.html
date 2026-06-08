@@ -1,0 +1,167 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{{ avaliacao.titulo }}{% endblock %}
+{% block brand_link %}/aluno{% endblock %}
+{% block menu_title %}Prova{% endblock %}
+
+{% block header_right %}
+{% include "aluno/partials/aluno_header_stats.html" %}
+{% endblock %}
+
+{% block offcanvas_links %}
+{% include "aluno/partials/aluno_menu_default.html" %}
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="{{ trilhas_url }}">Voltar para a jornada</a>
+{% endblock %}
+{% block offcanvas_extra %}
+{% include "aluno/partials/aluno_offcanvas_info.html" %}
+{% endblock %}
+
+{% block main_content %}
+{% if request.query_params.get("ok") %}
+<div class="alert alert-success border-0 rounded-4 shadow-sm mb-3">
+    <i class="fas fa-check-circle me-2"></i> Suas respostas foram salvas com sucesso.
+</div>
+{% endif %}
+{% if request.query_params.get("erro") == "incompleta" %}
+<div class="alert alert-warning border-0 rounded-4 shadow-sm mb-3">
+    <i class="fas fa-exclamation-triangle me-2"></i> Responda todas as questões antes de enviar.
+</div>
+{% endif %}
+{% if request.query_params.get("erro") == "ja_respondida" %}
+<div class="alert alert-info border-0 rounded-4 shadow-sm mb-3">
+    <i class="fas fa-info-circle me-2"></i> Esta prova já foi respondida. Você pode revisar suas respostas abaixo.
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1"><i class="fas fa-clipboard-check me-2 text-mj-primary"></i> {{ avaliacao.titulo }}</h2>
+        <p class="text-mj-muted small mb-0">
+            {{ trilha.nome if trilha else 'Trilha' }}
+            {% if avaliacao.curso %} · {{ avaliacao.curso.nome }}{% endif %}
+            {% if avaliacao.ano_escolar %} · {{ avaliacao.ano_escolar }}º ano{% endif %}
+        </p>
+    </div>
+    <a href="{{ trilhas_url }}" class="text-mj-primary text-decoration-none small fw-bold">
+        <i class="fas fa-arrow-left me-1"></i> Voltar para a jornada
+    </a>
+</div>
+
+<article class="gm-card hover-lift border-bottom border-mj-primary border-1 mb-4">
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <span class="badge rounded-pill bg-mj-light text-mj-primary">{{ "Aplicação da turma" if aplicacao else "Prova da trilha" }}</span>
+        <span class="badge rounded-pill bg-light text-dark">{{ total_questoes }} questão{% if total_questoes != 1 %}ões{% endif %}</span>
+        {% if aplicacao and aplicacao.data_aplicacao %}
+        <span class="badge rounded-pill bg-light text-dark">Disponível desde {{ aplicacao.data_aplicacao.strftime('%d/%m/%Y %H:%M') }}</span>
+        {% endif %}
+        {% if concluida %}
+        <span class="badge rounded-pill bg-success-subtle text-success">Concluída</span>
+        <span class="badge rounded-pill bg-success-subtle text-success">{{ acertos }}/{{ total_questoes }} acertos</span>
+        <span class="badge rounded-pill bg-success-subtle text-success">Nota {{ '%.2f'|format(nota) }}</span>
+        {% else %}
+        <span class="badge rounded-pill bg-warning-subtle text-warning">Pendente</span>
+        {% endif %}
+    </div>
+    {% if avaliacao.descricao %}
+    <p class="text-mj-muted mb-0">{{ avaliacao.descricao }}</p>
+    {% endif %}
+</article>
+
+{% if concluida %}
+{% for item in resultado_questoes %}
+{% set questao = item.questao %}
+<article class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+                <span class="badge rounded-pill bg-mj-light text-mj-primary mb-2">Questão {{ questao.numero or loop.index }}</span>
+                {% if questao.habilidade_saeb %}
+                <span class="badge rounded-pill bg-light text-dark mb-2">{{ questao.habilidade_saeb }}</span>
+                {% endif %}
+            </div>
+            {% if item.acertou %}
+            <span class="badge rounded-pill bg-success-subtle text-success"><i class="fas fa-check me-1"></i> Acertou</span>
+            {% elif item.acertou is sameas false %}
+            <span class="badge rounded-pill bg-danger-subtle text-danger"><i class="fas fa-times me-1"></i> Errou</span>
+            {% endif %}
+        </div>
+
+        <div class="mb-4 text-dark">
+            {{ (questao.enunciado or '<p>Sem enunciado.</p>')|safe }}
+        </div>
+
+        <div class="vstack gap-2">
+            {% for letra, texto in [
+                ('A', questao.alternativa_a),
+                ('B', questao.alternativa_b),
+                ('C', questao.alternativa_c),
+                ('D', questao.alternativa_d),
+                ('E', questao.alternativa_e),
+            ] %}
+            {% set marcada = item.marcada == letra %}
+            <div class="border rounded-4 px-3 py-3 d-flex gap-3 align-items-start {% if marcada and item.acertou %}border-success bg-success-subtle{% elif marcada and item.acertou is sameas false %}border-danger bg-danger-subtle{% elif marcada %}border-primary bg-light{% endif %}">
+                <span class="small text-uppercase fw-bold text-mj-primary">{{ letra }})</span>
+                <span class="text-dark">{{ texto }}</span>
+                {% if marcada %}
+                <span class="ms-auto small fw-bold">Sua resposta</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</article>
+{% endfor %}
+
+<div class="d-flex flex-wrap gap-2 justify-content-end mb-4">
+    <a href="{{ trilhas_url }}" class="btn btn-mj rounded-pill px-4 fw-bold">Voltar para a jornada</a>
+</div>
+
+{% else %}
+<form method="post" action="/aluno/prova/{{ avaliacao.id }}{% if aplicacao %}?aplicacao_id={{ aplicacao.id }}{% endif %}">
+    {% for questao in questoes %}
+    <article class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <div>
+                    <span class="badge rounded-pill bg-mj-light text-mj-primary mb-2">Questão {{ questao.numero or loop.index }}</span>
+                    {% if questao.habilidade_saeb %}
+                    <span class="badge rounded-pill bg-light text-dark mb-2">{{ questao.habilidade_saeb }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-4 text-dark">
+                {{ (questao.enunciado or '<p>Sem enunciado.</p>')|safe }}
+            </div>
+
+            <div class="vstack gap-2">
+                {% for letra, texto in [
+                    ('A', questao.alternativa_a),
+                    ('B', questao.alternativa_b),
+                    ('C', questao.alternativa_c),
+                    ('D', questao.alternativa_d),
+                    ('E', questao.alternativa_e),
+                ] %}
+                <label class="border cursor-pointer rounded-4 px-3 py-3 d-flex gap-3 align-items-start">
+                    <input
+                        class="form-check-input mt-1"
+                        type="radio"
+                        name="questao_{{ questao.id }}"
+                        value="{{ letra }}"
+                        required
+                    >
+                    <span class="small text-uppercase fw-bold text-mj-primary">{{ letra }})</span>
+                    <span class="text-dark">{{ texto }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+    </article>
+    {% endfor %}
+
+    <div class="d-flex flex-wrap gap-2 justify-content-end mb-4">
+        <a href="{{ trilhas_url }}" class="btn btn-outline-secondary rounded-pill px-4">Voltar</a>
+        <button type="submit" class="btn btn-mj rounded-pill px-4 fw-bold">Enviar respostas</button>
+    </div>
+</form>
+{% endif %}
+{% endblock %}

@@ -9,11 +9,14 @@ class DescritorRepository:
         self,
         db: Session,
         disciplina: Optional[str] = None,
+        ano_escolar: Optional[int] = None,
     ) -> List[Descritor]:
         q = db.query(Descritor)
         if disciplina:
             q = q.filter(Descritor.disciplina == disciplina)
-        return q.order_by(Descritor.codigo).all()
+        if ano_escolar is not None:
+            q = q.filter(Descritor.ano_escolar == ano_escolar)
+        return q.order_by(Descritor.disciplina, Descritor.ano_escolar, Descritor.codigo).all()
 
     def get(self, db: Session, id: int) -> Optional[Descritor]:
         return db.query(Descritor).filter(Descritor.id == id).first()
@@ -27,8 +30,9 @@ class DescritorRepository:
         codigo: str,
         descricao: str,
         disciplina: str,
+        ano_escolar: int,
     ) -> Descritor:
-        obj = Descritor(codigo=codigo, descricao=descricao, disciplina=disciplina)
+        obj = Descritor(codigo=codigo, descricao=descricao, disciplina=disciplina, ano_escolar=ano_escolar)
         db.add(obj)
         db.commit()
         db.refresh(obj)
@@ -41,6 +45,7 @@ class DescritorRepository:
         codigo: Optional[str] = None,
         descricao: Optional[str] = None,
         disciplina: Optional[str] = None,
+        ano_escolar: Optional[int] = None,
     ) -> Optional[Descritor]:
         obj = self.get(db, id)
         if not obj:
@@ -51,6 +56,8 @@ class DescritorRepository:
             obj.descricao = descricao
         if disciplina is not None:
             obj.disciplina = disciplina
+        if ano_escolar is not None:
+            obj.ano_escolar = ano_escolar
         db.commit()
         db.refresh(obj)
         return obj

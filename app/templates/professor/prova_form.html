@@ -1,0 +1,325 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}{{ "Editar Prova" if prova else "Criar Prova" }}{% endblock %}
+{% block offcanvas_links %}{% include "professor/partials/professor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <a href="/professor/provas" class="text-mj-primary text-decoration-none small">Voltar à lista de provas</a>
+        <h2 class="fw-bold text-mj-dark mt-2 mb-1">{{ "Editar prova" if prova else "Criar prova" }}</h2>
+        <p class="text-muted mb-0">Defina os dados da prova e selecione as questões do banco logo abaixo.</p>
+    </div>
+    <button class="btn btn-mj rounded-pill" type="submit" form="formProva">{{ "Salvar alterações" if prova else "Salvar prova" }}</button>
+</div>
+
+{% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+
+<form method="post" action="{{ form_action }}" id="formProva">
+    <div class="card dash-card border-0 mb-4">
+        <div class="dash-card-header fw-bold">Informações da prova</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Tipo de prova</label>
+                    <input class="form-control" value="Prova" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Matéria</label>
+                    <select class="form-select" name="curso_id" id="curso_id_select">
+                        <option value="">Selecione</option>
+                        {% for curso in cursos %}
+                        <option value="{{ curso.id }}" {% if prova and prova.curso_id == curso.id %}selected{% endif %}>{{ curso.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Título da prova</label>
+                    <input class="form-control" name="titulo" value="{{ prova.titulo if prova else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Ano letivo</label>
+                    <input class="form-control" name="ano_letivo" value="{{ prova.ano_letivo if prova and prova.ano_letivo else '2026' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Ano escolar</label>
+                    <select class="form-select" name="ano_escolar" id="ano_escolar_input">
+                        <option value="">Selecione</option>
+                        {% for year in school_years %}
+                        <option value="{{ year }}" {% if prova and prova.ano_escolar == year %}selected{% endif %}>{{ year }}º ano</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Trilha</label>
+                    <select class="form-select" name="trilha_id" id="trilha_id_select">
+                        <option value="">Sem trilha</option>
+                        {% for trilha in trilhas %}
+                        <option value="{{ trilha.id }}" data-curso-id="{{ trilha.curso_id }}" data-ano-escolar="{{ trilha.ano_escolar or '' }}" {% if prova and prova.trilha_id == trilha.id %}selected{% endif %}>
+                            {{ trilha.ordem if trilha.ordem is not none else loop.index }}. {{ trilha.nome }}{% if trilha.semestre == "1" %} - 1º semestre{% elif trilha.semestre == "2" %} - 2º semestre{% elif trilha.semestre == "anual" %} - anual{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Cada trilha pode ter apenas uma prova vinculada.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Descrição</label>
+                    <textarea class="form-control" rows="2" name="descricao">{{ prova.descricao if prova else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card dash-card border-0 mb-4">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Buscar por enunciado</label>
+                    <input class="form-control" type="text" name="q" form="formFiltrosQuestoes" value="{{ filters.q }}" placeholder="Buscar por enunciado">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Tipo</label>
+                    <select class="form-select" name="tipo_questao" form="formFiltrosQuestoes">
+                        <option value="">Todos</option>
+                        <option value="multipla_escolha" {% if filters.tipo_questao == "multipla_escolha" %}selected{% endif %}>Múltipla escolha</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Disciplina</label>
+                    <select class="form-select" name="curso_id" form="formFiltrosQuestoes" id="curso_id_filtro_prova">
+                        <option value="">Todas</option>
+                        {% for curso in cursos %}
+                        <option value="{{ curso.id }}" {% if filters.curso_id == curso.id %}selected{% endif %}>{{ curso.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Ano</label>
+                    <select class="form-select" name="ano_escolar" form="formFiltrosQuestoes" id="ano_escolar_filtro_prova">
+                        <option value="">Todos</option>
+                        {% for year in school_years %}
+                        <option value="{{ year }}" {% if filters.ano_escolar == year %}selected{% endif %}>{{ year }}º ano</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Descritor</label>
+                    <select class="form-select" name="descritor_id" form="formFiltrosQuestoes" id="descritor_id_filtro_prova">
+                        <option value="">Todos</option>
+                        {% for descritor in descritores %}
+                        <option value="{{ descritor.id }}" data-disciplina="{{ descritor.disciplina }}" data-ano-escolar="{{ descritor.ano_escolar or '' }}" {% if filters.descritor_id == descritor.id %}selected{% endif %}>{{ descritor.codigo }} - {{ descritor.descricao }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Conteúdo</label>
+                    <input class="form-control" type="text" name="conteudo" form="formFiltrosQuestoes" value="{{ filters.conteudo }}" placeholder="Conteúdo">
+                </div>
+                <div class="col-md-8 d-flex justify-content-end gap-2">
+                    <a href="{% if prova %}/professor/provas/{{ prova.id }}/editar{% else %}/professor/provas/nova{% endif %}" class="btn btn-mj-outline rounded-pill">Limpar filtros</a>
+                    <button class="btn btn-mj rounded-pill" type="submit" form="formFiltrosQuestoes">Aplicar filtros</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<form method="get" action="{% if prova %}/professor/provas/{{ prova.id }}/editar{% else %}/professor/provas/nova{% endif %}" id="formFiltrosQuestoes"></form>
+
+<div class="card dash-card border-0 mb-4">
+    <div class="dash-card-header fw-bold">Questões selecionadas</div>
+    <div class="card-body">
+        <div id="selecionadasVazio" class="text-muted">Nenhuma questão selecionada ainda.</div>
+        <div id="selecionadasLista" class="d-grid gap-2"></div>
+    </div>
+</div>
+
+<div class="card dash-card border-0">
+    <div class="dash-card-header fw-bold">Banco de questões</div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for item in questoes %}
+            <div class="col-lg-6">
+                <div
+                    class="card h-100 border question-card"
+                    data-question-id="{{ item.id }}"
+                    data-curso="{{ item.curso.nome if item.curso else 'Sem disciplina' }}"
+                    data-descritor="{{ item.descritor.codigo if item.descritor else '' }}"
+                    data-ano="{{ item.ano_escolar or '' }}"
+                    data-conteudo="{{ item.conteudo or '' }}"
+                    data-enunciado="{{ item.enunciado|striptags|truncate(220)|e }}"
+                >
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between gap-3 mb-2">
+                            <div class="d-flex gap-2 flex-wrap">
+                                {% if item.curso %}<span class="badge bg-success-subtle text-success-emphasis">{{ item.curso.nome }}</span>{% endif %}
+                                {% if item.descritor %}<span class="badge bg-info-subtle text-info-emphasis">{{ item.descritor.codigo }}</span>{% endif %}
+                                {% if item.ano_escolar %}<span class="badge bg-warning-subtle text-warning-emphasis">{{ item.ano_escolar }}º ano</span>{% endif %}
+                                {% if item.conteudo %}<span class="badge bg-light text-dark border">{{ item.conteudo }}</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="mb-3 text-dark">{{ item.enunciado|striptags|truncate(220) }}</div>
+                        <div class="d-flex justify-content-between align-items-center gap-2">
+                            <div class="form-check m-0">
+                                <input class="form-check-input seletor-questao" type="checkbox" value="{{ item.id }}" name="banco_questao_ids" form="formProva" id="questao{{ item.id }}" {% if item.id in selected_banco_questao_ids %}checked{% endif %}>
+                                <label class="form-check-label" for="questao{{ item.id }}">Selecionar questão</label>
+                            </div>
+                            <button class="btn btn-sm btn-mj-outline rounded-pill" type="button" data-bs-toggle="modal" data-bs-target="#modalQuestao{{ item.id }}">Ver questão</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="modalQuestao{{ item.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Questão</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-4">{{ item.enunciado|safe }}</div>
+                            <ol class="list-group list-group-numbered">
+                                <li class="list-group-item">A. {{ item.alternativa_a }}</li>
+                                <li class="list-group-item">B. {{ item.alternativa_b }}</li>
+                                <li class="list-group-item">C. {{ item.alternativa_c }}</li>
+                                <li class="list-group-item">D. {{ item.alternativa_d }}</li>
+                                <li class="list-group-item">E. {{ item.alternativa_e }}</li>
+                            </ol>
+                        </div>
+                        <div class="modal-footer justify-content-between">
+                            <span class="badge bg-success">Gabarito {{ item.gabarito }}</span>
+                            <button type="button" class="btn btn-mj-outline rounded-pill" data-bs-dismiss="modal">Fechar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center text-muted py-4">Nenhuma questão encontrada com os filtros atuais.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+    (function () {
+        var selectedList = document.getElementById('selecionadasLista');
+        var emptyState = document.getElementById('selecionadasVazio');
+        var checkboxes = Array.prototype.slice.call(document.querySelectorAll('.seletor-questao'));
+        var trilhaSelect = document.getElementById('trilha_id_select');
+        var cursoSelect = document.getElementById('curso_id_select');
+        var anoInput = document.getElementById('ano_escolar_input');
+        var filtroCursoSelect = document.getElementById('curso_id_filtro_prova');
+        var filtroAnoSelect = document.getElementById('ano_escolar_filtro_prova');
+        var filtroDescritorSelect = document.getElementById('descritor_id_filtro_prova');
+
+        function renderSelecionadas() {
+            if (!selectedList || !emptyState) return;
+            selectedList.innerHTML = '';
+            var checked = checkboxes.filter(function (input) { return input.checked; });
+            emptyState.classList.toggle('d-none', checked.length > 0);
+            checked.forEach(function (input) {
+                var card = input.closest('.question-card');
+                var wrapper = document.createElement('div');
+                wrapper.className = 'border rounded-4 p-3 bg-white';
+                wrapper.innerHTML =
+                    '<div class="d-flex justify-content-between gap-3">' +
+                        '<div class="flex-grow-1">' +
+                            '<div class="d-flex gap-2 flex-wrap mb-2 selected-badges"></div>' +
+                            '<div class="text-dark selected-enunciado"></div>' +
+                        '</div>' +
+                        '<button type="button" class="btn btn-sm btn-link text-danger text-decoration-none remover-selecao" data-question-id="' + input.value + '" aria-label="Remover questão">' +
+                            '<i class="fa-solid fa-xmark"></i>' +
+                        '</button>' +
+                    '</div>';
+                var badgesContainer = wrapper.querySelector('.selected-badges');
+                function addBadge(text, className) {
+                    if (!text || !badgesContainer) return;
+                    var span = document.createElement('span');
+                    span.className = 'badge ' + className;
+                    span.textContent = text;
+                    badgesContainer.appendChild(span);
+                }
+                if (card && card.dataset.curso) addBadge(card.dataset.curso, 'bg-success-subtle text-success-emphasis');
+                if (card && card.dataset.descritor) addBadge(card.dataset.descritor, 'bg-info-subtle text-info-emphasis');
+                if (card && card.dataset.ano) addBadge(card.dataset.ano + 'º ano', 'bg-warning-subtle text-warning-emphasis');
+                if (card && card.dataset.conteudo) addBadge(card.dataset.conteudo, 'bg-light text-dark border');
+                var enunciadoEl = wrapper.querySelector('.selected-enunciado');
+                if (enunciadoEl) {
+                    enunciadoEl.textContent = card ? card.dataset.enunciado : ('Questão ' + input.value);
+                }
+                selectedList.appendChild(wrapper);
+            });
+            Array.prototype.forEach.call(selectedList.querySelectorAll('.remover-selecao'), function (button) {
+                button.addEventListener('click', function () {
+                    var target = document.getElementById('questao' + button.dataset.questionId);
+                    if (target) {
+                        target.checked = false;
+                        renderSelecionadas();
+                    }
+                });
+            });
+        }
+
+        function syncTrilha() {
+            if (!trilhaSelect || !cursoSelect || !anoInput) return;
+            var option = trilhaSelect.options[trilhaSelect.selectedIndex];
+            if (!option || !option.value) return;
+            if (option.dataset.cursoId) cursoSelect.value = option.dataset.cursoId;
+            if (option.dataset.anoEscolar) anoInput.value = option.dataset.anoEscolar;
+        }
+
+        function filtrarTrilhas() {
+            if (!trilhaSelect || !cursoSelect || !anoInput) return;
+            var cursoId = (cursoSelect.value || '').trim();
+            var ano = (anoInput.value || '').trim();
+            Array.prototype.forEach.call(trilhaSelect.options, function (option, index) {
+                if (index === 0) {
+                    option.hidden = false;
+                    return;
+                }
+                var matchesCurso = !cursoId || (option.dataset.cursoId || '') === cursoId;
+                var matchesAno = !ano || (option.dataset.anoEscolar || '') === ano;
+                option.hidden = !(matchesCurso && matchesAno);
+            });
+            var selected = trilhaSelect.options[trilhaSelect.selectedIndex];
+            if (selected && selected.hidden) {
+                trilhaSelect.value = '';
+            }
+        }
+
+        function filtrarDescritores() {
+            if (!filtroCursoSelect || !filtroAnoSelect || !filtroDescritorSelect) return;
+            var cursoTexto = '';
+            if (filtroCursoSelect.selectedIndex >= 0) {
+                cursoTexto = (filtroCursoSelect.options[filtroCursoSelect.selectedIndex].text || '').trim();
+            }
+            var ano = (filtroAnoSelect.value || '').trim();
+            Array.prototype.forEach.call(filtroDescritorSelect.options, function (option, index) {
+                if (index === 0) {
+                    option.hidden = false;
+                    return;
+                }
+                var matchesDisciplina = !cursoTexto || (option.dataset.disciplina || '') === cursoTexto;
+                var matchesAno = !ano || (option.dataset.anoEscolar || '') === ano;
+                option.hidden = !(matchesDisciplina && matchesAno);
+            });
+            var selected = filtroDescritorSelect.options[filtroDescritorSelect.selectedIndex];
+            if (selected && selected.hidden) {
+                filtroDescritorSelect.value = '';
+            }
+        }
+
+        checkboxes.forEach(function (input) {
+            input.addEventListener('change', renderSelecionadas);
+        });
+        if (trilhaSelect) trilhaSelect.addEventListener('change', syncTrilha);
+        if (cursoSelect) cursoSelect.addEventListener('change', filtrarTrilhas);
+        if (anoInput) anoInput.addEventListener('change', filtrarTrilhas);
+        if (filtroCursoSelect) filtroCursoSelect.addEventListener('change', filtrarDescritores);
+        if (filtroAnoSelect) filtroAnoSelect.addEventListener('change', filtrarDescritores);
+        filtrarTrilhas();
+        filtrarDescritores();
+        renderSelecionadas();
+    })();
+</script>
+{% endblock %}

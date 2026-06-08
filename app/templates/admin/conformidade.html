@@ -1,0 +1,67 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Conformidade{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Secretaria / SME{% endblock %}
+{% block header_right %}{% set role_value = 'admin' %}{% include "shared/header_right_user_simple.html" %}{% endblock %}
+{% block offcanvas_links %}{% include "admin/partials/admin_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="mb-4">
+    <h2 class="fw-bold text-mj-dark mb-1">Conformidade técnica e operacional</h2>
+    <p class="text-muted mb-0">LGPD, auditoria, hospedagem, backups e evidências de implantação para a licitação.</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">LGPD e controle de acesso</div>
+            <div class="card-body">
+                <p class="mb-3">{{ snapshot.lgpd }}</p>
+                <ul class="small text-muted mb-0">
+                    <li>Perfis distintos para aluno, professor, coordenador, gestor e admin/SME.</li>
+                    <li>JWT com cookies HttpOnly.</li>
+                    <li>Auditoria para ações críticas da licitação.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Hospedagem e backup</div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Hospedagem:</strong> {{ snapshot.hospedagem }}</p>
+                <p class="mb-2"><strong>Backup:</strong> {{ snapshot.backup }}</p>
+                <p class="mb-0 small text-muted">`DATABASE_URL` {{ snapshot.database_url_masked }} · `COOKIE_SECURE`: {{ snapshot.cookie_secure }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Auditoria</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><div class="border rounded-3 p-3"><div class="small text-muted">Logs de auditoria</div><div class="h4 mb-0">{{ snapshot.auditoria_total }}</div></div></div>
+                    <div class="col-md-6"><div class="border rounded-3 p-3"><div class="small text-muted">Logins bem-sucedidos</div><div class="h4 mb-0">{{ snapshot.logins_sucesso }}</div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Implantação e capacitação</div>
+            <div class="card-body">
+                <ul class="mb-3">
+                    <li>Estrutura preparada para implantação em até 30 dias, com módulos independentes por escopo.</li>
+                    <li>Capacitação presencial pode ser apoiada por cronograma, turmas e devolutiva no módulo BNCC.</li>
+                    <li>Relatórios CSV/PDF consolidados para Secretaria, coordenação e gestão.</li>
+                </ul>
+                <div class="small">
+                    <strong>Pacote PoC Paracuru:</strong>
+                    <a href="/static/docs/CHECKLIST_POC_MATRIZ.md" target="_blank" rel="noopener">Checklist</a> ·
+                    <a href="/static/docs/ROTEIRO_POC_PARACURU.md" target="_blank" rel="noopener">Roteiro</a> ·
+                    <a href="/static/docs/EXPORTS_POC_VALIDACAO.md" target="_blank" rel="noopener">Exports</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

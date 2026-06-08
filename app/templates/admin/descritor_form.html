@@ -16,18 +16,29 @@
     <div class="card-body p-4">
         <form method="post" action="{% if descritor %}/admin/descritores/{{ descritor.id }}/editar{% else %}/admin/descritores/novo{% endif %}">
             <div class="mb-3">
-                <label class="form-label fw-bold">Código</label>
+                <label class="form-label fw-bold">Cod</label>
                 <input type="text" name="codigo" class="form-control rounded-pill" value="{{ descritor.codigo if descritor else '' }}" required placeholder="Ex: D12">
             </div>
             <div class="mb-3">
                 <label class="form-label fw-bold">Descrição</label>
                 <input type="text" name="descricao" class="form-control rounded-pill" value="{{ descritor.descricao if descritor else '' }}" required>
             </div>
-            <div class="mb-4">
-                <label class="form-label fw-bold">Disciplina</label>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Matéria</label>
                 <select name="disciplina" class="form-select rounded-pill" required>
-                    <option value="LP" {% if descritor and descritor.disciplina == 'LP' %}selected{% endif %}>Língua Portuguesa</option>
-                    <option value="MAT" {% if descritor and descritor.disciplina == 'MAT' %}selected{% endif %}>Matemática</option>
+                    <option value="">Selecione</option>
+                    {% for curso in cursos %}
+                    <option value="{{ curso.nome }}" {% if descritor and descritor.disciplina == curso.nome %}selected{% endif %}>{{ curso.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold">Ano</label>
+                <select name="ano_escolar" class="form-select rounded-pill" required>
+                    <option value="">Selecione</option>
+                    {% for year in school_years %}
+                    <option value="{{ year }}" {% if descritor and descritor.ano_escolar == year %}selected{% endif %}>{{ year }}º ano</option>
+                    {% endfor %}
                 </select>
             </div>
             <button type="submit" class="btn btn-mj rounded-pill">Salvar</button>

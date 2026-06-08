@@ -15,6 +15,9 @@
         <a href="/admin" class="btn btn-mj-outline rounded-pill"><i class="fa-solid fa-arrow-left me-1"></i> Voltar</a>
     </div>
 </div>
+<!-- <div class="alert alert-light border rounded-4 py-3">
+    As matérias padrão do ensino fundamental já ficam disponíveis no sistema. Esta tela serve principalmente para cadastrar novas matérias adicionais quando necessário.
+</div> -->
 {% if request.query_params.get("ok") == "deletado" %}
 <div class="alert alert-success py-2">Curso removido com sucesso.</div>
 {% elif request.query_params.get("erro") == "vinculos" %}

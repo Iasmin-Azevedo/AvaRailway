@@ -1,0 +1,331 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Avaliação semestral{% endblock %}
+{% block brand_link %}/admin/gestao-integrada{% endblock %}
+{% block offcanvas_links %}{% include "admin/partials/admin_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between gap-2 mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Avaliação semestral institucional</h2>
+        <!-- <p class="text-muted small mb-0">Painel consolidado das respostas por perfil, escola e instrumento.</p> -->
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/admin/avaliacao-semestral/imprimir" class="btn btn-mj-outline">Imprimir / PDF</a>
+        <a href="/admin/avaliacao-semestral/export.csv" class="btn btn-mj-outline">Exportar CSV</a>
+        <a href="/admin/correcao-gabaritos" class="btn btn-mj">Operar provas</a>
+    </div>
+</div>
+{% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+{% if flash_ok %}<div class="alert alert-success">Operação concluída com sucesso.</div>{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card dash-stat-card h-100">
+            <span class="dash-stat-label">Aplicações</span>
+            <div class="dash-stat-value">{{ resumo_institucional.total_aplicacoes|default(0) }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card dash-stat-card h-100">
+            <span class="dash-stat-label">Concluídas</span>
+            <div class="dash-stat-value">{{ resumo_institucional.concluidas|default(0) }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card dash-stat-card h-100">
+            <span class="dash-stat-label">Pendentes</span>
+            <div class="dash-stat-value">{{ resumo_institucional.pendentes|default(0) }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card dash-stat-card h-100">
+            <span class="dash-stat-label">Conclusão / Nota média</span>
+            <div class="dash-stat-value">{{ resumo_institucional.conclusao_pct|default(0) }}% · {{ resumo_institucional.nota_media_geral|default(0) }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Resultado por perfil avaliado</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 small">
+                        <thead class="table-light"><tr><th>Perfil</th><th>Total</th><th>Conclusão</th><th>Nota média</th></tr></thead>
+                        <tbody>
+                            {% for row in resumo_institucional.por_perfil|default([]) %}
+                            <tr>
+                                <td>{{ row.perfil }}</td>
+                                <td>{{ row.total }}</td>
+                                <td>{{ row.conclusao_pct }}%</td>
+                                <td>{{ row.nota_media }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">Sem resultados por perfil.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Resultado por escola</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 small">
+                        <thead class="table-light"><tr><th>Escola</th><th>Total</th><th>Conclusão</th><th>Nota média</th></tr></thead>
+                        <tbody>
+                            {% for row in resumo_institucional.por_escola|default([]) %}
+                            <tr><td>{{ row.escola }}</td><td>{{ row.total }}</td><td>{{ row.conclusao_pct }}%</td><td>{{ row.nota_media }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">Sem consolidação por escola.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card dash-card">
+    <div class="dash-card-header fw-bold">Resultado por instrumento</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+                <thead class="table-light"><tr><th>Instrumento</th><th>Total</th><th>Pendentes</th><th>Conclusão</th><th>Nota média</th></tr></thead>
+                <tbody>
+                    {% for row in resumo_institucional.por_instrumento|default([]) %}
+                    <tr><td>{{ row.instrumento }}</td><td>{{ row.total }}</td><td>{{ row.pendentes }}</td><td>{{ row.conclusao_pct }}%</td><td>{{ row.nota_media }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">Sem consolidação por instrumento.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between flex-wrap gap-2 mt-5 mb-3">
+    <div>
+        <h3 class="h5 fw-bold mb-1">Questionários institucionais</h3>
+        <p class="text-muted small mb-0">Monte perguntas por perfil e distribua para os usuários responderem no dashboard.</p>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Novo ciclo</div>
+            <div class="card-body">
+                <form method="post" action="/admin/avaliacao-semestral/ciclos" class="d-grid gap-2">
+                    <input class="form-control" name="titulo" placeholder="Título" required>
+                    <input class="form-control" name="ano_letivo" value="2026">
+                    <input class="form-control" name="semestre" placeholder="1 ou 2" value="1">
+                    <button class="btn btn-mj" type="submit">Criar ciclo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Novo instrumento + perguntas</div>
+            <div class="card-body">
+                <form method="post" action="/admin/avaliacao-semestral/instrumentos" class="d-grid gap-2">
+                    <input class="form-control" name="nome" placeholder="Nome do instrumento" required>
+                    <small class="text-muted">Perfil-alvo do questionário.</small>
+                    <select class="form-select" name="perfil" required>
+                        <option value="gestor">Gestor escolar</option>
+                        <option value="coordenador">Coordenador pedagógico</option>
+                        <option value="professor_diretor_turma">Professor Diretor de Turma (PDT)</option>
+                    </select>
+                    <select class="form-select" name="ciclo_id">
+                        <option value="">Ciclo (opcional)</option>
+                        {% for c in ciclos %}<option value="{{ c.id }}">{{ c.titulo }}</option>{% endfor %}
+                    </select>
+                    <small class="text-muted">Escala de resposta dos usuários: 0, 1, 2, 3, 4 ou 5.</small>
+                    <div id="criteriosContainer" class="d-grid gap-2">
+                        <div class="input-group">
+                            <input class="form-control" name="criterio_titulo" placeholder="Pergunta / critério 1" required>
+                            <button class="btn btn-outline-danger" type="button" data-remove-criterio disabled>&times;</button>
+                        </div>
+                        <div class="input-group">
+                            <input class="form-control" name="criterio_titulo" placeholder="Pergunta / critério 2">
+                            <button class="btn btn-outline-danger" type="button" data-remove-criterio>&times;</button>
+                        </div>
+                        <div class="input-group">
+                            <input class="form-control" name="criterio_titulo" placeholder="Pergunta / critério 3">
+                            <button class="btn btn-outline-danger" type="button" data-remove-criterio>&times;</button>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button class="btn btn-sm btn-mj-outline" type="button" id="btnAddPergunta">Adicionar pergunta</button>
+                    </div>
+                    <button class="btn btn-mj-outline" type="submit">Criar questionário</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card dash-card mb-4">
+    <div class="dash-card-header fw-bold">Distribuir aplicação por perfil </div>
+    <div class="card-body">
+        <form method="post" action="/admin/avaliacao-semestral/aplicacoes" class="row g-2">
+            <div class="col-md-3">
+                <select class="form-select" name="ciclo_id" required>
+                    {% for c in ciclos %}<option value="{{ c.id }}">{{ c.titulo }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="instrumento_id" required>
+                    {% for i in instrumentos %}<option value="{{ i.id }}">{{ i.nome }} ({{ i.perfil_avaliado.value if i.perfil_avaliado.value is defined else i.perfil_avaliado }})</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="escola_id">
+                    <option value="">Escola (opcional para filtrar)</option>
+                    {% for e in escolas %}<option value="{{ e.id }}">{{ e.nome }}</option>{% endfor %}
+                </select>
+            </div>
+            <!-- <div class="col-md-3">
+                <div class="small text-muted pt-2">A aplicação será criada para todos os usuários ativos do perfil do instrumento.</div>
+            </div> -->
+            <div class="col-md-3"><button class="btn btn-mj w-100" type="submit">Distribuir para todos</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card dash-card mb-4">
+    <div class="dash-card-header fw-bold">Questionários criados (editar / excluir)</div>
+    <div class="card-body">
+        {% if instrumentos %}
+        <div class="accordion" id="accInstrumentos">
+            {% for inst in instrumentos %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="instHeading{{ inst.id }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#instCollapse{{ inst.id }}" aria-expanded="false" aria-controls="instCollapse{{ inst.id }}">
+                        {{ inst.nome }} ({{ inst.perfil_avaliado.value if inst.perfil_avaliado.value is defined else inst.perfil_avaliado }}) · {{ (inst.criterios|length) }} pergunta(s)
+                    </button>
+                </h2>
+                <div id="instCollapse{{ inst.id }}" class="accordion-collapse collapse" aria-labelledby="instHeading{{ inst.id }}" data-bs-parent="#accInstrumentos">
+                    <div class="accordion-body">
+                        <form method="post" action="/admin/avaliacao-semestral/instrumentos/{{ inst.id }}/editar" class="d-grid gap-2 mb-3">
+                            <input class="form-control" name="nome" value="{{ inst.nome }}" required>
+                            <select class="form-select" name="perfil" required>
+                                <option value="gestor" {% if (inst.perfil_avaliado.value if inst.perfil_avaliado.value is defined else inst.perfil_avaliado) == 'gestor' %}selected{% endif %}>Gestor escolar</option>
+                                <option value="coordenador" {% if (inst.perfil_avaliado.value if inst.perfil_avaliado.value is defined else inst.perfil_avaliado) == 'coordenador' %}selected{% endif %}>Coordenador pedagógico</option>
+                                <option value="professor_diretor_turma" {% if (inst.perfil_avaliado.value if inst.perfil_avaliado.value is defined else inst.perfil_avaliado) == 'professor_diretor_turma' %}selected{% endif %}>Professor Diretor de Turma (PDT)</option>
+                            </select>
+                            <select class="form-select" name="ciclo_id">
+                                <option value="">Ciclo (opcional)</option>
+                                {% for c in ciclos %}<option value="{{ c.id }}" {% if inst.ciclo_id == c.id %}selected{% endif %}>{{ c.titulo }}</option>{% endfor %}
+                            </select>
+                            <small class="text-muted">Uma pergunta por linha:</small>
+                            {% for criterio in (inst.criterios|sort(attribute='ordem')) %}
+                            <input class="form-control" name="criterio_titulo" value="{{ criterio.titulo }}" {% if loop.first %}required{% endif %}>
+                            {% endfor %}
+                            {% if not inst.criterios %}
+                            <input class="form-control" name="criterio_titulo" placeholder="Pergunta / critério 1" required>
+                            {% endif %}
+                            <div class="d-flex gap-2 justify-content-end">
+                                <button type="submit" class="btn btn-sm btn-mj-outline">Salvar edição</button>
+                            </div>
+                        </form>
+                        <form method="post" action="/admin/avaliacao-semestral/instrumentos/{{ inst.id }}/excluir" onsubmit="return confirm('Deseja excluir este questionário?');" class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Excluir questionário</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Nenhum questionário criado ainda.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card dash-card">
+    <div class="dash-card-header fw-bold">Avaliações aplicadas</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 small">
+            <thead class="table-light"><tr><th>ID</th><th>Instrumento</th><th>Perfil</th><th>Escola</th><th>Avaliado</th><th>Nota</th><th>Status</th><th class="text-end">Ações</th></tr></thead>
+            <tbody>
+                {% for r in aplicacoes %}
+                <tr>
+                    <td>{{ r.aplicacao_id }}</td>
+                    <td>{{ r.instrumento }}</td>
+                    <td>{{ r.perfil }}</td>
+                    <td>{{ r.escola }}</td>
+                    <td>{{ r.avaliado }}</td>
+                    <td>{{ r.nota_final if r.nota_final is not none else '—' }}</td>
+                    <td>{{ r.status }}</td>
+                    <td class="text-end">
+                        <form method="post" action="/admin/avaliacao-semestral/aplicacoes/{{ r.aplicacao_id }}/excluir" onsubmit="return confirm('Deseja excluir esta aplicação do questionário?');" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted py-4">Nenhuma aplicação registrada.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+(function () {
+    var container = document.getElementById("criteriosContainer");
+    var btnAdd = document.getElementById("btnAddPergunta");
+    if (!container || !btnAdd) return;
+
+    function renumerarPlaceholders() {
+        var inputs = container.querySelectorAll("input[name='criterio_titulo']");
+        inputs.forEach(function (input, idx) {
+            input.placeholder = "Pergunta / criterio " + (idx + 1);
+            if (idx === 0) {
+                input.required = true;
+            }
+        });
+    }
+
+    function atualizarBotoesRemover() {
+        var grupos = container.querySelectorAll(".input-group");
+        grupos.forEach(function (grupo, idx) {
+            var btn = grupo.querySelector("[data-remove-criterio]");
+            if (!btn) return;
+            btn.disabled = grupos.length <= 1 || idx === 0;
+        });
+    }
+
+    btnAdd.addEventListener("click", function () {
+        var total = container.querySelectorAll("input[name='criterio_titulo']").length;
+        var grupo = document.createElement("div");
+        grupo.className = "input-group";
+        grupo.innerHTML =
+            '<input class="form-control" name="criterio_titulo" placeholder="Pergunta / criterio ' + (total + 1) + '">' +
+            '<button class="btn btn-outline-danger" type="button" data-remove-criterio>&times;</button>';
+        container.appendChild(grupo);
+        atualizarBotoesRemover();
+    });
+
+    container.addEventListener("click", function (event) {
+        var target = event.target;
+        if (!target || !target.matches("[data-remove-criterio]")) return;
+        var grupo = target.closest(".input-group");
+        if (!grupo) return;
+        var grupos = container.querySelectorAll(".input-group");
+        if (grupos.length <= 1) return;
+        grupo.remove();
+        renumerarPlaceholders();
+        atualizarBotoesRemover();
+    });
+
+    renumerarPlaceholders();
+    atualizarBotoesRemover();
+})();
+</script>
+{% endblock %}

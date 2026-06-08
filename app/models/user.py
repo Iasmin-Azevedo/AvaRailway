@@ -11,6 +11,17 @@ class UserRole(str, enum.Enum):
     GESTOR = "gestor"
     ADMIN = "admin"
 
+
+class TeacherRole(str, enum.Enum):
+    DOCENTE = "docente"
+    PDT = "professor_diretor_turma"
+
+
+class AdminScope(str, enum.Enum):
+    PLATAFORMA = "plataforma"
+    SECRETARIA_SME = "secretaria_sme"
+
+
 class Usuario(Base):
     __tablename__ = "usuarios"
     id = Column(Integer, primary_key=True, index=True)
@@ -25,6 +36,14 @@ class Usuario(Base):
     permite_cadastro_trilha_geral = Column(Boolean, default=False)
     avatar_url = Column(String(500), nullable=True)
     moodle_user_id = Column(String(32), nullable=True)
+    funcao_docente = Column(
+        Enum(TeacherRole, values_callable=lambda obj: [e.value for e in obj]),
+        nullable=True,
+    )
+    escopo_administrativo = Column(
+        Enum(AdminScope, values_callable=lambda obj: [e.value for e in obj]),
+        nullable=True,
+    )
 
     aluno_perfil = relationship("Aluno", back_populates="usuario", uselist=False)
     logs = relationship("AuditLog", back_populates="usuario")
@@ -50,6 +69,9 @@ class AuditLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     acao = Column(String(50)) 
+    categoria = Column(String(50), nullable=True)
+    entidade = Column(String(80), nullable=True)
+    entidade_id = Column(Integer, nullable=True)
     detalhes = Column(Text)
     ip = Column(String(50))
     data_hora = Column(DateTime, default=datetime.utcnow)

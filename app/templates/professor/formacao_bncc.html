@@ -1,0 +1,54 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}Formação BNCC{% endblock %}
+{% block offcanvas_links %}{% include "professor/partials/professor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="mb-4">
+    <h2 class="fw-bold text-mj-dark mb-1">Minha formação BNCC Computação</h2>
+    <p class="text-muted mb-0">Acompanhe sua participação nas turmas formativas, sua carga horária e os cursos remotos vinculados.</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Turmas e carga horária</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light"><tr><th>Programa</th><th>Turma</th><th>Remota</th><th>Presencial</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {% for p in participacoes %}
+                            <tr>
+                                <td>{{ p.turma.programa.nome if p.turma and p.turma.programa else 'Programa BNCC' }}</td>
+                                <td>{{ p.turma.nome if p.turma else '-' }}</td>
+                                <td>{{ p.carga_horaria_remota_realizada }}h</td>
+                                <td>{{ p.carga_horaria_presencial_realizada }}h</td>
+                                <td>{{ p.status.value if p.status else p.status }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">Você ainda não está inscrito em turmas BNCC.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Cursos remotos vinculados</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for c in moodle_cursos %}
+                    <li class="list-group-item">
+                        <div class="fw-bold">{{ c.fullname }}</div>
+                        {% if c.shortname %}<div class="small text-muted">{{ c.shortname }}</div>{% endif %}
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">Nenhum curso remoto atribuído até o momento.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

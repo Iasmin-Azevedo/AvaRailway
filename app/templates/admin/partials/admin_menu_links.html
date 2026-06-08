@@ -1,10 +1,20 @@
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/perfil">Meu perfil</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/escolas">Escolas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/turmas">Turmas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/cursos">Cursos</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/trilhas">Trilhas</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/usuarios">Usuários</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/descritores">Descritores SAEB</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/atividades-h5p">Atividades H5P</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/suporte">Chamados de suporte</a>
+{% set _admin_scope_menu = (current_user.escopo_administrativo.value if current_user and current_user.escopo_administrativo and current_user.escopo_administrativo.value is defined else current_user.escopo_administrativo if current_user else '') %}
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin" data-exact-match="true">
+    {% if _admin_scope_menu == 'secretaria_sme' %}Painel SME{% else %}Painel do Admin técnico{% endif %}
+</a>
+<a class="btn btn-mj w-100 rounded-pill mb-2" href="/admin/gestao-integrada">Gestão Integrada</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/relatorios-sme">Relatórios</a>
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/conformidade">Conformidade</a> -->
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/avaliacoes-institucionais">Avaliações Institucionais</a> -->
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/usuarios">Usuários</a> -->
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/escolas">Escolas</a> -->
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/turmas">Turmas</a> -->
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/cursos">Cursos</a> -->
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/trilhas">Trilhas</a> -->
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/atividades-h5p">Atividades</a> -->
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/descritores">Descritores SAEB</a> -->
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/correcao-gabaritos">Correção de gabaritos</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/avaliacao-semestral">Avaliação semestral</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/administracao-plataforma">Gerenciar Plataforma</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/suporte">Suporte</a>
+<!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/admin/perfil">Meu perfil</a> -->

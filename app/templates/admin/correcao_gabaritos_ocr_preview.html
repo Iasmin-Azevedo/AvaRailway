@@ -1,0 +1,132 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Preview OCR{% endblock %}
+{% block brand_link %}/admin/correcao-gabaritos{% endblock %}
+{% block main_content %}
+<div class="mb-3">
+    <a href="/admin/correcao-gabaritos?avaliacao_id={{ avaliacao_id }}{% if aplicacao_id %}&aplicacao_id={{ aplicacao_id }}{% endif %}" class="small text-mj-primary">← Voltar à correção</a>
+</div>
+<h2 class="h4 fw-bold mb-2">Preview da leitura OCR</h2>
+<p class="text-muted small mb-3">Revise e ajuste as alternativas antes de gravar. Folhas antigas (quadrados nos cantos) ainda funcionam; gere novo PDF para o layout com cantoneiras.</p>
+<form id="ocr-form" method="post" action="/admin/correcao-gabaritos/ocr-importar?avaliacao_id={{ avaliacao_id }}{% if aplicacao_id %}&aplicacao_id={{ aplicacao_id }}{% endif %}">
+    <textarea name="preview_json" id="preview-json" class="d-none" aria-hidden="true">{{ preview_json|safe }}</textarea>
+    <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th>Arquivo</th>
+                    <th>Aluno</th>
+                    <th>Participação</th>
+                    <th>Status</th>
+                    <th style="min-width:18rem">Respostas (clique para corrigir)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in preview %}
+                {% set folha_idx = loop.index0 %}
+                <tr data-folha-idx="{{ folha_idx }}">
+                    <td class="small">{{ row.arquivo }}</td>
+                    <td>{{ row.aluno_nome or '—' }}</td>
+                    <td>
+                        {% if modo_trilha and row.ok and row.aluno_id %}
+                        #{{ row.aluno_id }}
+                        {% elif row.ok and row.participacao_id %}
+                        #{{ row.participacao_id }}
+                        {% elif not row.ok %}
+                        {% if modo_trilha %}
+                        <input type="number" class="form-control form-control-sm" style="width:6rem" name="aluno_manual_{{ folha_idx }}" form="ocr-form" placeholder="Aluno ID" title="ID do aluno para esta folha">
+                        {% else %}
+                        <input type="number" class="form-control form-control-sm" style="width:6rem" name="participacao_manual_{{ folha_idx }}" form="ocr-form" placeholder="ID" title="Número da participação na folha">
+                        {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if row.ok %}<span class="text-success">OK</span>{% else %}<span class="text-danger small">{{ row.erro }}</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if row.respostas %}
+                        <div class="ocr-respostas-grid">
+                            {% for r in row.respostas %}
+                            {% set marcada = (r.resposta_marcada or '')|upper %}
+                            <div class="ocr-resposta-item">
+                                <span class="ocr-resposta-label">Q{{ r.questao_numero }}</span>
+                                <div class="btn-group btn-group-sm ocr-alt-group" role="group" aria-label="Questão {{ r.questao_numero }}">
+                                    {% for letra in ['A','B','C','D','E'] %}
+                                    <input type="radio"
+                                           class="btn-check ocr-alt-radio"
+                                           name="resposta_{{ folha_idx }}_{{ r.questao_numero }}"
+                                           id="ocr-{{ folha_idx }}-{{ r.questao_numero }}-{{ letra }}"
+                                           value="{{ letra }}"
+                                           data-folha="{{ folha_idx }}"
+                                           data-questao="{{ r.questao_numero }}"
+                                           {% if marcada == letra %}checked{% endif %}>
+                                    <label class="btn btn-outline-secondary ocr-alt-btn" for="ocr-{{ folha_idx }}-{{ r.questao_numero }}-{{ letra }}">{{ letra }}</label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <button type="submit" class="btn btn-mj" id="ocr-submit">Confirmar e gravar notas</button>
+</form>
+<script>
+(function () {
+    var ta = document.getElementById('preview-json');
+    var form = document.getElementById('ocr-form');
+    if (!ta || !form) return;
+
+    function applyJsonToControls(data) {
+        if (!Array.isArray(data)) return;
+        document.querySelectorAll('.ocr-alt-radio').forEach(function (radio) {
+            radio.checked = false;
+        });
+        data.forEach(function (folha, folhaIdx) {
+            (folha.respostas || []).forEach(function (r) {
+                var val = (r.resposta_marcada || '').toString().trim().toUpperCase();
+                if (!val) return;
+                var id = 'ocr-' + folhaIdx + '-' + r.questao_numero + '-' + val;
+                var el = document.getElementById(id);
+                if (el) el.checked = true;
+            });
+        });
+    }
+
+    function syncPreviewJson() {
+        var data;
+        try {
+            data = JSON.parse(ta.value || '[]');
+        } catch (e) {
+            return;
+        }
+        document.querySelectorAll('.ocr-alt-group').forEach(function (group) {
+            var checked = group.querySelector('.ocr-alt-radio:checked');
+            if (!checked) return;
+            var folhaIdx = parseInt(checked.getAttribute('data-folha'), 10);
+            var qNum = parseInt(checked.getAttribute('data-questao'), 10);
+            var val = (checked.value || '').trim().toUpperCase();
+            if (!data[folhaIdx] || !data[folhaIdx].respostas) return;
+            data[folhaIdx].respostas.forEach(function (r) {
+                if (r.questao_numero === qNum) {
+                    r.resposta_marcada = val || null;
+                }
+            });
+        });
+        ta.value = JSON.stringify(data);
+    }
+
+    try {
+        applyJsonToControls(JSON.parse(ta.value || '[]'));
+    } catch (e) {}
+
+    document.querySelectorAll('.ocr-alt-radio').forEach(function (radio) {
+        radio.addEventListener('change', syncPreviewJson);
+    });
+    form.addEventListener('submit', syncPreviewJson);
+})();
+</script>
+{% endblock %}

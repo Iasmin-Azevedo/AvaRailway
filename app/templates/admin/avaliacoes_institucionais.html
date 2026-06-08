@@ -1,0 +1,165 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Avaliações Institucionais{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Secretaria / SME{% endblock %}
+{% block header_right %}{% set role_value = 'admin' %}{% include "shared/header_right_user_simple.html" %}{% endblock %}
+{% block offcanvas_links %}{% include "admin/partials/admin_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1">Avaliação institucional por desempenho</h2>
+        <p class="text-muted mb-0">A leitura institucional agora vem de provas aplicadas e consolidadas por turma, escola, rede e descritor.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/admin/avaliacoes-institucionais/imprimir" class="btn btn-mj-outline"><i class="fas fa-print me-1"></i> Imprimir / PDF</a>
+        <a href="/admin/avaliacoes-institucionais/export.csv" class="btn btn-mj-outline"><i class="fas fa-download me-1"></i> CSV</a>
+        <a href="/admin/correcao-gabaritos" class="btn btn-mj">Operar provas</a>
+        <a href="/admin/relatorios-sme" class="btn btn-mj-outline">Relatórios SME</a>
+    </div>
+</div>
+{% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+{% if flash_ok %}<div class="alert alert-success">Operação concluída com sucesso.</div>{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Participação</span><div class="dash-stat-value">{{ consolidado.participacao_pct|default(0) }}%</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Elegíveis</span><div class="dash-stat-value">{{ consolidado.elegiveis|default(0) }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Respostas</span><div class="dash-stat-value">{{ consolidado.total_respostas|default(0) }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Nota média</span><div class="dash-stat-value">{{ consolidado.nota_geral|default(0) }}</div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Aplicações consolidadas</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light"><tr><th>Prova</th><th>Escopo</th><th>Participação</th><th>Nota média</th></tr></thead>
+                        <tbody>
+                            {% for row in consolidado.aplicacoes|default([]) %}
+                            <tr>
+                                <td>{{ row.prova }}</td>
+                                <td>{{ row.escopo }}{% if row.turma != '-' %} / {{ row.turma }}{% endif %}</td>
+                                <td>{{ row.participacao_pct }}%</td>
+                                <td>{{ row.nota_media }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">Sem aplicações consolidadas.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Desempenho por escola</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light"><tr><th>Escola</th><th>Participação</th><th>Nota média</th></tr></thead>
+                        <tbody>
+                            {% for row in consolidado.por_escola|default([]) %}
+                            <tr><td>{{ row.escola }}</td><td>{{ row.participacao_pct }}%</td><td>{{ row.nota_media }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-4">Sem consolidação por escola.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Desempenho por turma</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light"><tr><th>Turma</th><th>Escola</th><th>Participação</th><th>Nota média</th></tr></thead>
+                        <tbody>
+                            {% for row in consolidado.por_turma|default([]) %}
+                            <tr><td>{{ row.turma }}</td><td>{{ row.escola }}</td><td>{{ row.participacao_pct }}%</td><td>{{ row.nota_media }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">Sem consolidação por turma.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Descritores combinados: prova + H5P</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    {% set descritores_rows = consolidado.descritores_combinados|default([]) %}
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light"><tr><th>Descritor</th><th>H5P</th><th>Prova</th></tr></thead>
+                        <tbody>
+                            {% for row in descritores_rows[:12] %}
+                            <tr><td>{{ row.codigo }}</td><td>{{ row.h5p_score_10 if row.h5p_score_10 is not none else '-' }}</td><td>{{ row.prova_score_10 if row.prova_score_10 is not none else '-' }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-4">Sem indicadores combinados por descritor.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- <div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Mapa de migração do legado</div>
+            <div class="card-body">
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Manter</div>
+                <ul class="small text-muted">
+                    {% for item in consolidado.mapa_migracao_legado.manter %}
+                    <li><strong>{{ item.nome }}</strong>: {{ item.motivo }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Adaptar</div>
+                <ul class="small text-muted">
+                    {% for item in consolidado.mapa_migracao_legado.adaptar %}
+                    <li><strong>{{ item.nome }}</strong>: {{ item.motivo }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Aposentar</div>
+                <ul class="small text-muted mb-0">
+                    {% for item in consolidado.mapa_migracao_legado.aposentar %}
+                    <li><strong>{{ item.nome }}</strong>: {{ item.motivo }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Fontes externas e política oficial</div>
+            <div class="card-body">
+                <div class="mb-3"><strong>Fonte oficial:</strong> {{ consolidado.fontes_externas.fonte_oficial }}</div>
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Fontes complementares</div>
+                <ul class="small text-muted">
+                    {% for item in consolidado.fontes_externas.fontes_complementares %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Política técnica</div>
+                <ul class="small text-muted mb-0">
+                    {% for item in consolidado.fontes_externas.politica %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div> -->
+{% endblock %}

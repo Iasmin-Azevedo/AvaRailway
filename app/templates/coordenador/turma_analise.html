@@ -22,6 +22,14 @@
 
 <h1 class="h4 fw-bold text-mj-dark mb-1">Análise pedagógica da turma</h1>
 <p class="text-mj-muted small mb-4">{{ turma_label }} · Professor(a): <strong class="text-mj-dark">{{ professor }}</strong></p>
+<div class="d-flex gap-2 flex-wrap mb-4">
+    <a class="btn btn-mj-outline btn-sm rounded-pill" href="/coordenador/turmas/{{ turma_id }}/analise/imprimir?disciplina={{ filtro_disciplina }}&q={{ filtro_q }}&faixa={{ filtro_faixa }}&risco={{ filtro_risco }}&ordenar={{ filtro_ordenar }}">
+        <i class="fas fa-print me-1"></i> Imprimir / PDF
+    </a>
+    <a class="btn btn-mj-outline btn-sm rounded-pill" href="/coordenador/turmas/{{ turma_id }}/analise/export.csv?disciplina={{ filtro_disciplina }}&q={{ filtro_q }}&faixa={{ filtro_faixa }}&risco={{ filtro_risco }}&ordenar={{ filtro_ordenar }}">
+        <i class="fas fa-download me-1"></i> CSV
+    </a>
+</div>
 
 <form method="get" action="/coordenador/turmas/{{ turma_id }}/analise" class="card dash-card border-0 mb-4 analise-filtros-card" id="filtros-analise-turma">
     <div class="dash-card-header py-3">
@@ -95,9 +103,9 @@
     </div>
     <div class="col-6 col-md-3">
         <div class="card dash-stat-card dash-stat-card--success h-100 border-0">
-            <span class="dash-stat-label">Proficiência média</span>
-            <div class="dash-stat-value text-success">{{ media_proficiencia_turma }}</div>
-            <small class="text-muted">Score médio (concluídas com nota)</small>
+            <span class="dash-stat-label">Média nas provas</span>
+            <div class="dash-stat-value text-success">{{ media_provas_turma }}</div>
+            <small class="text-muted">Média dos alunos com provas respondidas</small>
         </div>
     </div>
     <div class="col-6 col-md-3">
@@ -165,8 +173,7 @@
                         <th>Risco</th>
                         <th>Concluídas</th>
                         <th>Adesão</th>
-                        <th>Proficiência</th>
-                        <th class="pe-4">Status</th>
+                        <th>Média nas provas</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -182,14 +189,11 @@
                         </td>
                         <td>{{ al.concluidas }} / {{ al.total_atividades }}</td>
                         <td><span class="fw-bold {% if al.adesao_pct < 60 %}text-danger{% elif al.adesao_pct < 85 %}text-mj-primary{% else %}text-success{% endif %}">{{ al.adesao_pct }}%</span></td>
-                        <td>{{ al.proficiencia }}</td>
-                        <td class="pe-4">
-                            <span class="badge {% if al.status == 'Crítico' %}bg-danger text-white{% elif al.status == 'Bom' %}bg-primary bg-opacity-25 text-mj-primary border border-mj-primary{% elif al.status == 'Sem atividades' %}bg-secondary bg-opacity-25 text-dark border border-secondary{% else %}bg-success bg-opacity-25 text-success border border-success{% endif %}">{{ al.status }}</span>
-                        </td>
+                        <td class="pe-4">{{ al.media_provas }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="ps-4 py-4 text-muted">Nenhum aluno com os filtros atuais. Ajuste a busca ou limpe os filtros.</td>
+                        <td colspan="5" class="ps-4 py-4 text-muted">Nenhum aluno com os filtros atuais. Ajuste a busca ou limpe os filtros.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

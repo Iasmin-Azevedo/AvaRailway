@@ -1,0 +1,9 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Imprimir resultados{% endblock %}
+{% block body_extra_class %}relatorio-embed-print-active{% endblock %}
+{% block main_content %}
+<div class="relatorio-embed-root">
+    {% include "shared/partials/relatorio_sheet.html" %}
+</div>
+<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 400); });</script>
+{% endblock %}

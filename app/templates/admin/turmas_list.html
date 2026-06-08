@@ -26,7 +26,8 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-4">Nome</th>
+                        <th class="ps-4">Turma</th>
+                        <th>Sigla</th>
                         <th>Ano</th>
                         <th>Escola</th>
                         <th>Ano Letivo</th>
@@ -37,6 +38,7 @@
                     {% for t in turmas %}
                     <tr>
                         <td class="ps-4 fw-bold">{{ t.nome }}</td>
+                        <td>{{ t.sigla or "—" }}</td>
                         <td>{{ t.ano_escolar }}º ano</td>
                         <td>{{ t.escola.nome if t.escola else "—" }}</td>
                         <td>{{ t.ano_letivo or "—" }}</td>
@@ -48,7 +50,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma turma cadastrada.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma turma cadastrada.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

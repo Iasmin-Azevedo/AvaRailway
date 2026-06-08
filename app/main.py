@@ -6,23 +6,24 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy import func, inspect, text
+from sqlalchemy import case, func, inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.media_urls import h5p_content_root, user_upload_root
 from app.core.database import SessionLocal, engine, get_db
+from app.core.catalogs import FUNDAMENTAL_SUBJECTS
 from app.core.dependencies import get_current_user_optional, require_admin_redirect, require_role_redirect
 from app.core.logging_config import configure_logging
 from app.core.security import limiter
 from app.models.base import Base
-from app.models.user import UserRole, Usuario
+from app.models.user import AdminScope, TeacherRole, UserRole, Usuario
 from app.services.dashboard_service import DashboardService
 
 from app.routers import (
@@ -35,6 +36,7 @@ from app.routers import (
     dashboard_router,
     h5p_router,
     ia_router,
+    licitacao_router,
     live_support_router,
 )
 from app.models import (
@@ -48,6 +50,7 @@ from app.models import (
     h5p,
     interacao_ia,
     live_support,
+    formacao,
     moodle_gestao,
     relacoes,
     resposta,
@@ -232,8 +235,18 @@ def seed_default_users() -> None:
     from app.schemas.user_schema import UserCreate
 
     defaults = [
-        {"nome": "Admin Mj Connect Edu", "email": "admin@avajmj.com", "role": UserRole.ADMIN},
-        {"nome": "Professor Mj Connect Edu", "email": "professor@avamj.com", "role": UserRole.PROFESSOR},
+        {
+            "nome": "Admin Mj Connect Edu",
+            "email": "admin@avajmj.com",
+            "role": UserRole.ADMIN,
+            "escopo_administrativo": AdminScope.SECRETARIA_SME,
+        },
+        {
+            "nome": "Professor Mj Connect Edu",
+            "email": "professor@avamj.com",
+            "role": UserRole.PROFESSOR,
+            "funcao_docente": TeacherRole.DOCENTE,
+        },
         {"nome": "Aluno Mj Connect Edu", "email": "aluno@avamj.com", "role": UserRole.ALUNO},
         {"nome": "Gestor Mj Connect Edu", "email": "gestor@avamj.com", "role": UserRole.GESTOR},
         {"nome": "Coordenador Mj Connect Edu", "email": "coordenador@avamj.com", "role": UserRole.COORDENADOR},
@@ -253,6 +266,8 @@ def seed_default_users() -> None:
                     senha="123456",
                     role=d["role"],
                     ativo=True,
+                    funcao_docente=d.get("funcao_docente"),
+                    escopo_administrativo=d.get("escopo_administrativo"),
                 )
             else:
                 repo.create(
@@ -262,6 +277,8 @@ def seed_default_users() -> None:
                         email=d["email"],
                         senha="123456",
                         role=d["role"],
+                        funcao_docente=d.get("funcao_docente"),
+                        escopo_administrativo=d.get("escopo_administrativo"),
                     ),
                 )
     finally:
@@ -278,11 +295,26 @@ def seed_default_medal_types() -> None:
         db.close()
 
 
+def seed_default_courses() -> None:
+    from app.models.gestao import Curso
+
+    db = SessionLocal()
+    try:
+        existentes = {str(nome).strip().lower() for (nome,) in db.query(Curso.nome).all()}
+        novos = [Curso(nome=nome) for nome in FUNDAMENTAL_SUBJECTS if nome.strip().lower() not in existentes]
+        if novos:
+            db.add_all(novos)
+            db.commit()
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 def on_startup():
     try:
         _ensure_runtime_schema()
         Base.metadata.create_all(bind=engine)
+        seed_default_courses()
         seed_default_users()
         seed_default_medal_types()
         logger.info("Banco sincronizado e seed executado.")
@@ -295,6 +327,11 @@ def _ensure_runtime_schema() -> None:
     Ajustes incrementais simples sem migração formal (ambiente atual).
     """
     insp = inspect(engine)
+    def _columns(table_name: str) -> set[str]:
+        try:
+            return {c["name"] for c in insp.get_columns(table_name)}
+        except Exception:
+            return set()
     try:
         cols = {c["name"] for c in insp.get_columns("usuarios")}
     except Exception:
@@ -308,6 +345,167 @@ def _ensure_runtime_schema() -> None:
     if "moodle_user_id" not in cols:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE usuarios ADD COLUMN moodle_user_id VARCHAR(32)"))
+    if "funcao_docente" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE usuarios ADD COLUMN funcao_docente VARCHAR(40)"))
+    if "escopo_administrativo" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE usuarios ADD COLUMN escopo_administrativo VARCHAR(40)"))
+
+    audit_cols = _columns("auditoria_logs")
+    if audit_cols:
+        if "categoria" not in audit_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE auditoria_logs ADD COLUMN categoria VARCHAR(50)"))
+        if "entidade" not in audit_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE auditoria_logs ADD COLUMN entidade VARCHAR(80)"))
+        if "entidade_id" not in audit_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE auditoria_logs ADD COLUMN entidade_id INTEGER"))
+
+    aval_cols = _columns("avaliacoes")
+    if aval_cols:
+        if "codigo" not in aval_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE avaliacoes ADD COLUMN codigo VARCHAR(40)"))
+        if "tipo" not in aval_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE avaliacoes ADD COLUMN tipo VARCHAR(30) DEFAULT 'objetiva'"))
+        if "status" not in aval_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE avaliacoes ADD COLUMN status VARCHAR(30) DEFAULT 'rascunho'"))
+        if "ano_letivo" not in aval_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE avaliacoes ADD COLUMN ano_letivo VARCHAR(20)"))
+        if "escopo" not in aval_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE avaliacoes ADD COLUMN escopo VARCHAR(40)"))
+        if "curso_id" not in aval_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE avaliacoes ADD COLUMN curso_id INTEGER"))
+        if "ano_escolar" not in aval_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE avaliacoes ADD COLUMN ano_escolar INTEGER"))
+        if "criado_por_usuario_id" not in aval_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE avaliacoes ADD COLUMN criado_por_usuario_id INTEGER"))
+        if "trilha_id" not in aval_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE avaliacoes ADD COLUMN trilha_id INTEGER"))
+
+    quest_cols = _columns("questoes_prova")
+    if quest_cols:
+        if "codigo" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN codigo VARCHAR(40)"))
+        if "numero" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN numero INTEGER"))
+        if "disciplina" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN disciplina VARCHAR(50)"))
+        if "peso" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN peso FLOAT DEFAULT 1"))
+        if "ativa" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN ativa BOOLEAN DEFAULT 1"))
+        if "banco_questao_id" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN banco_questao_id INTEGER"))
+        if "curso_id" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN curso_id INTEGER"))
+        if "ano_escolar" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN ano_escolar INTEGER"))
+        if "descritor_id" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN descritor_id INTEGER"))
+        if "origem" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN origem VARCHAR(40)"))
+        if "conteudo" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN conteudo VARCHAR(180)"))
+        if "tipo_questao" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN tipo_questao VARCHAR(50) DEFAULT 'multipla_escolha'"))
+        if "alternativa_e" not in quest_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova ADD COLUMN alternativa_e VARCHAR(200)"))
+        if engine.dialect.name == "mysql":
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE questoes_prova MODIFY COLUMN enunciado TEXT"))
+
+    banco_cols = _columns("banco_questoes")
+    if banco_cols:
+        if "conteudo" not in banco_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE banco_questoes ADD COLUMN conteudo VARCHAR(180)"))
+        if "tipo_questao" not in banco_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE banco_questoes ADD COLUMN tipo_questao VARCHAR(50) DEFAULT 'multipla_escolha'"))
+        if "alternativa_e" not in banco_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE banco_questoes ADD COLUMN alternativa_e VARCHAR(200)"))
+        if engine.dialect.name == "mysql":
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE banco_questoes MODIFY COLUMN enunciado TEXT"))
+
+    trilha_cols = _columns("trilhas")
+    if trilha_cols:
+        if "semestre" not in trilha_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE trilhas ADD COLUMN semestre VARCHAR(20)"))
+
+    turma_cols = _columns("turmas")
+    if turma_cols and "sigla" not in turma_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE turmas ADD COLUMN sigla VARCHAR(20)"))
+
+    descritor_cols = _columns("saeb_descritores")
+    if descritor_cols:
+        if "ano_escolar" not in descritor_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE saeb_descritores ADD COLUMN ano_escolar INTEGER"))
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "UPDATE saeb_descritores SET disciplina = 'Língua Portuguesa' "
+                    "WHERE disciplina IN ('LP', 'Portugues', 'Português')"
+                )
+            )
+            conn.execute(
+                text(
+                    "UPDATE saeb_descritores SET disciplina = 'Matemática' "
+                    "WHERE disciplina IN ('MAT', 'Matematica')"
+                )
+            )
+
+    resposta_cols = _columns("respostas_alunos")
+    if resposta_cols:
+        if "lote_importacao_id" not in resposta_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE respostas_alunos ADD COLUMN lote_importacao_id INTEGER"))
+        if "pontuacao" not in resposta_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE respostas_alunos ADD COLUMN pontuacao FLOAT"))
+        if "processado_em" not in resposta_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE respostas_alunos ADD COLUMN processado_em DATETIME"))
+        if "aplicacao_id" not in resposta_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE respostas_alunos ADD COLUMN aplicacao_id INTEGER"))
+        if "participacao_id" not in resposta_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE respostas_alunos ADD COLUMN participacao_id INTEGER"))
+
+    lote_cols = _columns("lotes_importacao_gabarito")
+    if lote_cols and "aplicacao_id" not in lote_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE lotes_importacao_gabarito ADD COLUMN aplicacao_id INTEGER"))
 
 
 app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
@@ -322,6 +520,7 @@ app.include_router(h5p_router.router, prefix="/api/h5p", tags=["H5P"])
 app.include_router(chat_router.router)
 app.include_router(live_support_router.router)
 app.include_router(live_support_router.page_router)
+app.include_router(licitacao_router.router)
 
 
 @app.get("/login")
@@ -565,6 +764,68 @@ def _sync_professor_atividade_alvos(
         db.add(ProfessorAtividadeH5PAluno(atividade_id=atividade_id, aluno_id=aid))
 
 
+def _avaliacoes_institucionais_pendentes_usuario(db: Session, usuario: Usuario) -> list[dict]:
+    from app.models.avaliacao import (
+        AplicacaoAvaliacaoInstitucional,
+        InstrumentoAvaliacaoInstitucional,
+        PerfilAvaliadoInstitucional,
+        StatusAplicacaoInstitucional,
+    )
+    from app.models.resposta import RespostaAvaliacaoInstitucional
+    from sqlalchemy.orm import joinedload
+
+    perfil_alvo = None
+    if usuario.role == UserRole.COORDENADOR:
+        perfil_alvo = PerfilAvaliadoInstitucional.COORDENADOR
+    elif usuario.role == UserRole.PROFESSOR and usuario.funcao_docente == TeacherRole.PDT:
+        perfil_alvo = PerfilAvaliadoInstitucional.PDT
+    if perfil_alvo is None:
+        return []
+    rows = (
+        db.query(AplicacaoAvaliacaoInstitucional)
+        .options(
+            joinedload(AplicacaoAvaliacaoInstitucional.instrumento).joinedload(
+                InstrumentoAvaliacaoInstitucional.criterios
+            ),
+            joinedload(AplicacaoAvaliacaoInstitucional.escola),
+        )
+        .join(
+            InstrumentoAvaliacaoInstitucional,
+            InstrumentoAvaliacaoInstitucional.id == AplicacaoAvaliacaoInstitucional.instrumento_id,
+        )
+        .filter(
+            AplicacaoAvaliacaoInstitucional.avaliado_usuario_id == usuario.id,
+            AplicacaoAvaliacaoInstitucional.status == StatusAplicacaoInstitucional.ABERTA,
+            InstrumentoAvaliacaoInstitucional.perfil_avaliado == perfil_alvo,
+        )
+        .order_by(AplicacaoAvaliacaoInstitucional.created_at.desc())
+        .all()
+    )
+    out: list[dict] = []
+    for app_item in rows:
+        respostas_count = (
+            db.query(func.count(RespostaAvaliacaoInstitucional.id))
+            .filter(RespostaAvaliacaoInstitucional.aplicacao_id == app_item.id)
+            .scalar()
+            or 0
+        )
+        if respostas_count:
+            continue
+        out.append(
+            {
+                "id": app_item.id,
+                "instrumento_nome": app_item.instrumento.nome if app_item.instrumento else "Instrumento",
+                "escola_nome": app_item.escola.nome if app_item.escola else "—",
+                "criterios": sorted(
+                    list(app_item.instrumento.criterios if app_item.instrumento else []),
+                    key=lambda c: (c.ordem or 0, c.id or 0),
+                ),
+                "observacoes": (app_item.observacoes or "").strip(),
+            }
+        )
+    return out
+
+
 @app.get("/professor")
 def professor_dashboard(
     request: Request,
@@ -589,16 +850,17 @@ def professor_dashboard(
     dsvc = DescriptorPerformanceService()
     if turma_all:
         aluno_ids = dsvc.aluno_ids_for_turmas(db, turma_ids_prof)
-        descritores_rows = dsvc.aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
+        descritores_rows = dsvc.combined_aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
         radar_alunos = dsvc.radar_alunos_turmas(db, turma_ids_prof)
         chat_duvidas = dsvc.top_chat_questions_for_turmas(db, turma_ids_prof, limit=5)
     else:
         aluno_ids = dsvc.aluno_ids_for_turma(db, selected_turma_id)
-        descritores_rows = dsvc.aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
+        descritores_rows = dsvc.combined_aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
         radar_alunos = dsvc.radar_alunos_turma(db, selected_turma_id)
         chat_duvidas = dsvc.top_chat_questions_for_turma(db, selected_turma_id, limit=5)
     pior = descritores_rows[0] if descritores_rows else None
-    ia_alerta_ativo = bool(pior and pior["taxa_pct"] < 50 and pior["alunos_elegiveis"] > 0)
+    pior_pct = float((pior or {}).get("engajamento_pct") or 0)
+    ia_alerta_ativo = bool(pior and pior_pct < 50)
     medalha_service = MedalhaService()
     medalha_tipos = medalha_service.list_tipos_ativos(db)
     turma_ids_scope = turma_ids_prof if turma_all else ([selected_turma_id] if selected_turma_id else [])
@@ -649,6 +911,9 @@ def professor_dashboard(
             "medalha_alunos": medalha_alunos,
             "flash_ok": flash_ok,
             "flash_err": flash_err,
+            "avaliacoes_institucionais_pendentes": _avaliacoes_institucionais_pendentes_usuario(
+                db, current_user
+            ),
         },
     )
 
@@ -772,6 +1037,7 @@ def professor_desempenho_descritores(
     current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
 ):
     from app.services.descriptor_performance_service import DescriptorPerformanceService
+    from datetime import datetime
 
     professor_turmas = _professor_turmas_list(db, current_user.id)
     selected_turma_id, turma_all = _resolve_professor_turma_selection(
@@ -786,7 +1052,37 @@ def professor_desempenho_descritores(
         aluno_ids = dsvc.aluno_ids_for_turmas(db, turma_ids_prof)
     else:
         aluno_ids = dsvc.aluno_ids_for_turma(db, selected_turma_id)
-    rows = dsvc.aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
+    rows = dsvc.combined_aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
+    imprimir_raw = (request.query_params.get("imprimir") or "").strip().lower()
+    modo_impressao = imprimir_raw in ("1", "true", "sim", "yes")
+    if modo_impressao:
+        table_rows = [
+            [
+                r.get("codigo", ""),
+                r.get("descricao", ""),
+                f"{r.get('engajamento_pct')}%" if r.get("engajamento_pct") is not None else "—",
+                f"{r.get('desempenho_score_10')}/10" if r.get("desempenho_score_10") is not None else "—",
+            ]
+            for r in rows
+        ]
+        back_href = f"/professor/desempenho-descritores{turma_query_suffix}"
+        return templates.TemplateResponse(
+            request,
+            "shared/relatorio_imprimir.html",
+            {
+                "request": request,
+                "report_title": "Desempenho por descritor SAEB",
+                "report_subtitle": "Proficiência da turma selecionada no escopo do professor",
+                "column_labels": ["Código", "Descrição", "Engajamento", "Média em prova"],
+                "rows": table_rows,
+                "generated_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "back_href": back_href,
+                "report_author_label": "Professor(a)",
+                "report_author_name": (current_user.nome or "").strip(),
+                "report_kicker": "Mj Connect Edu — Relatório pedagógico",
+            },
+        )
+
     return templates.TemplateResponse(
         request,
         "professor/desempenho_descritores.html",
@@ -799,6 +1095,46 @@ def professor_desempenho_descritores(
             "turma_query_suffix": turma_query_suffix,
             "descritores_rows": rows,
         },
+    )
+
+
+@app.get("/professor/desempenho-descritores/export.csv")
+def professor_desempenho_descritores_export_csv(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    from app.services.descriptor_performance_service import DescriptorPerformanceService
+
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    selected_turma_id, turma_all = _resolve_professor_turma_selection(
+        professor_turmas, request.query_params.get("turma_id")
+    )
+    turma_ids_prof = [t.id for t in professor_turmas]
+    dsvc = DescriptorPerformanceService()
+    if turma_all:
+        aluno_ids = dsvc.aluno_ids_for_turmas(db, turma_ids_prof)
+    else:
+        aluno_ids = dsvc.aluno_ids_for_turma(db, selected_turma_id)
+    rows = dsvc.combined_aggregates_for_alunos(db, aluno_ids) if aluno_ids else []
+
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(["codigo", "descricao", "engajamento_pct", "media_em_prova_10"])
+    for r in rows:
+        writer.writerow(
+            [
+                r.get("codigo", ""),
+                r.get("descricao", ""),
+                r.get("engajamento_pct", ""),
+                r.get("desempenho_score_10", ""),
+            ]
+        )
+    data = "\ufeff" + output.getvalue()
+    return StreamingResponse(
+        iter([data]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="desempenho_descritores_professor.csv"'},
     )
 
 
@@ -884,6 +1220,102 @@ def professor_chat_duvidas(
             "chat_insights_tab": tab,
         },
     )
+
+
+@app.post("/professor/chat-duvidas/perguntas/excluir")
+async def professor_chat_duvidas_excluir_pergunta(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    from app.models.aluno import Aluno
+    from app.models.chat_message import ChatMessage
+    from app.models.chat_session import ChatSession
+
+    form = await request.form()
+    texto = (form.get("texto") or "").strip()
+    turma_raw = (form.get("turma_id") or "").strip().lower()
+    tab = (form.get("tab") or "perguntas").strip().lower()
+    if tab not in ("perguntas", "solicitacoes"):
+        tab = "perguntas"
+    if not texto:
+        return RedirectResponse(url=f"/professor/chat-duvidas?tab={tab}", status_code=303)
+
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    allowed_turma_ids = {t.id for t in professor_turmas}
+    if turma_raw == "all":
+        target_turma_ids = list(allowed_turma_ids)
+        turma_qs = "all"
+    else:
+        try:
+            target_turma_id = int(turma_raw)
+        except Exception:
+            target_turma_id = next(iter(allowed_turma_ids), None)
+        if target_turma_id not in allowed_turma_ids:
+            target_turma_id = next(iter(allowed_turma_ids), None)
+        target_turma_ids = [target_turma_id] if target_turma_id else []
+        turma_qs = str(target_turma_id) if target_turma_id else "all"
+
+    aluno_user_ids = (
+        db.query(Aluno.usuario_id)
+        .filter(Aluno.turma_id.in_(target_turma_ids))
+        .all()
+        if target_turma_ids
+        else []
+    )
+    uid_list = [r[0] for r in aluno_user_ids if r[0]]
+    if uid_list:
+        session_ids = [r[0] for r in db.query(ChatSession.id).filter(ChatSession.user_id.in_(uid_list)).all()]
+        if session_ids:
+            db.query(ChatMessage).filter(
+                ChatMessage.session_id.in_(session_ids),
+                ChatMessage.sender == "user",
+                ChatMessage.message_text == texto,
+            ).delete(synchronize_session=False)
+            db.commit()
+    return RedirectResponse(url=f"/professor/chat-duvidas?turma_id={turma_qs}&tab={tab}", status_code=303)
+
+
+@app.post("/professor/chat-duvidas/solicitacoes/{request_id}/deletar")
+def professor_chat_duvidas_excluir_solicitacao(
+    request_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.PROFESSOR)),
+):
+    from app.models.live_support import SolicitacaoProfessor
+
+    turma_raw = (request.query_params.get("turma_id") or "").strip().lower()
+    tab = (request.query_params.get("tab") or "solicitacoes").strip().lower()
+    if tab not in ("perguntas", "solicitacoes"):
+        tab = "solicitacoes"
+    professor_turmas = _professor_turmas_list(db, current_user.id)
+    allowed_turma_ids = {t.id for t in professor_turmas}
+    if turma_raw == "all":
+        turma_qs = "all"
+        filter_turma_ids = allowed_turma_ids
+    else:
+        try:
+            tid = int(turma_raw)
+        except Exception:
+            tid = next(iter(allowed_turma_ids), None)
+        if tid not in allowed_turma_ids:
+            tid = next(iter(allowed_turma_ids), None)
+        turma_qs = str(tid) if tid else "all"
+        filter_turma_ids = {tid} if tid else allowed_turma_ids
+
+    item = (
+        db.query(SolicitacaoProfessor)
+        .filter(
+            SolicitacaoProfessor.id == request_id,
+            SolicitacaoProfessor.professor_id == current_user.id,
+        )
+        .first()
+    )
+    if item and (not filter_turma_ids or item.turma_id in filter_turma_ids):
+        db.delete(item)
+        db.commit()
+    return RedirectResponse(url=f"/professor/chat-duvidas?turma_id={turma_qs}&tab={tab}", status_code=303)
 
 
 def _professor_relatorio_turma_ids(
@@ -1214,24 +1646,33 @@ def _gestor_relatorio_imprimir_bundle(
     if tipo == "descritores":
         title = "Desempenho por descritor SAEB"
         subtitle = "Alunos no escopo do gestor"
-        cols = ["Código", "Descrição", "Taxa conclusão %", "Alunos c/ conclusão", "Alunos elegíveis", "Score médio"]
+        cols = [
+            "Código",
+            "Descrição",
+            "Taxa conclusão %",
+            "Alunos c/ conclusão",
+            "Alunos elegíveis",
+            "Score H5P",
+            "Nota média provas",
+        ]
         rows = []
-        for r in dsvc.aggregates_for_alunos(db, aluno_ids):
+        for r in dsvc.combined_aggregates_for_alunos(db, aluno_ids):
             rows.append(
                 [
                     r["codigo"],
                     r["descricao"],
-                    r["taxa_pct"],
-                    r["alunos_com_conclusao"],
-                    r["alunos_elegiveis"],
-                    r["score_medio"] if r["score_medio"] is not None else "",
+                    r.get("engajamento_pct", 0),
+                    r.get("alunos_h5p_conclusao", 0),
+                    r.get("alunos_h5p_elegiveis", 0),
+                    r.get("h5p_score_10") if r.get("h5p_score_10") is not None else "",
+                    r.get("prova_score_10") if r.get("prova_score_10") is not None else "",
                 ]
             )
         return title, subtitle, cols, rows
     if tipo == "risco_alunos":
         title = "Alunos em risco"
         subtitle = "Alunos com nível de risco diferente de baixo"
-        cols = ["ID aluno", "Nome", "Turma", "Escola", "Nível risco", "Ano"]
+        cols = ["ID aluno", "Nome", "Turma", "Escola", "Nível risco", "Ano", "Nota média provas"]
         q = (
             db.query(Aluno, Usuario.nome, Turma.nome, Escola.nome)
             .join(Usuario, Aluno.usuario_id == Usuario.id)
@@ -1240,8 +1681,10 @@ def _gestor_relatorio_imprimir_bundle(
         )
         if scope_ids:
             q = q.filter(Turma.escola_id.in_(scope_ids))
+        candidatos = q.all()
+        notas_por_aluno = dsvc.notas_provas_por_aluno(db, [aluno.id for aluno, *_ in candidatos])
         rows = []
-        for aluno, nome, turma_nome, escola_nome in q.all():
+        for aluno, nome, turma_nome, escola_nome in candidatos:
             if (aluno.nivel_risco or "").upper() != "BAIXO":
                 rows.append(
                     [
@@ -1251,6 +1694,7 @@ def _gestor_relatorio_imprimir_bundle(
                         escola_nome or "",
                         aluno.nivel_risco or "",
                         aluno.ano_escolar or "",
+                        notas_por_aluno.get(aluno.id, ""),
                     ]
                 )
         return title, subtitle, cols, rows
@@ -2131,8 +2575,8 @@ def gestor_dashboard(
     from app.services.descriptor_performance_service import DescriptorPerformanceService
     from app.services.live_support_service import LiveSupportService
 
-    stats = DashboardService().get_gestor_stats(db)
     escola_ids = _gestor_escola_ids(db, current_user.id)
+    stats = DashboardService().get_gestor_stats(db, escola_ids=escola_ids or None)
     dsvc = DescriptorPerformanceService()
     live_support = LiveSupportService(db)
     if escola_ids:
@@ -2189,7 +2633,7 @@ def gestor_dashboard(
             "current_user": current_user,
             "stats": stats,
             "escolas_engajamento": escolas_tbl,
-            "descritores_resumo": dsvc.aggregates_for_alunos(db, aluno_ids)[:6],
+            "descritores_resumo": dsvc.combined_aggregates_for_alunos(db, aluno_ids)[:6],
             "upcoming_live_classes": live_support.list_live_classes_for_gestor(current_user)[:4],
             "resource_usage": resource_usage,
         },
@@ -2547,17 +2991,26 @@ def gestor_relatorios_export(
         filename = "relatorio_progresso_escolas.csv"
     elif tipo == "descritores":
         writer.writerow(
-            ["codigo", "descricao", "taxa_conclusao_pct", "alunos_com_conclusao", "alunos_elegiveis", "score_medio"]
+            [
+                "codigo",
+                "descricao",
+                "taxa_conclusao_pct",
+                "alunos_com_conclusao",
+                "alunos_elegiveis",
+                "score_h5p",
+                "nota_media_provas",
+            ]
         )
-        for r in dsvc.aggregates_for_alunos(db, aluno_ids):
+        for r in dsvc.combined_aggregates_for_alunos(db, aluno_ids):
             writer.writerow(
                 [
                     r["codigo"],
                     r["descricao"],
-                    r["taxa_pct"],
-                    r["alunos_com_conclusao"],
-                    r["alunos_elegiveis"],
-                    r["score_medio"] if r["score_medio"] is not None else "",
+                    r.get("engajamento_pct", 0),
+                    r.get("alunos_h5p_conclusao", 0),
+                    r.get("alunos_h5p_elegiveis", 0),
+                    r.get("h5p_score_10") if r.get("h5p_score_10") is not None else "",
+                    r.get("prova_score_10") if r.get("prova_score_10") is not None else "",
                 ]
             )
         filename = "relatorio_descritores.csv"
@@ -2566,7 +3019,7 @@ def gestor_relatorios_export(
         from app.models.gestao import Escola, Turma
         from app.models.user import Usuario
 
-        writer.writerow(["aluno_id", "nome", "turma", "escola", "nivel_risco", "ano_escolar"])
+        writer.writerow(["aluno_id", "nome", "turma", "escola", "nivel_risco", "ano_escolar", "nota_media_provas"])
         q = (
             db.query(Aluno, Usuario.nome, Turma.nome, Escola.nome)
             .join(Usuario, Aluno.usuario_id == Usuario.id)
@@ -2575,7 +3028,9 @@ def gestor_relatorios_export(
         )
         if escola_ids:
             q = q.filter(Turma.escola_id.in_(escola_ids))
-        for aluno, nome, turma_nome, escola_nome in q.all():
+        candidatos = q.all()
+        notas_por_aluno = dsvc.notas_provas_por_aluno(db, [aluno.id for aluno, *_ in candidatos])
+        for aluno, nome, turma_nome, escola_nome in candidatos:
             if (aluno.nivel_risco or "").upper() != "BAIXO":
                 writer.writerow(
                     [
@@ -2585,6 +3040,7 @@ def gestor_relatorios_export(
                         escola_nome or "",
                         aluno.nivel_risco or "",
                         aluno.ano_escolar or "",
+                        notas_por_aluno.get(aluno.id, ""),
                     ]
                 )
         filename = "relatorio_alunos_risco.csv"
@@ -2619,6 +3075,8 @@ def admin_dashboard(
     current_user: Usuario = Depends(require_admin_redirect),
 ):
     from app.models.support_ticket import SupportTicket
+    from app.models.user import AuditLog
+    from app.services.licitacao_service import LicitacaoService
 
     tickets_abertos = (
         db.query(SupportTicket)
@@ -2627,11 +3085,20 @@ def admin_dashboard(
         .limit(5)
         .all()
     )
+    recent_audits = (
+        db.query(AuditLog)
+        .order_by(AuditLog.data_hora.desc())
+        .limit(6)
+        .all()
+    )
     return templates.TemplateResponse(
         request,
         "admin/dashboard.html",
         {
             "request": request,
+            "current_user": current_user,
+            "sme_stats": LicitacaoService().get_sme_dashboard(db),
+            "recent_audits": recent_audits,
             "tickets_abertos": tickets_abertos,
             "tickets_abertos_total": len(tickets_abertos),
         },
@@ -2785,20 +3252,24 @@ def coordenador_dashboard(
     dsvc = DescriptorPerformanceService()
     live_support = LiveSupportService(db)
     aluno_ids_escola = dsvc.aluno_ids_for_escolas(db, [escola.id]) if escola else []
-    descritores_escola = dsvc.aggregates_for_alunos(db, aluno_ids_escola) if aluno_ids_escola else []
+    descritores_escola = dsvc.combined_aggregates_for_alunos(db, aluno_ids_escola) if aluno_ids_escola else []
     lacunas_cards = []
     for row in descritores_escola[:2]:
+        eng = row.get("engajamento_pct")
+        des = row.get("desempenho_score_10")
         lacunas_cards.append(
             {
                 "titulo": f"{row.get('codigo') or 'Descritor'} — {(row.get('descricao') or '')[:48]}",
-                "pct": max(0, min(100, float(row.get("taxa_pct") or 0))),
-                "descricao": f"Score médio: {row.get('score_medio') if row.get('score_medio') is not None else '—'} · {row.get('alunos_com_conclusao', 0)}/{row.get('alunos_elegiveis', 0)} alunos com conclusão.",
+                "pct": max(0, min(100, float(eng or 0))),
+                "descricao": f"Engajamento: {eng if eng is not None else '—'}% · Desempenho (prova): {des if des is not None else '—'}/10",
             }
         )
 
     disc_raw = (request.query_params.get("disciplina") or "geral").strip().lower()
     if disc_raw not in ("geral", "lp", "mat"):
         disc_raw = "geral"
+    flash_ok = (request.query_params.get("ok") or "").strip()
+    flash_err = (request.query_params.get("err") or "").strip()
 
     return templates.TemplateResponse(
         request,
@@ -2815,6 +3286,11 @@ def coordenador_dashboard(
             "riscos_por_turma": _coordenador_riscos_por_turma(db, escola.id if escola else None),
             "lacunas_cards": lacunas_cards,
             "upcoming_live_classes": live_support.list_live_classes_for_coordenador(current_user)[:4],
+            "flash_ok": flash_ok,
+            "flash_err": flash_err,
+            "avaliacoes_institucionais_pendentes": _avaliacoes_institucionais_pendentes_usuario(
+                db, current_user
+            ),
         },
     )
 
@@ -2879,6 +3355,118 @@ def coordenador_turma_analise_page(
     )
 
 
+@app.get("/coordenador/turmas/{turma_id}/analise/export.csv")
+def coordenador_turma_analise_export_csv(
+    request: Request,
+    turma_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.COORDENADOR)),
+    disciplina: str = "geral",
+    q: str = "",
+    faixa: str = "todas",
+    risco: str = "todos",
+    ordenar: str = "adesao_asc",
+):
+    import csv
+    import io
+
+    escola_id = _coordenador_escola_id_for_user(db, current_user.id)
+    if not escola_id:
+        raise HTTPException(status_code=400, detail="Coordenador sem escola vinculada")
+
+    bundle = _coordenador_turma_analise_detalhe(
+        db,
+        escola_id,
+        turma_id,
+        disciplina_key=disciplina,
+        busca_nome=(q or "").strip(),
+        faixa_adesao=(faixa or "todas").strip().lower(),
+        risco_filtro=(risco or "todos").strip().lower(),
+        ordenar=(ordenar or "adesao_asc").strip().lower(),
+    )
+    if bundle is None:
+        raise HTTPException(status_code=404, detail="Turma não encontrada")
+
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(["nome", "risco", "concluidas", "adesao_pct", "media_nas_provas"])
+    for al in bundle.get("alunos") or []:
+        writer.writerow(
+            [
+                al.get("nome", ""),
+                al.get("nivel_risco", ""),
+                f"{al.get('concluidas', 0)}/{al.get('total_atividades', 0)}",
+                al.get("adesao_pct", 0),
+                al.get("media_provas", 0),
+            ]
+        )
+    data = "\ufeff" + output.getvalue()
+    return StreamingResponse(
+        iter([data]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="analise_turma_{turma_id}.csv"'},
+    )
+
+
+@app.get("/coordenador/turmas/{turma_id}/analise/imprimir")
+def coordenador_turma_analise_imprimir(
+    request: Request,
+    turma_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role_redirect(UserRole.COORDENADOR)),
+    disciplina: str = "geral",
+    q: str = "",
+    faixa: str = "todas",
+    risco: str = "todos",
+    ordenar: str = "adesao_asc",
+):
+    from datetime import datetime
+
+    escola_id = _coordenador_escola_id_for_user(db, current_user.id)
+    if not escola_id:
+        raise HTTPException(status_code=400, detail="Coordenador sem escola vinculada")
+
+    bundle = _coordenador_turma_analise_detalhe(
+        db,
+        escola_id,
+        turma_id,
+        disciplina_key=disciplina,
+        busca_nome=(q or "").strip(),
+        faixa_adesao=(faixa or "todas").strip().lower(),
+        risco_filtro=(risco or "todos").strip().lower(),
+        ordenar=(ordenar or "adesao_asc").strip().lower(),
+    )
+    if bundle is None:
+        raise HTTPException(status_code=404, detail="Turma não encontrada")
+
+    rows = [
+        [
+            al.get("nome", ""),
+            al.get("nivel_risco", ""),
+            f"{al.get('concluidas', 0)} / {al.get('total_atividades', 0)}",
+            f"{al.get('adesao_pct', 0)}%",
+            al.get("media_provas", 0),
+        ]
+        for al in (bundle.get("alunos") or [])
+    ]
+    return templates.TemplateResponse(
+        request,
+        "shared/relatorio_imprimir.html",
+        {
+            "request": request,
+            "report_title": f"Análise pedagógica — {bundle.get('turma_label')}",
+            "report_subtitle": f"Professor(a): {bundle.get('professor')}",
+            "column_labels": ["Nome", "Risco", "Concluídas", "Adesão", "Média nas provas"],
+            "rows": rows,
+            "generated_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "back_href": f"/coordenador/turmas/{turma_id}/analise?disciplina={disciplina}&q={q}&faixa={faixa}&risco={risco}&ordenar={ordenar}",
+            "report_author_label": "Coordenação",
+            "report_author_name": (current_user.nome or "").strip(),
+            "report_kicker": "Mj Connect Edu — Análise por turma",
+        },
+    )
+
+
 def _coordenador_atividade_ids_por_disciplina(db: Session, disciplina_key: str) -> list[int] | None:
     """None = todas as ativas (visão geral). Lista vazia = nenhuma atividade classificada na disciplina."""
     from sqlalchemy import and_, or_
@@ -2930,6 +3518,7 @@ def _coordenador_turmas_monitoramento(
     from app.models.gestao import Turma
     from app.models.aluno import Aluno
     from app.models.relacoes import ProfessorTurma
+    from app.models.resposta import RespostaAluno
     from app.models.user import Usuario
     from app.models.h5p import ProgressoH5P, AtividadeH5P
 
@@ -2953,7 +3542,7 @@ def _coordenador_turmas_monitoramento(
         )
         aluno_ids = [r[0] for r in db.query(Aluno.id).filter(Aluno.turma_id == t.id).all()]
         adesao = 0.0
-        prof_media = 0.0
+        media_provas = 0.0
         status = "Sem dados"
         if aluno_ids and total_atividades:
             done_q = db.query(ProgressoH5P).filter(
@@ -2971,17 +3560,36 @@ def _coordenador_turmas_monitoramento(
             done = done_q.count()
             adesao = round(min(100.0, (done / (len(aluno_ids) * total_atividades)) * 100), 1)
             avg_score = avg_q.scalar()
-            prof_media = round(float(avg_score or 0), 1)
+            _ = avg_score
             status = "Crítico" if adesao < 60 else ("Bom" if adesao < 85 else "Adequado")
         elif aluno_ids and total_atividades == 0:
             status = "Sem atividades"
+
+        if aluno_ids:
+            notas_por_aluno = (
+                db.query(
+                    RespostaAluno.aluno_id,
+                    func.count(RespostaAluno.id).label("total"),
+                    func.sum(case((RespostaAluno.acertou.is_(True), 1), else_=0)).label("acertos"),
+                )
+                .filter(RespostaAluno.aluno_id.in_(aluno_ids))
+                .group_by(RespostaAluno.aluno_id)
+                .all()
+            )
+            notas = []
+            for _, total, acertos in notas_por_aluno:
+                total_n = int(total or 0)
+                acertos_n = int(acertos or 0)
+                if total_n > 0:
+                    notas.append((acertos_n / total_n) * 10.0)
+            media_provas = round(sum(notas) / len(notas), 2) if notas else 0.0
         out.append(
             {
                 "turma_id": t.id,
-                "turma": f"{t.ano_escolar}º Ano {t.nome}",
+                "turma": t.nome,
                 "professor": professor_nome,
                 "adesao_pct": adesao,
-                "proficiencia": prof_media,
+                "media_provas": media_provas,
                 "status": status,
             }
         )
@@ -3015,6 +3623,7 @@ def _coordenador_turma_analise_detalhe(
     from app.models.aluno import Aluno
     from app.models.gestao import Turma
     from app.models.h5p import AtividadeH5P, ProgressoH5P
+    from app.models.resposta import RespostaAluno
     from app.models.relacoes import ProfessorTurma
     from app.models.user import Usuario
 
@@ -3049,6 +3658,7 @@ def _coordenador_turma_analise_detalhe(
 
     done_by_aluno: dict[int, int] = {}
     avg_by_aluno: dict[int, float] = {}
+    media_provas_by_aluno: dict[int, float] = {}
     risco_by_aluno: dict[int, str] = {}
 
     if aluno_ids:
@@ -3096,6 +3706,28 @@ def _coordenador_turma_analise_detalhe(
             pq = pq.filter(ProgressoH5P.atividade_id.in_(act_ids))
         media_prof_turma = round(float(pq.scalar() or 0), 1)
 
+    media_provas_turma = 0.0
+    if aluno_ids:
+        notas_rows = (
+            db.query(
+                RespostaAluno.aluno_id,
+                func.count(RespostaAluno.id).label("total"),
+                func.sum(case((RespostaAluno.acertou.is_(True), 1), else_=0)).label("acertos"),
+            )
+            .filter(RespostaAluno.aluno_id.in_(aluno_ids))
+            .group_by(RespostaAluno.aluno_id)
+            .all()
+        )
+        notas: list[float] = []
+        for aid, total, acertos in notas_rows:
+            total_n = int(total or 0)
+            acertos_n = int(acertos or 0)
+            media = round((acertos_n / total_n) * 10.0, 2) if total_n else 0.0
+            media_provas_by_aluno[int(aid)] = media
+            if total_n:
+                notas.append(media)
+        media_provas_turma = round(sum(notas) / len(notas), 2) if notas else 0.0
+
     alunos_out: list[dict] = []
     for aid, nome in aluno_rows:
         nome_s = (nome or "").strip() or "—"
@@ -3132,7 +3764,7 @@ def _coordenador_turma_analise_detalhe(
                 "aluno_id": aid,
                 "nome": nome_s,
                 "adesao_pct": adesao,
-                "proficiencia": prof_m,
+                "media_provas": media_provas_by_aluno.get(aid, 0.0),
                 "status": st,
                 "nivel_risco": risco,
                 "concluidas": done_by_aluno.get(aid, 0),
@@ -3221,6 +3853,7 @@ def _coordenador_turma_analise_detalhe(
         "n_alunos_filtrados": len(alunos_out),
         "adesao_turma_pct": adesao_turma_pct,
         "media_proficiencia_turma": media_prof_turma,
+        "media_provas_turma": media_provas_turma,
         "status_turma": status_turma,
         "atividades_criticas": atividades_criticas,
         "alunos": alunos_out,

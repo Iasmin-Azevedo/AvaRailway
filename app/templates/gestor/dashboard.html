@@ -82,6 +82,31 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-6">
+        <div class="card dash-card border-start border-success border-4 h-100">
+            <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h2 class="h6 fw-bold text-mj-dark mb-1">Desempenho institucional</h2>
+                    <p class="small text-mj-muted mb-0">Acompanhe participação e desempenho das provas aplicadas na rede e nas escolas vinculadas.</p>
+                </div>
+                <a href="/gestor/avaliacoes-institucionais" class="btn btn-mj-outline rounded-pill">Abrir</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="card dash-card border-start border-warning border-4 h-100">
+            <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h2 class="h6 fw-bold text-mj-dark mb-1">Formação BNCC</h2>
+                    <p class="small text-mj-muted mb-0">Use os cursos Moodle e a formação continuada como devolutiva pedagógica da rede.</p>
+                </div>
+                <a href="/gestor/moodle/cursos" class="btn btn-mj-outline rounded-pill">Abrir</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4">
     <div class="col-12 col-lg-8">
         <div class="card dash-card h-100">
@@ -130,7 +155,7 @@
                 </div>
                 <p class="small text-light opacity-75 mb-0">
                     {% if descritores_resumo and descritores_resumo|length > 0 %}
-                    Descritores com menor taxa de conclusão na rede (amostra): <strong>{{ descritores_resumo[0].codigo }}</strong> — {{ descritores_resumo[0].taxa_pct }}% dos alunos com ao menos uma atividade concluída neste descritor.
+                    Descritores com menor engajamento na rede (amostra): <strong>{{ descritores_resumo[0].codigo }}</strong> — {{ descritores_resumo[0].engajamento_pct|default(0) }}% com atividades H5P concluídas · Prova: {{ descritores_resumo[0].desempenho_score_10 if descritores_resumo[0].desempenho_score_10 is not none else '—' }}/10.
                     {% else %}
                     Cadastre descritores nas atividades H5P para ver indicadores agregados aqui.
                     {% endif %}
@@ -171,13 +196,13 @@
                 {% if descritores_chart %}
                 <div class="row text-center small">
                     {% for d in descritores_chart %}
-                    {% set pct = d.taxa_pct|default(0)|int %}
+                    {% set pct = d.engajamento_pct|default(0)|int %}
                     <div class="col">
                         <p class="mb-1 text-muted text-truncate" title="{{ d.codigo }} - {{ d.descricao }}">{{ d.codigo }}</p>
                         <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
                             <div class="progress-bar {% if pct < 45 %}bg-danger{% elif pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="height: {{ pct }}%"></div>
                         </div>
-                        <span class="fw-bold">{{ pct }}%</span>
+                        <span class="fw-bold">{{ pct }}% · {{ d.desempenho_score_10 if d.desempenho_score_10 is not none else '—' }}/10</span>
                     </div>
                     {% endfor %}
                 </div>

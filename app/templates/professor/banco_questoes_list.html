@@ -1,0 +1,180 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}Banco de Questões{% endblock %}
+{% block offcanvas_links %}{% include "professor/partials/professor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1">Banco de questões</h2>
+        <p class="text-muted mb-0">Cadastre questões reutilizáveis, filtre o banco e visualize o item completo antes de usar em uma prova.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/professor/provas" class="btn btn-mj-outline rounded-pill">Ver provas</a>
+        <a href="/professor/aplicacoes-prova" class="btn btn-mj-outline rounded-pill">Ver aplicações</a>
+        <a href="/professor/banco-questoes/nova" class="btn btn-mj rounded-pill">Nova questão</a>
+    </div>
+</div>
+
+{% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+{% if flash_ok == "banco" %}<div class="alert alert-success">Questão salva no banco com sucesso.</div>{% endif %}
+{% if flash_ok == "editado" %}<div class="alert alert-success">Questão atualizada com sucesso.</div>{% endif %}
+{% if flash_ok == "deletado" %}<div class="alert alert-success">Questão removida do banco com sucesso.</div>{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Minhas questões</span><div class="dash-stat-value">{{ stats.total_questoes }}</div></div></div>
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Usadas em provas</span><div class="dash-stat-value">{{ stats.questoes_em_provas }}</div></div></div>
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Resultado do filtro</span><div class="dash-stat-value">{{ stats.total_filtrado }}</div></div></div>
+</div>
+
+<div class="card dash-card border-0 mb-4">
+    <div class="card-body">
+        <form method="get" action="/professor/banco-questoes" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Buscar por enunciado</label>
+                <input class="form-control" type="text" name="q" value="{{ filters.q }}" placeholder="Buscar por enunciado">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Tipo</label>
+                <select class="form-select" name="tipo_questao">
+                    <option value="">Todos</option>
+                    <option value="multipla_escolha" {% if filters.tipo_questao == "multipla_escolha" %}selected{% endif %}>Múltipla escolha</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Disciplina</label>
+                <select class="form-select" name="curso_id" id="curso_id_filter">
+                    <option value="">Todas</option>
+                    {% for curso in cursos %}
+                    <option value="{{ curso.id }}" {% if filters.curso_id == curso.id %}selected{% endif %}>{{ curso.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">Ano</label>
+                <select class="form-select" name="ano_escolar" id="ano_escolar_filter">
+                    <option value="">Todos</option>
+                    {% for year in school_years %}
+                    <option value="{{ year }}" {% if filters.ano_escolar == year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Descritor</label>
+                <select class="form-select" name="descritor_id" id="descritor_id_filter">
+                    <option value="">Todos</option>
+                    {% for descritor in descritores %}
+                    <option value="{{ descritor.id }}" data-disciplina="{{ descritor.disciplina }}" data-ano-escolar="{{ descritor.ano_escolar or '' }}" {% if filters.descritor_id == descritor.id %}selected{% endif %}>{{ descritor.codigo }} - {{ descritor.descricao }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Conteúdo</label>
+                <input class="form-control" type="text" name="conteudo" value="{{ filters.conteudo }}" placeholder="Ex.: Frações, leitura, geometria">
+            </div>
+            <div class="col-md-8 d-flex justify-content-end gap-2">
+                <a href="/professor/banco-questoes" class="btn btn-mj-outline rounded-pill">Limpar filtros</a>
+                <button class="btn btn-mj rounded-pill" type="submit">Aplicar filtros</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    {% for item in questoes %}
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between gap-3 mb-2">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <span class="badge bg-info-subtle text-info-emphasis">{{ item.curso.nome if item.curso else "Sem disciplina" }}</span>
+                        <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ item.tipo_questao|replace("_", " ")|title }}</span>
+                        {% if item.ano_escolar %}<span class="badge bg-warning-subtle text-warning-emphasis">{{ item.ano_escolar }}º ano</span>{% endif %}
+                        {% if item.descritor %}<span class="badge bg-success-subtle text-success-emphasis">{{ item.descritor.codigo }}</span>{% endif %}
+                        {% if item.conteudo %}<span class="badge bg-light text-dark border">{{ item.conteudo }}</span>{% endif %}
+                    </div>
+                </div>
+                <div class="mb-2 text-dark">{{ item.enunciado|striptags|truncate(220) }}</div>
+                <div class="small text-muted mb-3">Gabarito: {{ item.gabarito }}{% if item.habilidade_saeb %} • {{ item.habilidade_saeb }}{% endif %}</div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-sm btn-mj-outline rounded-pill" type="button" data-bs-toggle="modal" data-bs-target="#modalQuestao{{ item.id }}">Ver questão</button>
+                    <a href="/professor/banco-questoes/{{ item.id }}/editar" class="btn btn-sm btn-mj-outline rounded-pill">Editar</a>
+                    <form method="post" action="/professor/banco-questoes/{{ item.id }}/deletar" class="d-inline">
+                        <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit" onclick="return confirm('Deseja excluir esta questão do banco?');">Excluir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalQuestao{{ item.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Questão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex gap-2 flex-wrap mb-3">
+                        <span class="badge bg-info-subtle text-info-emphasis">{{ item.curso.nome if item.curso else "Sem disciplina" }}</span>
+                        {% if item.descritor %}<span class="badge bg-success-subtle text-success-emphasis">{{ item.descritor.codigo }} - {{ item.descritor.descricao }}</span>{% endif %}
+                        {% if item.conteudo %}<span class="badge bg-light text-dark border">{{ item.conteudo }}</span>{% endif %}
+                    </div>
+                    <div class="mb-4">{{ item.enunciado|safe }}</div>
+                    <ol class="list-group list-group-numbered">
+                        <li class="list-group-item">A. {{ item.alternativa_a }}</li>
+                        <li class="list-group-item">B. {{ item.alternativa_b }}</li>
+                        <li class="list-group-item">C. {{ item.alternativa_c }}</li>
+                        <li class="list-group-item">D. {{ item.alternativa_d }}</li>
+                        <li class="list-group-item">E. {{ item.alternativa_e }}</li>
+                    </ol>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <span class="badge bg-success">Gabarito {{ item.gabarito }}</span>
+                    <button type="button" class="btn btn-mj-outline rounded-pill" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card dash-card border-0">
+            <div class="card-body py-5 text-center text-muted">Nenhuma questão encontrada com os filtros informados.</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+    (function () {
+        var cursoSelect = document.getElementById('curso_id_filter');
+        var anoSelect = document.getElementById('ano_escolar_filter');
+        var descritorSelect = document.getElementById('descritor_id_filter');
+        if (!cursoSelect || !anoSelect || !descritorSelect) return;
+
+        function filtrarDescritores() {
+            var cursoTexto = '';
+            if (cursoSelect.selectedIndex >= 0) {
+                cursoTexto = (cursoSelect.options[cursoSelect.selectedIndex].text || '').trim();
+            }
+            var ano = (anoSelect.value || '').trim();
+            Array.prototype.forEach.call(descritorSelect.options, function (option, index) {
+                if (index === 0) {
+                    option.hidden = false;
+                    return;
+                }
+                var matchesDisciplina = !cursoTexto || (option.dataset.disciplina || '') === cursoTexto;
+                var matchesAno = !ano || (option.dataset.anoEscolar || '') === ano;
+                option.hidden = !(matchesDisciplina && matchesAno);
+            });
+            var selected = descritorSelect.options[descritorSelect.selectedIndex];
+            if (selected && selected.hidden) {
+                descritorSelect.value = '';
+            }
+        }
+
+        cursoSelect.addEventListener('change', filtrarDescritores);
+        anoSelect.addEventListener('change', filtrarDescritores);
+        filtrarDescritores();
+    })();
+</script>
+{% endblock %}

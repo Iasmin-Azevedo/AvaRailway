@@ -6,6 +6,7 @@ from app.models.h5p import ProgressoH5P, AtividadeH5P
 from app.models.user import Usuario, UserRole
 from app.models.resposta import RespostaAluno
 from app.core.gamification_rules import get_level_progress as get_level_progress_by_rules
+from app.services.avaliacao_service import AvaliacaoService
 
 
 class DashboardService:
@@ -13,15 +14,29 @@ class DashboardService:
     def get_level_progress(xp_total: int) -> dict:
         return get_level_progress_by_rules(xp_total)
 
-    def get_gestor_stats(self, db: Session) -> dict:
-        n_escolas = db.query(Escola).filter(Escola.ativo == True).count()
-        n_turmas = db.query(Turma).count()
-        n_alunos = db.query(Aluno).count()
-        alunos_risco = db.query(Aluno).filter(Aluno.nivel_risco != "BAIXO").count()
+    def get_gestor_stats(self, db: Session, escola_ids: list[int] | None = None) -> dict:
+        escola_ids = list(escola_ids or [])
+        q_escolas = db.query(Escola).filter(Escola.ativo == True)
+        q_turmas = db.query(Turma)
+        q_alunos = db.query(Aluno)
+        if escola_ids:
+            q_escolas = q_escolas.filter(Escola.id.in_(escola_ids))
+            q_turmas = q_turmas.filter(Turma.escola_id.in_(escola_ids))
+            q_alunos = q_alunos.join(Turma, Aluno.turma_id == Turma.id).filter(Turma.escola_id.in_(escola_ids))
+        n_escolas = q_escolas.count()
+        n_turmas = q_turmas.count()
+        n_alunos = q_alunos.count()
+        alunos_risco = q_alunos.filter(Aluno.nivel_risco != "BAIXO").count()
         pct_risco = round((alunos_risco / n_alunos * 100), 1) if n_alunos else 0
-        total_respostas = db.query(RespostaAluno).count()
-        total_acertos = db.query(RespostaAluno).filter(RespostaAluno.acertou == True).count()
-        media_geral = round((total_acertos / total_respostas * 10), 1) if total_respostas else 0
+        consolidado = AvaliacaoService().consolidado_desempenho(
+            db,
+            escola_ids=escola_ids if escola_ids else None,
+        )
+        total_respostas = consolidado.get("total_respostas", 0)
+        total_acertos = consolidado.get("total_acertos", 0)
+        media_geral = consolidado.get("nota_geral", 0) if consolidado.get("elegiveis", 0) else (
+            round((total_acertos / total_respostas * 10), 1) if total_respostas else 0
+        )
         n_professores = db.query(Usuario).filter(Usuario.role == UserRole.PROFESSOR, Usuario.ativo == True).count()
         return {
             "projecao_ideb": 5.4,
@@ -59,14 +74,12 @@ class DashboardService:
         if n_alunos and total_atividades:
             adesao_escolar_pct = round(min(100.0, (concluidas / (n_alunos * total_atividades)) * 100), 1)
 
-        total_respostas_q = db.query(RespostaAluno)
-        total_acertos_q = db.query(RespostaAluno).filter(RespostaAluno.acertou == True)
-        if aluno_ids:
-            total_respostas_q = total_respostas_q.filter(RespostaAluno.aluno_id.in_(aluno_ids))
-            total_acertos_q = total_acertos_q.filter(RespostaAluno.aluno_id.in_(aluno_ids))
-        total_respostas = total_respostas_q.count()
-        total_acertos = total_acertos_q.count()
-        media_proficiencia = round((total_acertos / total_respostas * 210), 1) if total_respostas else 0
+        consolidado = AvaliacaoService().consolidado_desempenho(db, escola_ids=[escola_id] if escola_id else None)
+        total_respostas = consolidado.get("total_respostas", 0)
+        total_acertos = consolidado.get("total_acertos", 0)
+        media_proficiencia = round((float(consolidado.get("nota_geral", 0)) / 10) * 210, 1) if consolidado.get("elegiveis", 0) else (
+            round((total_acertos / total_respostas * 210), 1) if total_respostas else 0
+        )
 
         alunos_risco = q_alunos.filter(Aluno.nivel_risco != "BAIXO").count()
         turmas_alerta = 0
@@ -114,12 +127,15 @@ class DashboardService:
             "kpi_chart_chat": max(0, min(100, int(round((interacoes_chatbot / max(1, n_alunos * 10)) * 100)))) if n_alunos else 0,
         }
 
-    def get_professor_stats(self, db: Session) -> dict:
+    def get_professor_stats(self, db: Session, professor_user_id: int | None = None) -> dict:
         n_turmas = db.query(Turma).count()
         n_alunos = db.query(Aluno).count()
-        total_respostas = db.query(RespostaAluno).count()
-        total_acertos = db.query(RespostaAluno).filter(RespostaAluno.acertou == True).count()
-        proficiencia_pct = round((total_acertos / total_respostas * 100), 0) if total_respostas else 0
+        consolidado = AvaliacaoService().consolidado_desempenho(db, professor_user_id=professor_user_id)
+        total_respostas = consolidado.get("total_respostas", 0)
+        total_acertos = consolidado.get("total_acertos", 0)
+        proficiencia_pct = round((float(consolidado.get("nota_geral", 0)) / 10) * 100, 0) if consolidado.get("elegiveis", 0) else (
+            round((total_acertos / total_respostas * 100), 0) if total_respostas else 0
+        )
         alunos_risco = db.query(Aluno).filter(Aluno.nivel_risco != "BAIXO").count()
         return {
             "proficiencia_turma_pct": proficiencia_pct,

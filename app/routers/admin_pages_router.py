@@ -11,9 +11,10 @@ import zipfile
 import uuid
 
 from app.core.database import get_db
+from app.core.catalogs import SCHOOL_YEARS
 from app.core.config import settings
 from app.core.dependencies import require_admin_redirect
-from app.models.user import Usuario, UserRole
+from app.models.user import AdminScope, TeacherRole, Usuario, UserRole
 from app.models.relacoes import ProfessorTurma, GestorEscola, CoordenadorEscola
 from app.repositories.gestao_repository import (
     EscolaRepository,
@@ -28,6 +29,7 @@ from app.repositories.aluno_repository import AlunoRepository
 from app.models.aluno import Aluno
 from app.models.gestao import Trilha
 from app.models.h5p import AtividadeH5P
+from app.services.audit_service import AuditService
 from app.services.h5p_upload_service import save_h5p_upload
 
 router = APIRouter()
@@ -298,7 +300,7 @@ def turmas_nova(
     return templates.TemplateResponse(
         request,
         "admin/turma_form.html",
-        {"request": request, "turma": None, "escolas": escolas},
+        {"request": request, "turma": None, "escolas": escolas, "school_years": SCHOOL_YEARS},
     )
 
 
@@ -316,7 +318,7 @@ def turmas_editar(
     return templates.TemplateResponse(
         request,
         "admin/turma_form.html",
-        {"request": request, "turma": turma, "escolas": escolas},
+        {"request": request, "turma": turma, "escolas": escolas, "school_years": SCHOOL_YEARS},
     )
 
 
@@ -325,13 +327,19 @@ def turmas_criar(
     request: Request,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin_redirect),
-    nome: str = Form(...),
+    sigla: Optional[str] = Form(None),
     ano_escolar: int = Form(...),
     escola_id: int = Form(...),
     ano_letivo: Optional[str] = Form(None),
 ):
     from app.schemas.gestao_schema import TurmaCreate
-    data = TurmaCreate(nome=nome, ano_escolar=ano_escolar, escola_id=escola_id, ano_letivo=ano_letivo)
+    data = TurmaCreate(
+        nome=TurmaRepository.build_nome(ano_escolar, sigla),
+        sigla=(sigla or "").strip().upper(),
+        ano_escolar=ano_escolar,
+        escola_id=escola_id,
+        ano_letivo=ano_letivo,
+    )
     TurmaRepository().create(db, data)
     return RedirectResponse(url="/admin/turmas", status_code=303)
 
@@ -342,13 +350,19 @@ def turmas_atualizar(
     id: int,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin_redirect),
-    nome: str = Form(...),
+    sigla: Optional[str] = Form(None),
     ano_escolar: int = Form(...),
     escola_id: int = Form(...),
     ano_letivo: Optional[str] = Form(None),
 ):
     from app.schemas.gestao_schema import TurmaUpdate
-    data = TurmaUpdate(nome=nome, ano_escolar=ano_escolar, escola_id=escola_id, ano_letivo=ano_letivo)
+    data = TurmaUpdate(
+        nome=TurmaRepository.build_nome(ano_escolar, sigla),
+        sigla=(sigla or "").strip().upper(),
+        ano_escolar=ano_escolar,
+        escola_id=escola_id,
+        ano_letivo=ano_letivo,
+    )
     if not TurmaRepository().update(db, id, data):
         return RedirectResponse(url="/admin/turmas", status_code=302)
     return RedirectResponse(url="/admin/turmas", status_code=303)
@@ -383,7 +397,7 @@ def cursos_list(
     return templates.TemplateResponse(
         request,
         "admin/cursos_list.html",
-        {"request": request, "cursos": cursos},
+        {"request": request, "cursos": cursos, "disciplinas_padrao": [c.nome for c in cursos]},
     )
 
 
@@ -487,7 +501,7 @@ def trilhas_nova(
     return templates.TemplateResponse(
         request,
         "admin/trilha_form.html",
-        {"request": request, "trilha": None, "cursos": cursos},
+        {"request": request, "trilha": None, "cursos": cursos, "school_years": SCHOOL_YEARS},
     )
 
 
@@ -505,7 +519,7 @@ def trilhas_editar(
     return templates.TemplateResponse(
         request,
         "admin/trilha_form.html",
-        {"request": request, "trilha": trilha, "cursos": cursos},
+        {"request": request, "trilha": trilha, "cursos": cursos, "school_years": SCHOOL_YEARS},
     )
 
 
@@ -517,11 +531,18 @@ def trilhas_criar(
     nome: str = Form(...),
     curso_id: int = Form(...),
     ano_escolar: Optional[str] = Form(None),
+    semestre: Optional[str] = Form(None),
     ordem: int = Form(0),
 ):
     from app.schemas.gestao_schema import TrilhaCreate
     ano_int = int(ano_escolar) if ano_escolar and ano_escolar.strip() else None
-    data = TrilhaCreate(nome=nome, curso_id=curso_id, ano_escolar=ano_int, ordem=ordem)
+    data = TrilhaCreate(
+        nome=nome,
+        curso_id=curso_id,
+        ano_escolar=ano_int,
+        semestre=(semestre or "").strip() or None,
+        ordem=ordem,
+    )
     TrilhaRepository().create(db, data)
     return RedirectResponse(url="/admin/trilhas", status_code=303)
 
@@ -535,11 +556,18 @@ def trilhas_atualizar(
     nome: str = Form(...),
     curso_id: int = Form(...),
     ano_escolar: Optional[str] = Form(None),
+    semestre: Optional[str] = Form(None),
     ordem: int = Form(0),
 ):
     from app.schemas.gestao_schema import TrilhaUpdate
     ano_int = int(ano_escolar) if ano_escolar and ano_escolar.strip() else None
-    data = TrilhaUpdate(nome=nome, curso_id=curso_id, ano_escolar=ano_int, ordem=ordem)
+    data = TrilhaUpdate(
+        nome=nome,
+        curso_id=curso_id,
+        ano_escolar=ano_int,
+        semestre=(semestre or "").strip() or None,
+        ordem=ordem,
+    )
     if not TrilhaRepository().update(db, id, data):
         return RedirectResponse(url="/admin/trilhas", status_code=302)
     return RedirectResponse(url="/admin/trilhas", status_code=303)
@@ -570,12 +598,21 @@ def descritores_list(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin_redirect),
     disciplina: Optional[str] = None,
+    ano_escolar: Optional[str] = None,
 ):
-    descritores = DescritorRepository().listar(db, disciplina=disciplina)
+    ano_escolar_int = int(ano_escolar) if ano_escolar and str(ano_escolar).strip() else None
+    descritores = DescritorRepository().listar(db, disciplina=disciplina, ano_escolar=ano_escolar_int)
     return templates.TemplateResponse(
         request,
         "admin/descritores_list.html",
-        {"request": request, "descritores": descritores},
+        {
+            "request": request,
+            "descritores": descritores,
+            "cursos": CursoRepository().listar(db),
+            "school_years": SCHOOL_YEARS,
+            "selected_disciplina": disciplina,
+            "selected_ano_escolar": ano_escolar_int,
+        },
     )
 
 
@@ -588,7 +625,7 @@ def descritores_novo(
     return templates.TemplateResponse(
         request,
         "admin/descritor_form.html",
-        {"request": request, "descritor": None},
+        {"request": request, "descritor": None, "cursos": CursoRepository().listar(db), "school_years": SCHOOL_YEARS},
     )
 
 
@@ -605,7 +642,7 @@ def descritores_editar(
     return templates.TemplateResponse(
         request,
         "admin/descritor_form.html",
-        {"request": request, "descritor": descritor},
+        {"request": request, "descritor": descritor, "cursos": CursoRepository().listar(db), "school_years": SCHOOL_YEARS},
     )
 
 
@@ -617,8 +654,9 @@ def descritores_criar(
     codigo: str = Form(...),
     descricao: str = Form(...),
     disciplina: str = Form(...),
+    ano_escolar: int = Form(...),
 ):
-    DescritorRepository().create(db, codigo, descricao, disciplina)
+    DescritorRepository().create(db, codigo, descricao, disciplina, ano_escolar)
     return RedirectResponse(url="/admin/descritores", status_code=303)
 
 
@@ -631,10 +669,11 @@ def descritores_atualizar(
     codigo: str = Form(...),
     descricao: str = Form(...),
     disciplina: str = Form(...),
+    ano_escolar: int = Form(...),
 ):
     from app.schemas.saeb_schema import DescritorUpdate
-    data = DescritorUpdate(codigo=codigo, descricao=descricao, disciplina=disciplina)
-    if not DescritorRepository().update(db, id, data.codigo, data.descricao, data.disciplina):
+    data = DescritorUpdate(codigo=codigo, descricao=descricao, disciplina=disciplina, ano_escolar=ano_escolar)
+    if not DescritorRepository().update(db, id, data.codigo, data.descricao, data.disciplina, data.ano_escolar):
         return RedirectResponse(url="/admin/descritores", status_code=302)
     return RedirectResponse(url="/admin/descritores", status_code=303)
 
@@ -726,11 +765,47 @@ def _set_aluno_turma(db: Session, usuario_id: int, turma_id_raw: Optional[str], 
     db.commit()
 
 
+@router.get("/administracao-plataforma")
+def administracao_plataforma(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin_redirect),
+):
+    from app.models.support_ticket import SupportTicket
+
+    usuarios_total = len(UserRepository().listar(db, ativo_only=False))
+    escolas_total = len(EscolaRepository().listar(db, ativo_only=False))
+    turmas_total = len(TurmaRepository().listar(db))
+    cursos_total = len(CursoRepository().listar(db))
+    trilhas_total = len(TrilhaRepository().listar(db))
+    descritores_total = len(DescritorRepository().listar(db))
+    atividades_h5p_total = len(AtividadeH5PRepository().listar(db))
+    tickets_abertos_total = db.query(SupportTicket).filter(SupportTicket.status == "aberto").count()
+
+    return templates.TemplateResponse(
+        request,
+        "admin/administracao_plataforma.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "usuarios_total": usuarios_total,
+            "escolas_total": escolas_total,
+            "turmas_total": turmas_total,
+            "cursos_total": cursos_total,
+            "trilhas_total": trilhas_total,
+            "descritores_total": descritores_total,
+            "atividades_h5p_total": atividades_h5p_total,
+            "tickets_abertos_total": tickets_abertos_total,
+        },
+    )
+
+
 @router.get("/usuarios")
 def usuarios_list(
     request: Request,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin_redirect),
+    q: Optional[str] = None,
     role: Optional[str] = None,
 ):
     role_enum = None
@@ -739,11 +814,22 @@ def usuarios_list(
             role_enum = UserRole(role)
         except ValueError:
             pass
-    usuarios = UserRepository().listar(db, role=role_enum, ativo_only=False)
+    usuarios = UserRepository().listar(
+        db,
+        role=role_enum,
+        search=q,
+        ativo_only=False,
+    )
     return templates.TemplateResponse(
         request,
         "admin/usuarios_list.html",
-        {"request": request, "usuarios": usuarios},
+        {
+            "request": request,
+            "usuarios": usuarios,
+            "roles": list(UserRole),
+            "search_query": (q or "").strip(),
+            "selected_role": role,
+        },
     )
 
 
@@ -771,6 +857,10 @@ def usuarios_novo(
             "aluno_escola_id": None,
             "aluno_ano": None,
             "permite_cadastro_trilha_geral": False,
+            "teacher_roles": list(TeacherRole),
+            "admin_scopes": list(AdminScope),
+            "funcao_docente": None,
+            "escopo_administrativo": AdminScope.SECRETARIA_SME,
         },
     )
 
@@ -821,6 +911,10 @@ def usuarios_editar(
             "aluno_escola_id": aluno_escola_id,
             "aluno_ano": aluno_ano,
             "permite_cadastro_trilha_geral": bool(getattr(usuario, "permite_cadastro_trilha_geral", False)),
+            "teacher_roles": list(TeacherRole),
+            "admin_scopes": list(AdminScope),
+            "funcao_docente": getattr(usuario, "funcao_docente", None),
+            "escopo_administrativo": getattr(usuario, "escopo_administrativo", None),
         },
     )
 
@@ -842,12 +936,26 @@ async def usuarios_criar(
     gestor_escolas_raw = form.getlist("gestor_escolas")
     coordenador_escola_raw = form.get("coordenador_escola")
     permite_cadastro_trilha_geral = (form.get("permite_cadastro_trilha_geral") or "").lower() == "true"
+    funcao_docente_raw = (form.get("funcao_docente") or "").strip()
+    escopo_administrativo_raw = (form.get("escopo_administrativo") or "").strip()
     from app.schemas.user_schema import UserCreate
 
     try:
         role_enum = UserRole(role)
     except ValueError:
         role_enum = UserRole.ALUNO
+    try:
+        funcao_docente = TeacherRole(funcao_docente_raw) if funcao_docente_raw else None
+    except ValueError:
+        funcao_docente = None
+    try:
+        escopo_administrativo = (
+            AdminScope(escopo_administrativo_raw)
+            if escopo_administrativo_raw
+            else None
+        )
+    except ValueError:
+        escopo_administrativo = None
 
     data = UserCreate(
         nome=nome,
@@ -855,6 +963,12 @@ async def usuarios_criar(
         senha=senha,
         role=role_enum,
         permite_cadastro_trilha_geral=(permite_cadastro_trilha_geral if role_enum == UserRole.PROFESSOR else False),
+        funcao_docente=(funcao_docente if role_enum == UserRole.PROFESSOR else None),
+        escopo_administrativo=(
+            escopo_administrativo or AdminScope.SECRETARIA_SME
+            if role_enum == UserRole.ADMIN
+            else None
+        ),
     )
     try:
         user = UserRepository().create(db, data)
@@ -880,6 +994,17 @@ async def usuarios_criar(
     elif user.role == UserRole.ALUNO:
         _set_aluno_turma(db, user.id, aluno_turma_id, aluno_ano)
 
+    AuditService.log(
+        db,
+        usuario_id=current_user.id if current_user else None,
+        acao="usuario_criado",
+        categoria="admin",
+        entidade="usuario",
+        entidade_id=user.id,
+        detalhes=f"Usuário criado com perfil {user.role.value if user.role else user.role}: {user.nome}",
+        ip=request.client.host if request.client else None,
+    )
+
     return RedirectResponse(url="/admin/usuarios", status_code=303)
 
 
@@ -902,10 +1027,24 @@ async def usuarios_atualizar(
     gestor_escolas_raw = form.getlist("gestor_escolas")
     coordenador_escola_raw = form.get("coordenador_escola")
     permite_cadastro_trilha_geral = (form.get("permite_cadastro_trilha_geral") or "").lower() == "true"
+    funcao_docente_raw = (form.get("funcao_docente") or "").strip()
+    escopo_administrativo_raw = (form.get("escopo_administrativo") or "").strip()
     try:
         role_enum = UserRole(role)
     except ValueError:
         role_enum = UserRole.ALUNO
+    try:
+        funcao_docente = TeacherRole(funcao_docente_raw) if funcao_docente_raw else None
+    except ValueError:
+        funcao_docente = None
+    try:
+        escopo_administrativo = (
+            AdminScope(escopo_administrativo_raw)
+            if escopo_administrativo_raw
+            else None
+        )
+    except ValueError:
+        escopo_administrativo = None
 
     user = UserRepository().update(
         db,
@@ -916,6 +1055,12 @@ async def usuarios_atualizar(
         role=role_enum,
         ativo=(ativo_raw or "").lower() == "true",
         permite_cadastro_trilha_geral=(permite_cadastro_trilha_geral if role_enum == UserRole.PROFESSOR else False),
+        funcao_docente=(funcao_docente if role_enum == UserRole.PROFESSOR else None),
+        escopo_administrativo=(
+            escopo_administrativo or AdminScope.SECRETARIA_SME
+            if role_enum == UserRole.ADMIN
+            else None
+        ),
     )
     if not user:
         return RedirectResponse(url="/admin/usuarios", status_code=302)
@@ -945,6 +1090,17 @@ async def usuarios_atualizar(
     elif user.role == UserRole.ALUNO:
         _set_aluno_turma(db, user.id, aluno_turma_id, aluno_ano)
 
+    AuditService.log(
+        db,
+        usuario_id=current_user.id if current_user else None,
+        acao="usuario_atualizado",
+        categoria="admin",
+        entidade="usuario",
+        entidade_id=user.id,
+        detalhes=f"Usuário atualizado com perfil {user.role.value if user.role else user.role}: {user.nome}",
+        ip=request.client.host if request.client else None,
+    )
+
     return RedirectResponse(url="/admin/usuarios", status_code=303)
 
 
@@ -959,6 +1115,15 @@ def usuarios_toggle_trilha_geral(
         return RedirectResponse(url="/admin/usuarios", status_code=302)
     novo_valor = not bool(getattr(user, "permite_cadastro_trilha_geral", False))
     UserRepository().update(db, id, permite_cadastro_trilha_geral=novo_valor)
+    AuditService.log(
+        db,
+        usuario_id=current_user.id if current_user else None,
+        acao="trilha_geral_toggle",
+        categoria="admin",
+        entidade="usuario",
+        entidade_id=id,
+        detalhes=f"Permissão de trilha geral alterada para {novo_valor}",
+    )
     return RedirectResponse(url="/admin/usuarios", status_code=303)
 
 
@@ -993,6 +1158,15 @@ def usuarios_deletar(
 
         if not UserRepository().delete(db, id):
             return RedirectResponse(url="/admin/usuarios", status_code=302)
+        AuditService.log(
+            db,
+            usuario_id=current_user.id if current_user else None,
+            acao="usuario_deletado",
+            categoria="admin",
+            entidade="usuario",
+            entidade_id=id,
+            detalhes=f"Usuário removido: {user.nome}",
+        )
     except IntegrityError:
         db.rollback()
         return RedirectResponse(url="/admin/usuarios?erro=vinculos", status_code=303)

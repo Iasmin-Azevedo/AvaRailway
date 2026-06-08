@@ -65,6 +65,7 @@
               <tr>
                 <th class="ps-4">Pergunta (texto enviado)</th>
                 <th class="text-end pe-4" style="width: 7rem;">Vezes</th>
+                <th class="text-end pe-4" style="width: 4rem;"></th>
               </tr>
             </thead>
             <tbody>
@@ -72,6 +73,16 @@
               <tr>
                 <td class="ps-4 text-break">{{ d.texto }}</td>
                 <td class="text-end pe-4"><span class="badge rounded-pill bg-secondary">{{ d.vezes }}×</span></td>
+                <td class="text-end pe-4">
+                  <form method="post" action="/professor/chat-duvidas/perguntas/excluir" class="d-inline">
+                    <input type="hidden" name="texto" value="{{ d.texto }}">
+                    <input type="hidden" name="tab" value="perguntas">
+                    <input type="hidden" name="turma_id" value="{{ request.query_params.get('turma_id') or (selected_turma_id if selected_turma_id is not none else 'all') }}">
+                    <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Excluir item" onclick="return confirm('Excluir esta pergunta frequente da lista?')">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </form>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -100,16 +111,23 @@
           <div class="list-group-item p-4">
             <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
               <div class="fw-bold text-dark">{{ item.assunto }}</div>
-              {% set status_value = (item.status or '')|lower %}
-              {% if status_value == 'pendente' %}
-              <span class="badge rounded-pill bg-warning text-dark">Pendente</span>
-              {% elif status_value == 'em_analise' or status_value == 'em_andamento' %}
-              <span class="badge rounded-pill bg-info text-dark">Em análise</span>
-              {% elif status_value == 'respondida' or status_value == 'resolvida' or status_value == 'concluida' %}
-              <span class="badge rounded-pill bg-success text-white">Respondida</span>
-              {% else %}
-              <span class="badge rounded-pill bg-secondary text-white">Em andamento</span>
-              {% endif %}
+              <div class="d-flex align-items-center gap-2">
+                {% set status_value = (item.status or '')|lower %}
+                {% if status_value == 'pendente' %}
+                <span class="badge rounded-pill bg-warning text-dark">Pendente</span>
+                {% elif status_value == 'em_analise' or status_value == 'em_andamento' %}
+                <span class="badge rounded-pill bg-info text-dark">Em análise</span>
+                {% elif status_value == 'respondida' or status_value == 'resolvida' or status_value == 'concluida' %}
+                <span class="badge rounded-pill bg-success text-white">Respondida</span>
+                {% else %}
+                <span class="badge rounded-pill bg-secondary text-white">Em andamento</span>
+                {% endif %}
+                <form method="post" action="/professor/chat-duvidas/solicitacoes/{{ item.id }}/deletar?turma_id={{ request.query_params.get('turma_id') or (selected_turma_id if selected_turma_id is not none else 'all') }}&tab=solicitacoes" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Excluir item" onclick="return confirm('Excluir esta solicitação da lista?')">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </form>
+              </div>
             </div>
             <div class="small text-muted mb-3">{{ item.disciplina }} · {{ item.requester.nome if item.requester else 'Aluno' }} · {{ item.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
             <div class="d-flex flex-wrap gap-2">

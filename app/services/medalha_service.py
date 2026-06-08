@@ -409,6 +409,16 @@ class MedalhaService:
         db.commit()
         return True, "", count
 
+    @staticmethod
+    def _iniciais_nome(nome: str | None) -> str:
+        label = (nome or "").strip()
+        partes = label.split()
+        if len(partes) >= 2:
+            return (partes[0][0] + partes[-1][0]).upper()
+        if len(partes) == 1 and len(partes[0]) >= 2:
+            return partes[0][:2].upper()
+        return "AL"
+
     def list_alunos_para_turmas(self, db: Session, turma_ids: list[int]) -> list[dict[str, Any]]:
         if not turma_ids:
             return []
@@ -422,12 +432,15 @@ class MedalhaService:
         )
         out: list[dict[str, Any]] = []
         for a, u, t in rows:
+            label = (u.nome or "").strip() or f"Aluno #{a.id}"
             out.append(
                 {
                     "aluno_id": a.id,
-                    "nome": u.nome,
+                    "nome": label,
                     "turma_id": t.id,
                     "turma_nome": t.nome,
+                    "avatar_url": (u.avatar_url or "").strip(),
+                    "iniciais": self._iniciais_nome(label),
                 }
             )
         return out
@@ -650,22 +663,42 @@ class MedalhaService:
             "alunos_impactados": int(len(manual_impactados_ids | auto_impactados_ids)),
         }
 
-        ranking_map: dict[str, int] = {}
+        ranking_map: dict[int, dict[str, Any]] = {}
         if envio_ids:
             ranking_rows = (
-                db.query(Usuario.nome, func.count(AlunoMedalha.id).label("total"))
-                .join(Aluno, Aluno.usuario_id == Usuario.id)
+                db.query(
+                    Aluno.id,
+                    Usuario.nome,
+                    Usuario.avatar_url,
+                    func.count(AlunoMedalha.id).label("total"),
+                )
+                .join(Usuario, Aluno.usuario_id == Usuario.id)
                 .join(AlunoMedalha, AlunoMedalha.aluno_id == Aluno.id)
                 .filter(AlunoMedalha.envio_id.in_(envio_ids))
-                .group_by(Usuario.nome)
+                .group_by(Aluno.id, Usuario.nome, Usuario.avatar_url)
                 .all()
             )
-            for nome, total in ranking_rows:
-                ranking_map[nome] = ranking_map.get(nome, 0) + int(total or 0)
+            for aluno_id, nome, avatar, total in ranking_rows:
+                row = ranking_map.setdefault(
+                    aluno_id,
+                    {
+                        "aluno_id": aluno_id,
+                        "nome": nome or f"Aluno {aluno_id}",
+                        "avatar_url": (avatar or "").strip(),
+                        "iniciais": self._iniciais_nome(nome),
+                        "total": 0,
+                    },
+                )
+                row["total"] += int(total or 0)
 
         if aluno_ids_scope:
             auto_ranking_rows = (
-                db.query(Usuario.nome, func.count(AlunoMedalhaAutomatica.id).label("total"))
+                db.query(
+                    Aluno.id,
+                    Usuario.nome,
+                    Usuario.avatar_url,
+                    func.count(AlunoMedalhaAutomatica.id).label("total"),
+                )
                 .join(Aluno, Aluno.usuario_id == Usuario.id)
                 .join(AlunoMedalhaAutomatica, AlunoMedalhaAutomatica.aluno_id == Aluno.id)
                 .join(MedalhaTipo, MedalhaTipo.id == AlunoMedalhaAutomatica.medalha_tipo_id)
@@ -675,16 +708,26 @@ class MedalhaService:
                     MedalhaTipo.automatica.is_(True),
                     MedalhaTipo.ativo.is_(True),
                 )
-                .group_by(Usuario.nome)
+                .group_by(Aluno.id, Usuario.nome, Usuario.avatar_url)
                 .all()
             )
-            for nome, total in auto_ranking_rows:
-                ranking_map[nome] = ranking_map.get(nome, 0) + int(total or 0)
+            for aluno_id, nome, avatar, total in auto_ranking_rows:
+                row = ranking_map.setdefault(
+                    aluno_id,
+                    {
+                        "aluno_id": aluno_id,
+                        "nome": nome or f"Aluno {aluno_id}",
+                        "avatar_url": (avatar or "").strip(),
+                        "iniciais": self._iniciais_nome(nome),
+                        "total": 0,
+                    },
+                )
+                row["total"] += int(total or 0)
 
-        ranking_alunos = [
-            {"nome": nome, "total": total}
-            for nome, total in sorted(ranking_map.items(), key=lambda it: (-it[1], it[0]))[:10]
-        ]
+        ranking_alunos = sorted(
+            ranking_map.values(),
+            key=lambda it: (-int(it["total"]), (it["nome"] or "").lower()),
+        )[:10]
 
         dist_map: dict[tuple[str, str, str], int] = {}
         if envio_ids:

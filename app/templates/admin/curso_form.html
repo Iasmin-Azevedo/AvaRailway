@@ -17,7 +17,10 @@
         <form method="post" action="{% if curso %}/admin/cursos/{{ curso.id }}/editar{% else %}/admin/cursos/nova{% endif %}">
             <div class="mb-4">
                 <label class="form-label fw-bold">Nome</label>
-                <input type="text" name="nome" class="form-control rounded-pill" value="{{ curso.nome if curso else '' }}" required placeholder="Ex: Língua Portuguesa, Matemática">
+                <input type="text" name="nome" class="form-control rounded-pill" value="{{ curso.nome if curso else '' }}" required placeholder="Ex: Robótica, Espanhol, Projeto de Vida">
+            </div>
+            <div class="alert alert-light border rounded-4 py-2 small">
+                As matérias padrão do fundamental são mantidas automaticamente. Cadastre aqui apenas novas matérias complementares.
             </div>
             <button type="submit" class="btn btn-mj rounded-pill">Salvar</button>
             <a href="/admin/cursos" class="btn btn-mj-outline rounded-pill ms-2"><i class="fa-solid fa-arrow-left me-1"></i> Voltar à lista</a>

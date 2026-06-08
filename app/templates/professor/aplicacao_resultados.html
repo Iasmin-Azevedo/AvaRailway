@@ -1,0 +1,125 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}Resultados da prova{% endblock %}
+{% block offcanvas_links %}{% include "professor/partials/professor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="mb-4">
+    <a href="{% if modo == 'aplicacao' %}/professor/aplicacoes-prova{% else %}/professor/provas{% endif %}" class="text-mj-primary text-decoration-none small">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+    <a href="/professor/provas/{{ avaliacao.id }}/visualizar" class="text-mj-primary text-decoration-none small ms-3">
+        <i class="fas fa-print me-1"></i> Ver caderno (imprimir)
+    </a>
+    <h2 class="fw-bold text-mj-dark mt-2 mb-1">
+        {% if modo == 'aplicacao' %}
+        {{ aplicacao.titulo or ('Aplicação #' ~ aplicacao.id) }}
+        {% else %}
+        {{ avaliacao.titulo }}
+        {% endif %}
+    </h2>
+    <p class="text-muted mb-0">
+        {{ avaliacao.titulo if modo == 'aplicacao' else (avaliacao.descricao or 'Resultados consolidados da prova') }}
+        {% if modo == 'aplicacao' and aplicacao.turma %} · {{ aplicacao.turma.nome }}{% endif %}
+    </p>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Questões</span><div class="dash-stat-value">{{ questoes_total }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Participantes</span><div class="dash-stat-value">{{ participantes_total }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Respostas</span><div class="dash-stat-value">{{ respostas_total }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Nota média</span><div class="dash-stat-value">{{ resumo.nota_geral|default(0) }}</div></div></div>
+</div>
+
+{% if modo == 'aplicacao' %}
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ aplicacao.status.value if aplicacao.status.value is defined else aplicacao.status }}</span>
+    {% if aplicacao.data_aplicacao %}
+    <span class="badge bg-light text-dark border">{{ aplicacao.data_aplicacao.strftime('%d/%m/%Y') }}</span>
+    {% endif %}
+    {% if aplicacao.periodo_referencia %}
+    <span class="badge bg-warning-subtle text-warning-emphasis">{{ aplicacao.periodo_referencia }}</span>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card dash-card border-0 h-100">
+            <div class="dash-card-header fw-bold">Notas por aluno</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Aluno</th>
+                                <th>Turma</th>
+                                <th class="text-end">Acertos</th>
+                                <th class="text-end">Nota</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in resumo.por_aluno|default([]) %}
+                            <tr>
+                                <td>
+                                    {% with nome=row.aluno, avatar_url=row.avatar_url, iniciais=row.iniciais %}
+                                    {% include "professor/partials/aluno_nome_avatar.html" %}
+                                    {% endwith %}
+                                </td>
+                                <td class="text-muted">{{ row.turma }}</td>
+                                <td class="text-end">{{ row.acertos }} / {{ row.respostas }}</td>
+                                <td class="text-end">{{ row.nota }}</td>
+                                <td>
+                                    {% if row.respostas|default(0) > 0 %}
+                                    <span class="badge bg-success-subtle text-success">Respondeu</span>
+                                    {% else %}
+                                    <span class="badge bg-warning-subtle text-warning">Pendente</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-4">Nenhum participante ou resposta registrada.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card dash-card border-0 mb-4">
+            <div class="dash-card-header fw-bold">Por turma</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light"><tr><th>Turma</th><th class="text-end">Participação</th><th class="text-end">Nota média</th></tr></thead>
+                        <tbody>
+                            {% for row in resumo.por_turma|default([]) %}
+                            <tr><td>{{ row.turma }}</td><td class="text-end">{{ row.participacao_pct|default(row.presentes|default('-')) }}%</td><td class="text-end">{{ row.nota_media|default(row.nota_media|default('-')) }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">Sem consolidação por turma.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="card dash-card border-0">
+            <div class="dash-card-header fw-bold">Por descritor</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light"><tr><th>Descritor</th><th class="text-end">Acertos</th><th class="text-end">Nota média</th></tr></thead>
+                        <tbody>
+                            {% for row in resumo.por_descritor|default([]) %}
+                            <tr><td>{{ row.codigo }}</td><td class="text-end">{{ row.acertos|default('-') }} / {{ row.respostas|default('-') }}</td><td class="text-end">{{ row.nota_media|default('-') }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">Sem consolidação por descritor.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -45,9 +45,13 @@
             <div class="card-body p-0">
                 <div class="list-group list-group-flush small">
                     {% for item in medalhas.ranking_alunos %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span class="fw-semibold text-dark">{{ item.nome }}</span>
-                        <span class="badge bg-mj-primary">{{ item.total }}</span>
+                    <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                        <div class="min-w-0 flex-grow-1">
+                            {% with nome=item.nome, avatar_url=item.avatar_url, iniciais=item.iniciais %}
+                            {% include "professor/partials/aluno_nome_avatar.html" %}
+                            {% endwith %}
+                        </div>
+                        <span class="badge bg-mj-primary flex-shrink-0">{{ item.total }}</span>
                     </div>
                     {% else %}
                     <div class="list-group-item text-muted">Sem dados de medalhas para o escopo atual.</div>

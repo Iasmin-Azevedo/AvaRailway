@@ -1,0 +1,169 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}Banco de Questões e Provas{% endblock %}
+{% block offcanvas_links %}{% include "professor/partials/professor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1">Banco de questões, provas e desempenho</h2>
+        <p class="text-muted mb-0">Monte questões reutilizáveis, organize provas para suas turmas e acompanhe o desempenho por aplicação e descritor.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <form method="get" action="/professor/avaliacao-institucional" class="d-flex gap-2">
+            <select class="form-select" name="avaliacao_id" onchange="this.form.submit()">
+                <option value="">Selecione uma prova</option>
+                {% for a in avaliacoes %}
+                <option value="{{ a.id }}" {% if selected_avaliacao and selected_avaliacao.id == a.id %}selected{% endif %}>{{ a.titulo }}</option>
+                {% endfor %}
+            </select>
+            {% if selected_aplicacao %}<input type="hidden" name="aplicacao_id" value="{{ selected_aplicacao.id }}">{% endif %}
+        </form>
+        <form method="get" action="/professor/avaliacao-institucional" class="d-flex gap-2">
+            {% if selected_avaliacao %}<input type="hidden" name="avaliacao_id" value="{{ selected_avaliacao.id }}">{% endif %}
+            <select class="form-select" name="aplicacao_id" onchange="this.form.submit()">
+                <option value="">Selecione uma aplicação</option>
+                {% for a in aplicacoes %}
+                <option value="{{ a.id }}" {% if selected_aplicacao and selected_aplicacao.id == a.id %}selected{% endif %}>{{ a.titulo or ('Aplicação #' ~ a.id) }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+{% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+{% if flash_ok %}<div class="alert alert-success">Operação concluída com sucesso.</div>{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Participação</span><div class="dash-stat-value">{{ consolidado.participacao_pct|default(0) }}%</div></div></div>
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Turmas atendidas</span><div class="dash-stat-value">{{ turmas_professor|length }}</div></div></div>
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Nota média</span><div class="dash-stat-value">{{ consolidado.nota_geral|default(0) }}</div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">1. Nova questão</div>
+            <div class="card-body">
+                <form method="post" action="/professor/avaliacao-institucional/banco-questoes" class="d-grid gap-2">
+                    <select class="form-select" name="curso_id">
+                        <option value="">Disciplina / curso</option>
+                        {% for curso in cursos %}<option value="{{ curso.id }}">{{ curso.nome }}</option>{% endfor %}
+                    </select>
+                    <input class="form-control" name="ano_escolar" type="number" min="1" max="9" placeholder="Ano escolar">
+                    <select class="form-select" name="descritor_id">
+                        <option value="">Descritor</option>
+                        {% for descritor in descritores %}<option value="{{ descritor.id }}">{{ descritor.codigo }} - {{ descritor.descricao }}</option>{% endfor %}
+                    </select>
+                    <input class="form-control" name="codigo_referencia" placeholder="Código da questão">
+                    <textarea class="form-control" name="enunciado" rows="2" placeholder="Enunciado" required></textarea>
+                    <input class="form-control" name="alternativa_a" placeholder="Alternativa A" required>
+                    <input class="form-control" name="alternativa_b" placeholder="Alternativa B" required>
+                    <input class="form-control" name="alternativa_c" placeholder="Alternativa C" required>
+                    <input class="form-control" name="alternativa_d" placeholder="Alternativa D" required>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <select class="form-select" name="gabarito" required>
+                                <option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                            </select>
+                        </div>
+                        <div class="col-6"><input class="form-control" name="habilidade_saeb" placeholder="Descritor / habilidade"></div>
+                    </div>
+                    <button class="btn btn-mj" type="submit">Salvar no banco</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">2. Nova prova</div>
+            <div class="card-body">
+                <form method="post" action="/professor/avaliacao-institucional/provas" class="d-grid gap-2">
+                    <input class="form-control" name="titulo" placeholder="Título da prova" required>
+                    <input class="form-control" name="codigo" placeholder="Código">
+                    <select class="form-select" name="curso_id">
+                        <option value="">Disciplina / curso</option>
+                        {% for curso in cursos %}<option value="{{ curso.id }}">{{ curso.nome }}</option>{% endfor %}
+                    </select>
+                    <input class="form-control" name="ano_escolar" type="number" min="1" max="9" placeholder="Ano escolar">
+                    <input class="form-control" name="ano_letivo" placeholder="Ano letivo" value="2026">
+                    <textarea class="form-control" name="descricao" rows="2" placeholder="Descrição"></textarea>
+                    <button class="btn btn-mj-outline" type="submit">Criar prova</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">3. Aplicar na turma</div>
+            <div class="card-body">
+                <form method="post" action="/professor/avaliacao-institucional/aplicacoes" class="d-grid gap-2">
+                    <input type="hidden" name="avaliacao_id" value="{{ selected_avaliacao.id if selected_avaliacao else '' }}">
+                    <input class="form-control" name="titulo" placeholder="Nome da aplicação" {% if not selected_avaliacao %}disabled{% endif %}>
+                    <select class="form-select" name="turma_id" {% if not selected_avaliacao %}disabled{% endif %}>
+                        <option value="">Selecione a turma</option>
+                        {% for turma in turmas_professor %}<option value="{{ turma.id }}">{{ turma.nome }}</option>{% endfor %}
+                    </select>
+                    <input class="form-control" name="ano_letivo" placeholder="Ano letivo" value="{{ selected_avaliacao.ano_letivo if selected_avaliacao else '2026' }}" {% if not selected_avaliacao %}disabled{% endif %}>
+                    <input class="form-control" name="periodo_referencia" placeholder="Período / ciclo" {% if not selected_avaliacao %}disabled{% endif %}>
+                    <button class="btn btn-mj-outline" type="submit" {% if not selected_avaliacao %}disabled{% endif %}>Criar aplicação</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Montar prova</div>
+            <div class="card-body">
+                <form method="post" action="/professor/avaliacao-institucional/questoes" class="d-grid gap-2 mb-3">
+                    <input type="hidden" name="avaliacao_id" value="{{ selected_avaliacao.id if selected_avaliacao else '' }}">
+                    <select class="form-select" name="banco_questao_id" {% if not selected_avaliacao %}disabled{% endif %}>
+                        <option value="">Selecione uma questão do banco</option>
+                        {% for item in banco_questoes %}
+                        <option value="{{ item.id }}">{{ item.codigo_referencia or ('Q' ~ item.id) }} - {{ item.enunciado[:60] }}</option>
+                        {% endfor %}
+                    </select>
+                    <input class="form-control" name="numero" type="number" min="1" placeholder="Número na prova" {% if not selected_avaliacao %}disabled{% endif %}>
+                    <input class="form-control" name="peso" type="number" step="0.5" min="0" value="1" {% if not selected_avaliacao %}disabled{% endif %}>
+                    <button class="btn btn-mj-outline" type="submit" {% if not selected_avaliacao %}disabled{% endif %}>Anexar item</button>
+                </form>
+                <div class="small text-muted">As questões ficam no seu banco autoral e podem ser reaproveitadas em novas provas.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Desempenho das suas turmas</div>
+            <div class="card-body">
+                <h6 class="fw-bold">Por turma</h6>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light"><tr><th>Turma</th><th>Participação</th><th>Nota média</th></tr></thead>
+                        <tbody>
+                            {% for row in consolidado.por_turma|default([]) %}
+                            <tr><td>{{ row.turma }}</td><td>{{ row.participacao_pct }}%</td><td>{{ row.nota_media }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">Sem aplicações consolidadas nas suas turmas.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <h6 class="fw-bold">Descritores combinados</h6>
+                <div class="table-responsive">
+                    {% set descritores_rows = consolidado.descritores_combinados|default([]) %}
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light"><tr><th>Descritor</th><th>H5P</th><th>Prova</th></tr></thead>
+                        <tbody>
+                            {% for row in descritores_rows[:10] %}
+                            <tr><td>{{ row.codigo }}</td><td>{{ row.h5p_score_10 if row.h5p_score_10 is not none else '-' }}</td><td>{{ row.prova_score_10 if row.prova_score_10 is not none else '-' }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-3">Sem indicadores por descritor.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

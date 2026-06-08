@@ -17,6 +17,7 @@ from app.models import (
     aluno,
     saeb,
     avaliacao,
+    formacao,
     resposta,
     interacao_ia,
     h5p,

@@ -1,0 +1,153 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}Aplicações de Prova{% endblock %}
+{% block offcanvas_links %}{% include "professor/partials/professor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1">Aplicação da prova</h2>
+        <p class="text-muted mb-0">Cada <strong>aplicação</strong> agenda uma prova já criada para uma turma e data. Use <strong>Ver caderno</strong> na lista de provas para imprimir as questões; aqui você acompanha notas por turma.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/professor/banco-questoes" class="btn btn-mj-outline rounded-pill">Banco de questões</a>
+        <a href="/professor/provas" class="btn btn-mj-outline rounded-pill">Provas</a>
+    </div>
+</div>
+
+{% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+{% if flash_ok == "aplicacao" %}<div class="alert alert-success">Aplicação criada com sucesso.</div>{% endif %}
+{% if flash_ok == "editado" %}<div class="alert alert-success">Aplicação atualizada com sucesso.</div>{% endif %}
+{% if flash_ok == "deletado" %}<div class="alert alert-success">Aplicação excluída com sucesso.</div>{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Aplicações filtradas</span><div class="dash-stat-value">{{ stats.total_aplicacoes }}</div></div></div>
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Planejadas</span><div class="dash-stat-value">{{ stats.planejadas }}</div></div></div>
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Corrigidas</span><div class="dash-stat-value">{{ stats.corrigidas }}</div></div></div>
+</div>
+
+<div class="card dash-card border-0 mb-4">
+    <div class="dash-card-header fw-bold">Nova aplicação</div>
+    <div class="card-body">
+        <form method="post" action="/professor/aplicacoes-prova" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Prova</label>
+                <select class="form-select" name="avaliacao_id" required>
+                    <option value="">Selecione</option>
+                    {% for prova in avaliacoes %}
+                    <option value="{{ prova.id }}" {% if filters.avaliacao_id == prova.id %}selected{% endif %}>{{ prova.titulo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Título da aplicação</label>
+                <input class="form-control" name="titulo" placeholder="Ex.: 5º A - Diagnóstica 1">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Turma</label>
+                <select class="form-select" name="turma_id" required>
+                    <option value="">Selecione</option>
+                    {% for turma in turmas_professor %}
+                    <option value="{{ turma.id }}">{{ turma.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Ano letivo</label>
+                <input class="form-control" name="ano_letivo" value="2026">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Período / ciclo</label>
+                <input class="form-control" name="periodo_referencia" placeholder="Ex.: 1º bimestre">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Data da aplicação</label>
+                <input class="form-control" type="date" name="data_aplicacao">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Observações</label>
+                <input class="form-control" name="observacoes" placeholder="Opcional">
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+                <button class="btn btn-mj rounded-pill" type="submit">Criar aplicação</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card dash-card border-0 mb-4">
+    <div class="card-body">
+        <form method="get" action="/professor/aplicacoes-prova" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Filtrar por prova</label>
+                <select class="form-select" name="avaliacao_id">
+                    <option value="">Todas</option>
+                    {% for prova in avaliacoes %}
+                    <option value="{{ prova.id }}" {% if filters.avaliacao_id == prova.id %}selected{% endif %}>{{ prova.titulo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">Todos</option>
+                    <option value="planejada" {% if filters.status == "planejada" %}selected{% endif %}>Planejada</option>
+                    <option value="em_andamento" {% if filters.status == "em_andamento" %}selected{% endif %}>Em andamento</option>
+                    <option value="corrigida" {% if filters.status == "corrigida" %}selected{% endif %}>Corrigida</option>
+                    <option value="encerrada" {% if filters.status == "encerrada" %}selected{% endif %}>Encerrada</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex justify-content-end gap-2">
+                <a href="/professor/aplicacoes-prova" class="btn btn-mj-outline rounded-pill">Limpar filtros</a>
+                <button class="btn btn-mj rounded-pill" type="submit">Aplicar filtros</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    {% for card in aplicacao_cards %}
+    {% set item = card.item %}
+    <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between gap-3 mb-2">
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ item.status.value if item.status.value is defined else item.status }}</span>
+                    <span class="small text-muted">{{ item.data_aplicacao.strftime('%d/%m/%Y') if item.data_aplicacao else 'Sem data' }}</span>
+                </div>
+                <h5 class="fw-bold text-mj-dark mb-1">{{ item.titulo or ('Aplicação #' ~ item.id) }}</h5>
+                <div class="small text-muted mb-2">{{ item.avaliacao.titulo if item.avaliacao else 'Sem prova vinculada' }}</div>
+                <div class="d-flex gap-2 flex-wrap mb-3">
+                    {% if item.turma %}<span class="badge bg-info-subtle text-info-emphasis">{{ item.turma.nome }}</span>{% endif %}
+                    {% if item.ano_letivo %}<span class="badge bg-light text-dark border">{{ item.ano_letivo }}</span>{% endif %}
+                    {% if item.periodo_referencia %}<span class="badge bg-warning-subtle text-warning-emphasis">{{ item.periodo_referencia }}</span>{% endif %}
+                </div>
+                <div class="row g-2 text-center mb-3">
+                    <div class="col-4"><div class="border rounded-3 p-2"><div class="h5 mb-0">{{ card.questoes_total }}</div><div class="small text-muted">Questões</div></div></div>
+                    <div class="col-4"><div class="border rounded-3 p-2"><div class="h5 mb-0">{{ card.participantes_total }}</div><div class="small text-muted">Participantes</div></div></div>
+                    <div class="col-4"><div class="border rounded-3 p-2"><div class="h5 mb-0">{{ card.respostas_total }}</div><div class="small text-muted">Respostas</div></div></div>
+                </div>
+                <div class="d-grid gap-2">
+                    {% if item.avaliacao %}
+                    <a href="/professor/provas/{{ item.avaliacao.id }}/visualizar" class="btn btn-sm btn-mj-outline rounded-pill">Ver caderno</a>
+                    {% endif %}
+                    <a href="/professor/aplicacoes-prova/{{ item.id }}" class="btn btn-sm btn-mj rounded-pill">Ver notas</a>
+                    <a href="/professor/aplicacoes-prova/{{ item.id }}/editar" class="btn btn-sm btn-mj-outline rounded-pill">Editar</a>
+                    <form method="post" action="/professor/aplicacoes-prova/{{ item.id }}/deletar">
+                        <button
+                            type="submit"
+                            class="btn btn-sm btn-outline-danger rounded-pill w-100"
+                            onclick="return confirm('Deseja excluir esta aplicação? As respostas e importações vinculadas serão removidas.');"
+                        >Excluir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card dash-card border-0">
+            <div class="card-body py-5 text-center text-muted">Nenhuma aplicação encontrada.</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

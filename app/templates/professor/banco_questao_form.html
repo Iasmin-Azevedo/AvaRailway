@@ -1,0 +1,180 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}{{ "Editar Questão" if questao else "Nova Questão" }}{% endblock %}
+{% block offcanvas_links %}{% include "professor/partials/professor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <a href="/professor/banco-questoes" class="text-mj-primary text-decoration-none small">Voltar ao banco de questões</a>
+        <h2 class="fw-bold text-mj-dark mt-2 mb-1">{{ "Editar questão" if questao else "Elaborar questão" }}</h2>
+        <p class="text-muted mb-0">O descritor é selecionado a partir da matéria e do ano escolar escolhidos.</p>
+    </div>
+    <button class="btn btn-mj rounded-pill" form="formQuestao" type="submit">{{ "Salvar alterações" if questao else "Criar questão" }}</button>
+</div>
+
+{% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+
+<form method="post" action="{{ form_action }}" id="formQuestao" class="row g-4">
+    <div class="col-lg-7">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Enunciado e contexto</div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" name="tipo_questao">
+                            <option value="multipla_escolha" {% if not questao or questao.tipo_questao == "multipla_escolha" %}selected{% endif %}>Múltipla escolha</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Matéria</label>
+                        <select class="form-select" name="curso_id" id="curso_id_select">
+                            <option value="">Selecione</option>
+                            {% for curso in cursos %}
+                            <option value="{{ curso.id }}" {% if questao and questao.curso_id == curso.id %}selected{% endif %}>{{ curso.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Conteúdo</label>
+                        <input class="form-control" name="conteudo" placeholder="Ex.: leitura, frações, geometria" value="{{ questao.conteudo if questao and questao.conteudo else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ano escolar</label>
+                        <select class="form-select" name="ano_escolar" id="ano_escolar_select">
+                            <option value="">Selecione</option>
+                            {% for year in school_years %}
+                            <option value="{{ year }}" {% if questao and questao.ano_escolar == year %}selected{% endif %}>{{ year }}º ano</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Descritor</label>
+                        <select class="form-select" name="descritor_id" id="descritor_id_select">
+                            <option value="">Selecione</option>
+                            {% for descritor in descritores %}
+                            <option
+                                value="{{ descritor.id }}"
+                                data-disciplina="{{ descritor.disciplina }}"
+                                data-ano-escolar="{{ descritor.ano_escolar or '' }}"
+                                {% if questao and questao.descritor_id == descritor.id %}selected{% endif %}
+                            >{{ descritor.codigo }} - {{ descritor.descricao }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <label class="form-label">Enunciado da questão</label>
+                <input type="hidden" name="enunciado" id="enunciadoInput">
+                <div id="editorEnunciado" class="bg-white rounded-4 border" style="min-height: 280px;"></div>
+                <div class="form-text">Use a barra de ferramentas para formatar o texto do enunciado.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Gabarito</div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <div>
+                        <label class="form-label">Alternativa A</label>
+                        <input class="form-control" name="alternativa_a" value="{{ questao.alternativa_a if questao else '' }}" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Alternativa B</label>
+                        <input class="form-control" name="alternativa_b" value="{{ questao.alternativa_b if questao else '' }}" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Alternativa C</label>
+                        <input class="form-control" name="alternativa_c" value="{{ questao.alternativa_c if questao else '' }}" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Alternativa D</label>
+                        <input class="form-control" name="alternativa_d" value="{{ questao.alternativa_d if questao else '' }}" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Alternativa E</label>
+                        <input class="form-control" name="alternativa_e" value="{{ questao.alternativa_e if questao else '' }}" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Gabarito correto</label>
+                        <select class="form-select" name="gabarito" required>
+                            <option value="A" {% if questao and questao.gabarito == "A" %}selected{% endif %}>A</option>
+                            <option value="B" {% if questao and questao.gabarito == "B" %}selected{% endif %}>B</option>
+                            <option value="C" {% if questao and questao.gabarito == "C" %}selected{% endif %}>C</option>
+                            <option value="D" {% if questao and questao.gabarito == "D" %}selected{% endif %}>D</option>
+                            <option value="E" {% if questao and questao.gabarito == "E" %}selected{% endif %}>E</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" name="observacoes" rows="4" placeholder="Comentário pedagógico opcional">{{ questao.observacoes if questao and questao.observacoes else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+{% block extra_scripts %}
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<script>
+    (function () {
+        var editorEl = document.getElementById('editorEnunciado');
+        var hiddenInput = document.getElementById('enunciadoInput');
+        var form = document.getElementById('formQuestao');
+        var cursoSelect = document.getElementById('curso_id_select');
+        var anoSelect = document.getElementById('ano_escolar_select');
+        var descritorSelect = document.getElementById('descritor_id_select');
+        if (!editorEl || !hiddenInput || !form) return;
+
+        var quill = new Quill(editorEl, {
+            theme: 'snow',
+            placeholder: 'Digite o enunciado da questão...',
+            modules: {
+                toolbar: [
+                    [{ header: [1, 2, false] }],
+                    ['bold', 'italic', 'underline'],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    ['link', 'blockquote'],
+                    ['clean']
+                ]
+            }
+        });
+        quill.root.innerHTML = {{ (questao.enunciado if questao else '')|tojson }};
+
+        function filtrarDescritores() {
+            if (!cursoSelect || !anoSelect || !descritorSelect) return;
+            var cursoTexto = '';
+            if (cursoSelect.selectedIndex >= 0) {
+                cursoTexto = (cursoSelect.options[cursoSelect.selectedIndex].text || '').trim();
+            }
+            var ano = (anoSelect.value || '').trim();
+            Array.prototype.forEach.call(descritorSelect.options, function (option, index) {
+                if (index === 0) {
+                    option.hidden = false;
+                    return;
+                }
+                var matchesDisciplina = !cursoTexto || (option.dataset.disciplina || '') === cursoTexto;
+                var matchesAno = !ano || (option.dataset.anoEscolar || '') === ano;
+                option.hidden = !(matchesDisciplina && matchesAno);
+            });
+            var selected = descritorSelect.options[descritorSelect.selectedIndex];
+            if (selected && selected.hidden) {
+                descritorSelect.value = '';
+            }
+        }
+
+        form.addEventListener('submit', function (event) {
+            hiddenInput.value = quill.root.innerHTML.trim();
+            if (!hiddenInput.value || hiddenInput.value === '<p><br></p>') {
+                event.preventDefault();
+                window.alert('Informe o enunciado da questão.');
+            }
+        });
+        if (cursoSelect) cursoSelect.addEventListener('change', filtrarDescritores);
+        if (anoSelect) anoSelect.addEventListener('change', filtrarDescritores);
+        filtrarDescritores();
+    })();
+</script>
+{% endblock %}

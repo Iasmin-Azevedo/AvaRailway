@@ -1,0 +1,364 @@
+================================================================================
+  GUIA PARA PRODUÇÃO DO CATÁLOGO — MJ CONNECT EDU
+  Referências: landing (app/templates/auth/index.html)
+               Catalogo_Edtech4.pdf (estrutura visual e narrativa)
+  Versão: maio/2026
+================================================================================
+
+OBJETIVO DESTE DOCUMENTO
+------------------------
+Este guia orienta a montagem de um catálogo em PDF (ou apresentação) da plataforma
+Mj Connect Edu, alinhado à página pública atual e ao estilo do catálogo Edtech4:
+seções claras, badges, cards de módulos/soluções, destaque curricular (BNCC) e
+linguagem voltada à licitação / Secretaria de Educação.
+
+Use este arquivo como roteiro de conteúdo e ordem de páginas — não é o catálogo
+final, é o mapa para você (ou um designer) produzir o PDF.
+
+
+================================================================================
+PARTE 1 — O QUE OBSERVAR NO CATALOGO_EDTECH4 (ESTRUTURA)
+================================================================================
+
+O Catalogo_Edtech4.pdf segue um padrão típico de catálogo Edtech. Replique estes
+elementos visuais e de texto:
+
+1. CAPA
+   - Logo da marca
+   - Título forte e abrangente (não um único produto)
+   - Subtítulo institucional (rede municipal, formação, tecnologia)
+   - Paleta consistente (no MJ: azuis #326f88 / #04B4D0, verde #96B52D, fundo escuro #1a1d29)
+
+2. ÍNDICE OU FAIXA DE NAVEGAÇÃO (opcional em PDF curto)
+   - Módulos / Soluções
+   - BNCC da Computação
+   - Funcionalidades
+   - Benefícios
+   - Como funciona
+   - Contato
+
+3. PÁGINA “QUEM SOMOS” / VISÃO (1 página)
+   - Parágrafo curto: plataforma educacional integrada
+   - Ilustração ou screenshot do hero
+
+4. GRADE DE SOLUÇÕES (ícones em caixas — como a faixa escura #solucoes do site)
+   - Várias “pílulas” ou cards lado a lado
+   - Cada uma: ícone + nome + linha de apoio (1 frase)
+   - Fundo escuro contrastando com páginas claras seguintes
+
+5. MÓDULOS OU PRODUTOS (cards grandes — 1 página com 3 colunas ou 3 páginas)
+   Por produto:
+   - Badge opcional: “Módulo 01”, “Módulo 02”, “Módulo 03”
+   - Badge de currículo quando couber: “BNCC da Computação”
+   - Ícone grande
+   - Título do módulo
+   - Parágrafo de 2–3 linhas
+   - Lista com ✓ (4 a 6 itens)
+   - Destaque visual no módulo principal (borda verde / maior sombra)
+
+6. EIXOS CURRICULARES (padrão Edtech BNCC)
+   - Três blocos: Pensamento computacional | Mundo digital | Cultura digital
+   - Texto curto em cada eixo
+   - Evitar listar códigos EFxxCO no catálogo, salvo se tiver tabela oficial validada
+
+7. DIFERENCIAIS (grid de ícones + rótulos curtos)
+   - 6 a 9 itens em grade 3x3
+
+8. FUNCIONALIDADES TÉCNICAS (cards com borda lateral colorida)
+   - 6 cards: título + 2 linhas de descrição
+
+9. BENEFÍCIOS (blocos maiores, 2 colunas)
+   - Ícone grande + título + parágrafo
+
+10. APLICAÇÕES / PÚBLICO / MODALIDADE (3 colunas com cabeçalho colorido)
+    - Público-alvo | Modalidade formativa | Gestão e rede
+
+11. JORNADA (6 passos numerados em linha ou carrossel)
+    - Círculo com número + título + 1 frase
+
+12. CONTATO E CTA
+    - E-mail, demonstração, QR code para o site/login (opcional)
+
+13. CONTRACAPA
+    - Logo + “Plataforma Educacional Integrada — Integrado ao AVA MJ”
+    - Ano e site
+
+
+================================================================================
+PARTE 2 — MAPA PÁGINA A PÁGINA (SUGESTÃO PARA O SEU CATÁLOGO)
+================================================================================
+
+Pág. 1  CAPA
+          Título: Plataforma Educacional Integrada
+          Subtítulo: Mj Connect Edu — tecnologia a serviço da educação municipal
+          Visual: logo + ilustração landing (landingImage.svg)
+
+Pág. 2  SOLUÇÕES EM DESTAQUE (equivalente à seção escura do site)
+          Layout: 6 caixas em 2 linhas de 3 (ou 1 linha de 6 em formato paisagem)
+          Conteúdo fixo (copiar do site):
+
+          | AVA MJ              | Ambiente virtual integrado ao Moodle        |
+          | BNCC                | Computação e habilidades                    |
+          | Gamificação         | Medalhas, níveis e XP                       |
+          | SAEB                | Análise por descritores                     |
+          | Estágio             | Gestão de estágios                          |
+          | Diário eletrônico   | Registro pedagógico digital                 |
+
+          Nota: Estágio e Diário eletrônico aparecem no portfólio; valide com a
+          equipe o grau de maturidade antes de prometer telas específicas.
+
+Pág. 3  MÓDULOS DA PLATAFORMA — visão geral
+          Rótulo superior (small caps): SOLUÇÃO INTEGRADA
+          Título: Módulos da plataforma
+          Intro: Três módulos complementares para gestão, avaliações e formação
+                 continuada da rede.
+
+Pág. 4–6  UM MÓDULO POR PÁGINA (ou os 3 na mesma página em colunas)
+
+          MÓDULO 01 — Gestão e avaliação institucional
+          Ícone: prédio / instituição
+          Texto base:
+          Plataforma de avaliação semestral para gestores, coordenadores e
+          professores diretores de turma, com visão consolidada para a Secretaria.
+          Bullets:
+          • Acesso individualizado por perfil
+          • Painel gerencial para a Secretaria de Educação
+          • Exportação em PDF e planilha editável
+          • LGPD e ambiente em nuvem com backups periódicos
+
+          MÓDULO 02 — Avaliações internas em larga escala
+          Ícone: prancheta / checklist
+          Texto base:
+          Consolidação e visualização de resultados de avaliações internas, com
+          indicadores para tomada de decisão pedagógica.
+          Bullets:
+          • Resultados em visão geral, por turma e por participante
+          • Painel gerencial para a Secretaria
+          • Extração de dados em PDF e planilha
+          • Acesso por perfil e conformidade com a LGPD
+          Linguagem segura: fale em “consolidação de resultados”, evite “OCR de
+          gabarito” se a funcionalidade ainda não estiver pronta.
+
+          MÓDULO 03 — Formação BNCC da Computação [DESTAQUE]
+          Badge: BNCC da Computação
+          Ícone: laptop / código
+          Texto base:
+          Sistema gamificado de formação continuada para professores da rede, com
+          materiais alinhados aos eixos da BNCC da Computação.
+          Bullets:
+          • VLE digital com conteúdos, trilhas e suporte técnico
+          • Carga de 80h — 50% presencial e 50% remoto na plataforma
+          • Público: coordenadores, técnicos SME e professores (até 30 por turma)
+          • Gamificação, medalhas e engajamento na jornada formativa
+
+Pág. 7  BNCC DA COMPUTAÇÃO — EIXOS
+          Rótulo: CURRÍCULO
+          Título: BNCC da Computação
+          Três cards:
+
+          Pensamento computacional
+          Algoritmos, lógica e resolução de problemas por meio de trilhas
+          interativas, desafios e atividades.
+
+          Mundo digital
+          Dados, informação e exploração do ambiente tecnológico com conteúdos
+          digitais no VLE integrado ao Moodle.
+
+          Cultura digital
+          Uso ético, seguro e responsável das tecnologias; LGPD, acessibilidade
+          e cidadania digital.
+
+Pág. 8  POR QUE O MJ CONNECT EDU? (diferenciais)
+          Grade 3x3 com ícones:
+          • Plataforma responsiva
+          • Acesso multiplataforma
+          • Apoio de IA
+          • Design moderno
+          • Gamificação
+          • Alinhamento BNCC da Computação
+          • Foco SAEB e indicadores
+          • Formação continuada integrada
+          • Painéis para a Secretaria
+
+Pág. 9  FUNCIONALIDADES (6 cards)
+          Rótulo: PLATAFORMA
+
+          1. Integração Moodle / AVA MJ
+             AVA MJ integrado para formação, trilhas e capacitação docente.
+
+          2. Motor de gamificação
+             Pontos, medalhas por descritor SAEB, níveis e ranking.
+
+          3. Análise por descritor SAEB
+             Desempenho por habilidade, trilhas e evolução temporal.
+
+          4. Relatórios consolidados
+             Painéis por perfil; exportação CSV e impressão PDF.
+
+          5. IA educacional
+             Professor virtual, chat de dúvidas, LGPD.
+
+          6. Segurança e perfis
+             JWT, RBAC (aluno, professor, coordenador, gestor, admin).
+
+Pág. 10 BENEFÍCIOS (4 blocos)
+          • Indicadores de formação
+          • Foco no participante
+          • LGPD e privacidade
+          • Apoio ao professor
+          (usar textos completos do index.html, seção #beneficios)
+
+Pág. 11 APLICAÇÕES PRÁTICAS (3 colunas)
+          Coluna 1 — Público-alvo
+          Coluna 2 — Modalidade formativa (80h, 50/50, materiais, suporte)
+          Coluna 3 — Gestão e rede (Secretaria, Moodle, devolutiva)
+
+Pág. 12 COMO FUNCIONA (jornada 6 passos)
+          1 Matrícula → 2 Trilhas BNCC → 3 Atividades → 4 Feedback →
+          5 Medalhas → 6 Relatórios
+
+Pág. 13 SCREENSHOTS / DEMONSTRAÇÃO (recomendado)
+          Capturas reais para credibilidade na licitação:
+          - Login / dashboard aluno (gamificação, trilhas)
+          - Painel gestor / relatórios
+          - Cursos Moodle (gestor)
+          - Chatbot / professor virtual
+          Legenda curta em cada print.
+
+Pág. 14 CONTATO
+          contato@avamj.edu.br
+          Solicitar demonstração
+          URL do ambiente (login)
+
+Pág. 15 CONTRACAPA
+          Plataforma Educacional Integrada — Integrado ao AVA MJ
+          © 2025/2026
+
+
+================================================================================
+PARTE 3 — TEXTOS PRONTOS (COPIAR E COLAR)
+================================================================================
+
+--- CAPA / HERO ---
+Título: Plataforma Educacional Integrada
+Lead: Tecnologia e inovação a serviço da educação: a melhor experiência
+pedagógica para sua rede, com trilhas, gamificação, professor virtual e
+gestão integrada.
+
+--- FRASE INSTITUCIONAL (rodapé / contracapa) ---
+Plataforma Educacional Integrada — Integrado ao AVA MJ
+
+--- GLOSSÁRIO RÁPIDO (use em nota de rodapé se o público for técnico) ---
+VLE / AVA: Ambiente Virtual de Aprendizagem (plataforma + Moodle).
+SME: Secretaria Municipal de Educação.
+BNCC da Computação: eixos Pensamento computacional, Mundo digital, Cultura digital.
+SAEB: Sistema de Avaliação da Educação Básica — análise por descritores de habilidade.
+
+
+================================================================================
+PARTE 4 — IDENTIDADE VISUAL (ALINHAR AO SITE)
+================================================================================
+
+Fonte do site: Plus Jakarta Sans (Google Fonts)
+Cores CSS (--mj-* em style.css):
+  - Primária / azul: #326f88, destaque #04B4D0
+  - Verde (badge BNCC, destaque módulo 3): #96B52D
+  - Fundo escuro (faixa soluções): #1a1d29
+  - Fundo suave de seção: #E8EEF2 (bg-mj-soft)
+
+Elementos gráficos:
+  - Cards com borda superior colorida (4px) nos módulos
+  - Badge “BNCC da Computação” em pill verde
+  - Badge “Módulo 01/02/03” em pill azul claro
+  - Ícones: estilo flat, Font Awesome ou equivalente no InDesign/Canva
+  - Ilustração: /static/img/landingImage.svg
+  - Logo branca: /static/img/logoBranca.png (fundo escuro)
+  - Logo colorida: verificar pasta /static/img/
+
+Tom fotográfico (se usar fotos): salas de aula, professores em formação,
+telas de computador — evitar banco de imagens genérico demais.
+
+
+================================================================================
+PARTE 5 — ALINHAMENTO COM A LICITAÇÃO (CHECKLIST)
+================================================================================
+
+Ao revisar o catálogo antes de entregar ou apresentar, confira:
+
+[ ] Item gestão: avaliação institucional, perfis, painel Secretaria, PDF/planilha, LGPD
+[ ] Item avaliações: resultados geral/turma/participante, exportação, Secretaria
+[ ] Item BNCC Computação: gamificação, 80h, 50% presencial + 50% remoto, VLE, até 30/turma
+[ ] SAEB mencionado onde o sistema já entrega (relatórios, descritores, gamificação)
+[ ] AVA MJ e Moodle citados como integração
+[ ] Estágio e Diário eletrônico só se a equipe confirmar escopo comercial
+[ ] Não prometer OCR de gabarito nem formulário 360° pronto sem produto real
+[ ] Screenshots ou mockups coerentes com o sistema logado
+
+
+================================================================================
+PARTE 6 — FERRAMENTAS SUGERIDAS PARA MONTAR O PDF
+================================================================================
+
+1. Canva / Figma — templates multipágina, export PDF
+2. Adobe InDesign — catálogo profissional multipágina
+3. Google Slides / PowerPoint — slide por seção → Exportar PDF
+4. Script automatizado (futuro) — gerar HTML de catálogo espelhando index.html → print PDF
+
+Fluxo recomendado:
+  a) Montar wireframe seguindo a ordem da Parte 2
+  b) Colar textos da Parte 3
+  c) Aplicar cores da Parte 4
+  d) Inserir prints reais (Pág. 13)
+  e) Revisar checklist Parte 5
+
+
+================================================================================
+PARTE 7 — DIFERENÇAS: SITE (INDEX) vs CATÁLOGO PDF
+================================================================================
+
+| Elemento              | No site (index.html)     | No catálogo PDF          |
+|-----------------------|--------------------------|--------------------------|
+| Navegação             | Navbar com âncoras       | Índice ou sumário        |
+| Soluções              | Faixa escura interativa  | Página estática ícones   |
+| Módulos               | 3 cards scroll           | 1–3 páginas dedicadas    |
+| Interatividade        | Links login, Moodle      | QR code / URL impressa   |
+| Profundidade técnica  | Resumida                 | Pode ter página extra API|
+| Depoimentos           | Comentados no HTML       | Opcional 1 página        |
+
+O catálogo pode ser MAIS longo que o site: inclua casos de uso, cronograma de
+implantação (30 dias, se exigido no edital), capacitação presencial (30 pessoas/
+módulo) em página de “Serviços inclusos”.
+
+
+================================================================================
+PARTE 8 — MODELO DE BLOCO PARA NOVA SOLUÇÃO (EXPANSÃO FUTURA)
+================================================================================
+
+Quando adicionar um produto ao catálogo (ex.: novo módulo Edtech):
+
+  [BADGE OPCIONAL]
+  [ÍCONE 64x64]
+  TÍTULO DO PRODUTO (máx. 6 palavras)
+  Parágrafo: 40–60 palavras, benefício principal.
+  • Bullet 1 (recurso verificável)
+  • Bullet 2
+  • Bullet 3
+  • Bullet 4
+  Rodapé do card: “Alinhado à BNCC da Computação” (se aplicável)
+
+Repita o padrão do Módulo 03 (destaque) para o carro-chefe da campanha.
+
+
+================================================================================
+CONTATO E ARQUIVOS DE REFERÊNCIA NO REPOSITÓRIO
+================================================================================
+
+  Landing atual:     app/templates/auth/index.html
+  Estilos:           app/templates/static/css/style.css
+  Catálogo modelo:   app/templates/static/docs/Catalogo_Edtech4.pdf
+  Prints licitação:  app/templates/static/docs/*.jpg
+  Este guia:         app/templates/static/docs/GUIA_CATALOGO_MJ_CONNECT_EDU.txt
+
+================================================================================
+FIM DO GUIA
+================================================================================

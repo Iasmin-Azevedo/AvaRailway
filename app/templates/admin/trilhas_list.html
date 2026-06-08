@@ -27,8 +27,10 @@
                 <thead class="table-light">
                     <tr>
                         <th class="ps-4">Nome</th>
-                        <th>Curso</th>
+                        <th>Matéria</th>
                         <th>Ano</th>
+                        <th>Semestre</th>
+                        <th>Prova</th>
                         <th>Ordem</th>
                         <th class="pe-4 text-end">Ações</th>
                     </tr>
@@ -38,7 +40,14 @@
                     <tr>
                         <td class="ps-4 fw-bold">{{ t.nome }}</td>
                         <td>{{ t.curso.nome if t.curso else "—" }}</td>
-                        <td>{{ t.ano_escolar or "Todos" }}</td>
+                        <td>{{ t.ano_escolar ~ "º ano" if t.ano_escolar else "—" }}</td>
+                        <td>
+                            {% if t.semestre == "1" %}1º semestre
+                            {% elif t.semestre == "2" %}2º semestre
+                            {% elif t.semestre == "anual" %}Anual
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>{{ t.prova.titulo if t.prova else "—" }}</td>
                         <td>{{ t.ordem }}</td>
                         <td class="pe-4 text-end">
                             <a href="/admin/trilhas/{{ t.id }}/editar" class="btn btn-sm btn-mj-outline">Editar</a>
@@ -48,7 +57,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma trilha cadastrada.</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma trilha cadastrada.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

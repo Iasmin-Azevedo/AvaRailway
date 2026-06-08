@@ -10,8 +10,20 @@ router = APIRouter()
 
 @router.get("/dashboard/gestor")
 @limiter.limit("5/minute")
-def dashboard_gestor(request: Request, db: Session = Depends(get_db)):
-    return DashboardService().get_gestor_stats(db)
+def dashboard_gestor(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    from app.models.relacoes import GestorEscola
+
+    escola_ids = [
+        row[0]
+        for row in db.query(GestorEscola.escola_id)
+        .filter(GestorEscola.gestor_id == current_user.id)
+        .all()
+    ]
+    return DashboardService().get_gestor_stats(db, escola_ids=escola_ids or None)
 
 @router.get("/dashboard/coordenador")
 @limiter.limit("5/minute")

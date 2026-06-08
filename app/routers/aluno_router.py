@@ -212,6 +212,315 @@ def _as_int(value) -> Optional[int]:
         return None
 
 
+def _status_label(value) -> str:
+    raw = getattr(value, "value", value) or ""
+    return str(raw).replace("_", " ").strip() or "-"
+
+
+def _aplicacao_prova_disponivel(aplicacao, *, respondeu: bool = False) -> bool:
+    from app.core.br_datetime import aplicacao_liberada_por_data
+
+    status = _status_label(getattr(aplicacao, "status", None))
+    if status == "encerrada" and not respondeu:
+        return False
+    return aplicacao_liberada_por_data(
+        getattr(aplicacao, "data_aplicacao", None),
+        respondeu=respondeu,
+    )
+
+
+def _aplicacao_prova_agendada(aplicacao, *, respondeu: bool = False) -> bool:
+    from app.core.br_datetime import aplicacao_agendada_futura
+
+    status = _status_label(getattr(aplicacao, "status", None))
+    if status == "encerrada":
+        return False
+    return aplicacao_agendada_futura(
+        getattr(aplicacao, "data_aplicacao", None),
+        respondeu=respondeu,
+    )
+
+
+def _listar_provas_disponiveis_por_trilha(db: Session, *, aluno_id: int | None, trilhas: list) -> dict[int, list[dict]]:
+    from sqlalchemy.orm import joinedload
+
+    from app.models.avaliacao import Avaliacao, AplicacaoProva, ParticipacaoAplicacaoProva, TipoAvaliacao
+    from app.models.resposta import RespostaAluno
+
+    if not aluno_id or not trilhas:
+        return {}
+
+    trilha_ids = [t.id for t in trilhas if getattr(t, "id", None)]
+    if not trilha_ids:
+        return {}
+
+    avaliacoes = (
+        db.query(Avaliacao)
+        .options(joinedload(Avaliacao.questoes), joinedload(Avaliacao.trilha), joinedload(Avaliacao.curso))
+        .filter(Avaliacao.trilha_id.in_(trilha_ids), Avaliacao.tipo == TipoAvaliacao.OBJETIVA)
+        .all()
+    )
+    if not avaliacoes:
+        return {}
+
+    avaliacao_por_trilha = {a.trilha_id: a for a in avaliacoes if a.trilha_id}
+    avaliacao_ids = [a.id for a in avaliacoes]
+    respostas = (
+        db.query(RespostaAluno)
+        .filter(RespostaAluno.aluno_id == aluno_id, RespostaAluno.avaliacao_id.in_(avaliacao_ids))
+        .all()
+    )
+    respostas_count: dict[tuple[int, int | None], int] = {}
+    acertos_count: dict[tuple[int, int | None], int] = {}
+    for resposta in respostas:
+        chave = (resposta.avaliacao_id, resposta.aplicacao_id)
+        respostas_count[chave] = respostas_count.get(chave, 0) + 1
+        acertos_count[chave] = acertos_count.get(chave, 0) + int(bool(resposta.acertou))
+
+    participacoes_rows = (
+        db.query(ParticipacaoAplicacaoProva, AplicacaoProva, Avaliacao)
+        .join(AplicacaoProva, ParticipacaoAplicacaoProva.aplicacao_id == AplicacaoProva.id)
+        .join(Avaliacao, AplicacaoProva.avaliacao_id == Avaliacao.id)
+        .filter(
+            ParticipacaoAplicacaoProva.aluno_id == aluno_id,
+            Avaliacao.trilha_id.in_(trilha_ids),
+        )
+        .all()
+    )
+
+    cards_por_trilha: dict[int, list[dict]] = {t.id: [] for t in trilhas}
+    for participacao, aplicacao, avaliacao in participacoes_rows:
+        if not avaliacao or not avaliacao.trilha_id:
+            continue
+        total_questoes = len(getattr(avaliacao, "questoes", []) or [])
+        respondidas = respostas_count.get((avaliacao.id, aplicacao.id), 0)
+        acertos = acertos_count.get((avaliacao.id, aplicacao.id), 0)
+        respondeu = respondidas > 0
+        disponivel = _aplicacao_prova_disponivel(aplicacao, respondeu=respondeu)
+        agendada = _aplicacao_prova_agendada(aplicacao, respondeu=respondeu)
+        if not disponivel and not agendada:
+            continue
+        cards_por_trilha.setdefault(avaliacao.trilha_id, []).append(
+            {
+                "tipo": "aplicacao",
+                "avaliacao": avaliacao,
+                "aplicacao": aplicacao,
+                "participacao": participacao,
+                "questoes_total": total_questoes,
+                "respondidas": respondidas,
+                "acertos": acertos,
+                "concluida": total_questoes > 0 and respondidas >= total_questoes,
+                "status_label": _status_label(getattr(aplicacao, "status", None)),
+                "contexto_label": "Agendada para você" if agendada else "Aplicada para você",
+                "agendada": agendada,
+                "url": (
+                    f"/aluno/prova/{avaliacao.id}?aplicacao_id={aplicacao.id}"
+                    if disponivel
+                    else ""
+                ),
+            }
+        )
+
+    for trilha in trilhas:
+        if cards_por_trilha.get(trilha.id):
+            cards_por_trilha[trilha.id].sort(
+                key=lambda item: (
+                    getattr(item["aplicacao"], "data_aplicacao", None) or datetime.min,
+                    getattr(item["aplicacao"], "id", 0),
+                ),
+                reverse=True,
+            )
+            continue
+
+        avaliacao = avaliacao_por_trilha.get(trilha.id)
+        if not avaliacao:
+            continue
+        total_questoes = len(getattr(avaliacao, "questoes", []) or [])
+        respondidas = respostas_count.get((avaliacao.id, None), 0)
+        acertos = acertos_count.get((avaliacao.id, None), 0)
+        cards_por_trilha[trilha.id].append(
+            {
+                "tipo": "trilha",
+                "avaliacao": avaliacao,
+                "aplicacao": None,
+                "participacao": None,
+                "questoes_total": total_questoes,
+                "respondidas": respondidas,
+                "acertos": acertos,
+                "concluida": total_questoes > 0 and respondidas >= total_questoes,
+                "status_label": "disponivel",
+                "contexto_label": "Prova da trilha",
+                "url": f"/aluno/prova/{avaliacao.id}",
+            }
+        )
+
+    return cards_por_trilha
+
+
+def _listar_provas_avulsas_aluno(
+    db: Session,
+    *,
+    aluno_id: int | None,
+    trilha_ids: set[int],
+) -> list[dict]:
+    """Aplicações em que a prova não está vinculada às trilhas exibidas na jornada."""
+    from sqlalchemy.orm import joinedload
+
+    from app.models.avaliacao import Avaliacao, AplicacaoProva, ParticipacaoAplicacaoProva, TipoAvaliacao
+    from app.models.resposta import RespostaAluno
+
+    if not aluno_id:
+        return []
+
+    participacoes_rows = (
+        db.query(ParticipacaoAplicacaoProva, AplicacaoProva, Avaliacao)
+        .join(AplicacaoProva, ParticipacaoAplicacaoProva.aplicacao_id == AplicacaoProva.id)
+        .join(Avaliacao, AplicacaoProva.avaliacao_id == Avaliacao.id)
+        .options(joinedload(Avaliacao.questoes), joinedload(Avaliacao.curso))
+        .filter(
+            ParticipacaoAplicacaoProva.aluno_id == aluno_id,
+            Avaliacao.tipo == TipoAvaliacao.OBJETIVA,
+        )
+        .all()
+    )
+    if not participacoes_rows:
+        return []
+
+    avaliacao_ids = {avaliacao.id for _, _, avaliacao in participacoes_rows}
+    respostas = (
+        db.query(RespostaAluno)
+        .filter(RespostaAluno.aluno_id == aluno_id, RespostaAluno.avaliacao_id.in_(avaliacao_ids))
+        .all()
+    )
+    respostas_count: dict[tuple[int, int | None], int] = {}
+    acertos_count: dict[tuple[int, int | None], int] = {}
+    for resposta in respostas:
+        chave = (resposta.avaliacao_id, resposta.aplicacao_id)
+        respostas_count[chave] = respostas_count.get(chave, 0) + 1
+        acertos_count[chave] = acertos_count.get(chave, 0) + int(bool(resposta.acertou))
+
+    cards: list[dict] = []
+    for participacao, aplicacao, avaliacao in participacoes_rows:
+        if avaliacao.trilha_id and avaliacao.trilha_id in trilha_ids:
+            continue
+        total_questoes = len(getattr(avaliacao, "questoes", []) or [])
+        respondidas = respostas_count.get((avaliacao.id, aplicacao.id), 0)
+        acertos = acertos_count.get((avaliacao.id, aplicacao.id), 0)
+        respondeu = respondidas > 0
+        disponivel = _aplicacao_prova_disponivel(aplicacao, respondeu=respondeu)
+        agendada = _aplicacao_prova_agendada(aplicacao, respondeu=respondeu)
+        if not disponivel and not agendada:
+            continue
+        cards.append(
+            {
+                "tipo": "aplicacao",
+                "avaliacao": avaliacao,
+                "aplicacao": aplicacao,
+                "participacao": participacao,
+                "questoes_total": total_questoes,
+                "respondidas": respondidas,
+                "acertos": acertos,
+                "concluida": total_questoes > 0 and respondidas >= total_questoes,
+                "status_label": _status_label(getattr(aplicacao, "status", None)),
+                "contexto_label": "Agendada para você" if agendada else "Aplicada para você",
+                "agendada": agendada,
+                "url": (
+                    f"/aluno/prova/{avaliacao.id}?aplicacao_id={aplicacao.id}"
+                    if disponivel
+                    else ""
+                ),
+            }
+        )
+    cards.sort(
+        key=lambda item: (
+            getattr(item["aplicacao"], "data_aplicacao", None) or datetime.min,
+            getattr(item["aplicacao"], "id", 0),
+        ),
+        reverse=True,
+    )
+    return cards
+
+
+def _carregar_contexto_prova_aluno(
+    db: Session,
+    *,
+    aluno_id: int,
+    avaliacao_id: int,
+    aplicacao_id: int | None = None,
+):
+    from sqlalchemy.orm import joinedload
+
+    from app.models.aluno import Aluno
+    from app.models.avaliacao import Avaliacao, AplicacaoProva, ParticipacaoAplicacaoProva, TipoAvaliacao
+    from app.models.resposta import RespostaAluno
+
+    aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
+    if not aluno:
+        return None
+
+    avaliacao = (
+        db.query(Avaliacao)
+        .options(joinedload(Avaliacao.questoes), joinedload(Avaliacao.trilha), joinedload(Avaliacao.curso))
+        .filter(Avaliacao.id == avaliacao_id, Avaliacao.tipo == TipoAvaliacao.OBJETIVA)
+        .first()
+    )
+    if not avaliacao:
+        return None
+
+    trilha = getattr(avaliacao, "trilha", None)
+    if not getattr(avaliacao, "trilha_id", None):
+        if not aplicacao_id:
+            return None
+    elif trilha and aluno.ano_escolar and getattr(trilha, "ano_escolar", None) and trilha.ano_escolar != aluno.ano_escolar:
+        return None
+
+    aplicacao = None
+    participacao = None
+    if aplicacao_id:
+        aplicacao = db.query(AplicacaoProva).filter(AplicacaoProva.id == aplicacao_id).first()
+        if not aplicacao or aplicacao.avaliacao_id != avaliacao.id:
+            return None
+        participacao = (
+            db.query(ParticipacaoAplicacaoProva)
+            .filter(
+                ParticipacaoAplicacaoProva.aplicacao_id == aplicacao.id,
+                ParticipacaoAplicacaoProva.aluno_id == aluno.id,
+            )
+            .first()
+        )
+        if not participacao:
+            return None
+
+    respostas_q = db.query(RespostaAluno).filter(
+        RespostaAluno.aluno_id == aluno.id,
+        RespostaAluno.avaliacao_id == avaliacao.id,
+    )
+    if aplicacao:
+        respostas_q = respostas_q.filter(RespostaAluno.aplicacao_id == aplicacao.id)
+    else:
+        respostas_q = respostas_q.filter(RespostaAluno.aplicacao_id.is_(None))
+    respostas = respostas_q.all()
+    respostas_marcadas = {resposta.questao_id: (resposta.resposta_marcada or "").strip().upper() for resposta in respostas}
+    total_questoes = len(getattr(avaliacao, "questoes", []) or [])
+    acertos = sum(1 for resposta in respostas if resposta.acertou)
+
+    if aplicacao and not _aplicacao_prova_disponivel(aplicacao, respondeu=bool(respostas)):
+        return None
+
+    return {
+        "aluno": aluno,
+        "avaliacao": avaliacao,
+        "trilha": trilha,
+        "aplicacao": aplicacao,
+        "participacao": participacao,
+        "respostas": respostas,
+        "respostas_marcadas": respostas_marcadas,
+        "total_questoes": total_questoes,
+        "acertos": acertos,
+        "concluida": total_questoes > 0 and len(respostas_marcadas) >= total_questoes,
+    }
+
+
 def _sanitize_signup_fields(nome, email, senha) -> tuple[str, str, str]:
     return (str(nome or "").strip(), str(email or "").strip().lower(), str(senha or "").strip())
 
@@ -730,6 +1039,17 @@ def _render_trilhas_por_materia(
         )
         atividades_professor_concluidas = {r[0] for r in concl_rows}
 
+    provas_por_trilha = _listar_provas_disponiveis_por_trilha(
+        db,
+        aluno_id=aluno_id,
+        trilhas=trilhas,
+    )
+    provas_avulsas = _listar_provas_avulsas_aluno(
+        db,
+        aluno_id=aluno_id,
+        trilha_ids={t.id for t in trilhas},
+    )
+
     progresso_por_trilha = {}
     trilhas_bloqueadas = set()
     total_atividades_geral = 0
@@ -784,8 +1104,139 @@ def _render_trilhas_por_materia(
             "atividades_professor_turma": atividades_professor_turma,
             "atividades_professor_extras": atividades_professor_extras,
             "atividades_professor_concluidas": atividades_professor_concluidas,
+            "provas_por_trilha": provas_por_trilha,
+            "provas_avulsas": provas_avulsas,
         },
     )
+
+
+@page_router.get("/aluno/prova/{avaliacao_id}")
+def aluno_prova(
+    request: Request,
+    avaliacao_id: int,
+    aplicacao_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    from app.services.dashboard_service import DashboardService
+
+    ident = _aluno_identity_bundle(request, db)
+    aluno_id = ident["aluno_id"]
+    if not aluno_id:
+        return RedirectResponse(url="/login", status_code=302)
+
+    contexto = _carregar_contexto_prova_aluno(
+        db,
+        aluno_id=aluno_id,
+        avaliacao_id=avaliacao_id,
+        aplicacao_id=aplicacao_id,
+    )
+    if not contexto:
+        return RedirectResponse(url="/aluno/portugues?acesso_negado_prova=1", status_code=302)
+
+    avaliacao = contexto["avaliacao"]
+    curso_id = getattr(avaliacao, "curso_id", None) or getattr(getattr(contexto["trilha"], "curso", None), "id", None)
+    trilhas_url = _jornada_url_por_curso_id(db, curso_id)
+    stats = DashboardService().get_aluno_stats(db, aluno_id)
+    questoes = sorted(
+        list(getattr(avaliacao, "questoes", []) or []),
+        key=lambda item: ((item.numero if item.numero is not None else 9999), item.id),
+    )
+    respostas_por_questao = {resposta.questao_id: resposta for resposta in contexto["respostas"]}
+    resultado_questoes = [
+        {
+            "questao": questao,
+            "marcada": contexto["respostas_marcadas"].get(questao.id),
+            "acertou": respostas_por_questao.get(questao.id).acertou if respostas_por_questao.get(questao.id) else None,
+        }
+        for questao in questoes
+    ]
+
+    return templates.TemplateResponse(
+        request,
+        "aluno/prova.html",
+        {
+            "aluno_nome": ident["aluno_nome"],
+            "aluno_ano": ident["aluno_ano"],
+            "aluno_avatar_url": ident["aluno_avatar_url"],
+            "current_user": ident["current_user"],
+            "stats": stats,
+            "avaliacao": avaliacao,
+            "aplicacao": contexto["aplicacao"],
+            "participacao": contexto["participacao"],
+            "trilha": contexto["trilha"],
+            "questoes": questoes,
+            "resultado_questoes": resultado_questoes,
+            "respostas_marcadas": contexto["respostas_marcadas"],
+            "concluida": contexto["concluida"],
+            "total_questoes": contexto["total_questoes"],
+            "acertos": contexto["acertos"],
+            "nota": round((contexto["acertos"] / contexto["total_questoes"]) * 10, 2) if contexto["total_questoes"] else 0,
+            "trilhas_url": trilhas_url,
+        },
+    )
+
+
+@page_router.post("/aluno/prova/{avaliacao_id}")
+async def aluno_prova_post(
+    request: Request,
+    avaliacao_id: int,
+    aplicacao_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    from app.schemas.avaliacao_schema import ResponderQuestao, SubmissaoProva
+    from app.services.avaliacao_service import AvaliacaoService
+
+    ident = _aluno_identity_bundle(request, db)
+    aluno_id = ident["aluno_id"]
+    if not aluno_id:
+        return RedirectResponse(url="/login", status_code=302)
+
+    contexto = _carregar_contexto_prova_aluno(
+        db,
+        aluno_id=aluno_id,
+        avaliacao_id=avaliacao_id,
+        aplicacao_id=aplicacao_id,
+    )
+    if not contexto:
+        return RedirectResponse(url="/aluno/portugues?acesso_negado_prova=1", status_code=302)
+
+    if contexto["concluida"]:
+        redirect_url = f"/aluno/prova/{avaliacao_id}"
+        if aplicacao_id:
+            redirect_url = f"{redirect_url}?aplicacao_id={aplicacao_id}&erro=ja_respondida"
+        else:
+            redirect_url = f"{redirect_url}?erro=ja_respondida"
+        return RedirectResponse(url=redirect_url, status_code=303)
+
+    form = await request.form()
+    respostas = []
+    for questao in sorted(
+        list(getattr(contexto["avaliacao"], "questoes", []) or []),
+        key=lambda item: ((item.numero if item.numero is not None else 9999), item.id),
+    ):
+        marcada = (form.get(f"questao_{questao.id}") or "").strip().upper()[:1]
+        if marcada not in {"A", "B", "C", "D", "E"}:
+            redirect_url = f"/aluno/prova/{avaliacao_id}"
+            if aplicacao_id:
+                redirect_url = f"{redirect_url}?aplicacao_id={aplicacao_id}&erro=incompleta"
+            else:
+                redirect_url = f"{redirect_url}?erro=incompleta"
+            return RedirectResponse(url=redirect_url, status_code=303)
+        respostas.append(ResponderQuestao(questao_id=questao.id, alternativa_escolhida=marcada))
+
+    submissao = SubmissaoProva(
+        avaliacao_id=avaliacao_id,
+        aplicacao_id=aplicacao_id,
+        respostas=respostas,
+    )
+    await AvaliacaoService().processar_prova(db, aluno_id, submissao)
+
+    redirect_url = f"/aluno/prova/{avaliacao_id}"
+    if aplicacao_id:
+        redirect_url = f"{redirect_url}?aplicacao_id={aplicacao_id}&ok=1"
+    else:
+        redirect_url = f"{redirect_url}?ok=1"
+    return RedirectResponse(url=redirect_url, status_code=303)
 
 
 @page_router.get("/aluno/atividade/{id}")

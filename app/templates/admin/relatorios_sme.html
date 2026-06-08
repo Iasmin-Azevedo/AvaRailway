@@ -1,0 +1,100 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}{% if modo_impressao %}{{ report_title }} — Imprimir{% else %}Relatórios SME{% endif %}{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Secretaria / SME{% endblock %}
+{% block body_extra_class %}{% if modo_impressao %} relatorio-embed-print-active{% endif %}{% endblock %}
+{% block header_right %}{% set role_value = 'admin' %}{% include "shared/header_right_user_simple.html" %}{% endblock %}
+{% block offcanvas_links %}{% include "admin/partials/admin_menu_links.html" %}{% endblock %}
+{% block main_content %}
+{% if modo_impressao %}
+<div class="relatorio-embed-root">
+    {% include "shared/partials/relatorio_sheet.html" %}
+</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1">Central de relatórios da Secretaria</h2>
+        <p class="text-muted mb-0">Relatório completo da rede com visão por escola e detalhamento por turma.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-mj rounded-pill" href="/admin/relatorios-sme?imprimir=1&amp;tipo=sme_completo"><i class="fas fa-file-alt me-1"></i> Ver relatório</a>
+        <a class="btn btn-mj-outline rounded-pill" href="/admin/relatorios-sme/export.csv?tipo=sme_completo"><i class="fas fa-download me-1"></i> CSV</a>
+    </div>
+</div>
+
+<div class="card dash-card border-0 mb-4">
+    <div class="dash-card-header fw-bold">Resumo por escola</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Escola</th>
+                        <th>Qtd. alunos</th>
+                        <th>Engajamento</th>
+                        <th>Média nas provas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in cards_escola %}
+                    <tr>
+                        <td>{{ row.escola }}</td>
+                        <td>{{ row.qtd_alunos }}</td>
+                        <td>{{ row.engajamento }}%</td>
+                        <td>{{ row.nota_media_provas }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">Sem dados de escolas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="d-grid gap-3">
+    {% for row in cards_escola %}
+    <div class="card dash-card border-0">
+        <div class="dash-card-header fw-bold">{{ row.escola }}</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Turma</th>
+                            <th>Qtd. professores</th>
+                            <th>Qtd. alunos</th>
+                            <th>Engajamento</th>
+                            <th>Média nas provas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for turma in turmas_por_escola.get(row.escola_id, []) %}
+                        <tr>
+                            <td>{{ turma.turma }}</td>
+                            <td>{{ turma.qtd_professores }}</td>
+                            <td>{{ turma.qtd_alunos }}</td>
+                            <td>{{ turma.engajamento }}%</td>
+                            <td>{{ turma.nota_media_provas }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">Sem turmas para esta escola.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_scripts %}
+{% if modo_impressao %}
+<script>
+    window.addEventListener("load", function () {
+        setTimeout(function () { window.print(); }, 350);
+    });
+</script>
+{% endif %}
+{% endblock %}

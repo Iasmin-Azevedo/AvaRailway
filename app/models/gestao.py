@@ -27,7 +27,8 @@ class Turma(Base):
     __tablename__ = "turmas"
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String(100), nullable=False)
-    ano_escolar = Column(Integer, nullable=False)  # 2, 5 ou 9
+    sigla = Column(String(20), nullable=True)
+    ano_escolar = Column(Integer, nullable=False)  # 1 a 9
     escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False)
     ano_letivo = Column(String(20), nullable=True)  # ex: "2025"
 
@@ -53,8 +54,10 @@ class Trilha(Base):
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String(200), nullable=False)
     curso_id = Column(Integer, ForeignKey("cursos.id"), nullable=False)
-    ano_escolar = Column(Integer, nullable=True)  # 2, 5, 9 ou null para todas
+    ano_escolar = Column(Integer, nullable=True)  # 1 a 9 ou null para todas
+    semestre = Column(String(20), nullable=True)
     ordem = Column(Integer, default=0)
 
     curso = relationship("Curso", back_populates="trilhas")
+    prova = relationship("Avaliacao", back_populates="trilha", uselist=False)
     # atividades H5P referenciam trilha via atividade.trilha_id

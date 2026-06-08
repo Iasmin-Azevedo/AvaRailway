@@ -1,10 +1,14 @@
 <a class="btn btn-mj w-100 rounded-pill mb-2" href="/professor{{ turma_query_suffix|default('') }}">Início</a>
-<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/dashboard-completo{{ turma_query_suffix|default('') }}">Dashboard Completo</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/dashboard-completo{{ turma_query_suffix|default('') }}">Medalhas</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/desempenho-descritores{{ turma_query_suffix|default('') }}">Desempenho</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/radar-alunos{{ turma_query_suffix|default('') }}">Radar de Alunos</a>
 {% set _tqs = turma_query_suffix|default('') %}
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/chat-duvidas{{ _tqs }}{% if _tqs %}&{% else %}?{% endif %}tab=perguntas">Insights do chatbot</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/relatorios{{ turma_query_suffix|default('') }}">Relatórios</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/banco-questoes">Banco de questões</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/provas">Provas</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/aplicacoes-prova">Aplicações de prova</a>
+<a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/formacao-bncc">Formação BNCC</a>
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/atividades">Minhas Atividades</a>
 <!-- <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/atividades/nova">Nova atividade</a> -->
 <a class="btn btn-mj-outline w-100 rounded-pill mb-2" href="/professor/descritores">Descritores</a>

@@ -1,0 +1,202 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Gestão Integrada SME{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}
+{% if current_user and current_user.escopo_administrativo and (current_user.escopo_administrativo.value if current_user.escopo_administrativo.value is defined else current_user.escopo_administrativo) == 'secretaria_sme' %}
+Secretaria / SME
+{% else %}
+Admin técnico
+{% endif %}
+{% endblock %}
+{% block header_right %}{% set role_value = 'admin' %}{% include "shared/header_right_user_simple.html" %}{% endblock %}
+{% block offcanvas_links %}{% include "admin/partials/admin_menu_links.html" %}{% endblock %}
+{% block main_content %}
+{% set _admin_scope = (current_user.escopo_administrativo.value if current_user and current_user.escopo_administrativo and current_user.escopo_administrativo.value is defined else current_user.escopo_administrativo if current_user else '') %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1">Gestão Integrada SME</h2>
+        <!-- <p class="text-muted mb-0"> -->
+            {% if _admin_scope == 'secretaria_sme' %}
+            <!-- Ponto único de entrada para os módulos estratégicos da Secretaria no AVA MJ. -->
+            {% else %}
+            <!-- Área institucional da SME dentro do AVA MJ, disponível para apoio e acompanhamento da operação de rede. -->
+            {% endif %}
+        <!-- </p> -->
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <!-- <a class="btn btn-mj rounded-pill" href="/admin/relatorios-sme">Relatórios</a> -->
+        <!-- <a class="btn btn-mj-outline rounded-pill" href="/admin/conformidade">Conformidade</a> -->
+        <!-- <a class="btn btn-mj-outline rounded-pill" href="/static/docs/CHECKLIST_POC_MATRIZ.md" target="_blank" rel="noopener">Checklist PoC</a> -->
+    </div>
+</div>
+
+<!-- <div class="alert alert-primary border-0 rounded-4 mb-4"> -->
+    {% if _admin_scope == 'secretaria_sme' %}
+    <!-- Use esta área como entrada principal da SME. Os módulos estratégicos ficam organizados aqui, enquanto o menu lateral mantém apenas painéis, relatórios, conformidade e cadastros operacionais. -->
+    {% else %}
+    <!-- Você está acessando como <strong>Admin técnico</strong>. Esta área reúne a operação institucional da SME, mas o perfil recomendado para uso cotidiano da Secretaria é <strong>Admin com escopo SME</strong>. -->
+    {% endif %}
+<!-- </div> -->
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Escolas ativas</span><div class="dash-stat-value">{{ sme_stats.n_escolas|default(0) }}</div></div></div>
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Aplicações monitoradas</span><div class="dash-stat-value">{{ sme_stats.aplicacoes_institucionais|default(0) }}</div></div></div>
+    <div class="col-md-4"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Avaliações objetivas</span><div class="dash-stat-value">{{ sme_stats.avaliacoes_objetivas|default(0) }}</div></div></div>
+    <!-- <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Participantes BNCC</span><div class="dash-stat-value">{{ sme_stats.participantes_formacao|default(0) }}</div></div></div> -->
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">1. Avaliação institucional</div>
+            <div class="card-body">
+                <!-- <p class="text-muted small">Desempenho em provas (larga escala) e avaliação semestral de gestores/coordenadores/PDT.</p> -->
+                <a href="/admin/avaliacoes-institucionais" class="btn btn-mj-outline w-100 rounded-pill mb-0">Desempenho em provas</a>
+                <!-- <a href="/admin/avaliacao-semestral" class="btn btn-mj-outline w-100 rounded-pill mb-3">Avaliação semestral</a> -->
+                <!-- <div class="small text-muted fw-semibold mb-2">Aplicações recentes</div> -->
+                <!-- <ul class="small text-muted mb-0"> -->
+                    {% for row in resumo_institucional %}
+                    <!-- <li>{{ row.prova }} - {{ row.escopo }}</li> -->
+                    {% else %}
+                    <!-- <li>Nenhuma aplicação consolidada.</li> -->
+                    {% endfor %}
+                <!-- </ul> -->
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">2. Avaliação em larga escala</div>
+            <div class="card-body">
+                <!-- <p class="text-muted small">Cadastre banco de questões, monte provas, crie aplicações e importe respostas via CSV.</p> -->
+                <a href="/admin/correcao-gabaritos" class="btn btn-mj-outline w-100 rounded-pill mb-0">Abrir módulo</a>
+                <!-- <div class="small text-muted fw-semibold mb-2">Últimas avaliações</div> -->
+                <!-- <ul class="small text-muted mb-0"> -->
+                    {% for avaliacao in avaliacoes_objetivas %}
+                    <!-- <li>{{ avaliacao.titulo }}</li> -->
+                    {% else %}
+                    <!-- <li>Nenhuma avaliação objetiva cadastrada.</li> -->
+                    {% endfor %}
+                <!-- </ul> -->
+            </div>
+        </div>
+    </div>
+    <!-- <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">3. Formação BNCC Computação</div>
+            <div class="card-body">
+                <p class="text-muted small">Organize programas, turmas, recursos remotos e progresso presencial/remoto da formação.</p>
+                <a href="/admin/formacao-bncc" class="btn btn-mj-outline w-100 rounded-pill mb-3">Abrir módulo</a>
+                <div class="small text-muted fw-semibold mb-2">Programas recentes</div>
+                <ul class="small text-muted mb-0">
+                    {% for programa in programas_formacao %}
+                    <li>{{ programa.nome }}</li>
+                    {% else %}
+                    <li>Nenhum programa de formação cadastrado.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div> -->
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Visão rápida da operação</div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4"><div class="border rounded-3 p-3"><div class="small text-muted">PDTs ativos</div><div class="h4 mb-0">{{ sme_stats.pdt_count|default(0) }}</div></div></div>
+                    <div class="col-md-4"><div class="border rounded-3 p-3"><div class="small text-muted">Usuários SME</div><div class="h4 mb-0">{{ sme_stats.secretaria_count|default(0) }}</div></div></div>
+                    <div class="col-md-4"><div class="border rounded-3 p-3"><div class="small text-muted">Logs auditados</div><div class="h4 mb-0">{{ sme_stats.total_logs|default(0) }}</div></div></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Prova</th>
+                                <th>Escopo</th>
+                                <th>Escola</th>
+                                <th>Nota</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in resumo_institucional %}
+                            <tr>
+                                <td>{{ row.prova }}</td>
+                                <td>{{ row.escopo }}</td>
+                                <td>{{ row.escola }}</td>
+                                <td>{{ row.nota_media }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">Sem consolidação institucional registrada.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Resultado rápido da larga escala</div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-4"><div class="border rounded-3 p-3"><div class="small text-muted">Respostas</div><div class="h5 mb-0">{{ resumo_objetivo.total_respostas|default(0) }}</div></div></div>
+                    <div class="col-4"><div class="border rounded-3 p-3"><div class="small text-muted">Acertos</div><div class="h5 mb-0">{{ resumo_objetivo.total_acertos|default(0) }}</div></div></div>
+                    <div class="col-4"><div class="border rounded-3 p-3"><div class="small text-muted">Nota geral</div><div class="h5 mb-0">{{ resumo_objetivo.nota_geral|default(0) }}</div></div></div>
+                </div>
+                <a href="/admin/correcao-gabaritos" class="btn btn-mj w-100 rounded-pill">Continuar operação</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- <div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Migração do legado</div>
+            <div class="card-body">
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Manter</div>
+                <ul class="small text-muted">
+                    {% for item in mapa_legado.manter %}
+                    <li><strong>{{ item.nome }}</strong>: {{ item.motivo }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Adaptar</div>
+                <ul class="small text-muted">
+                    {% for item in mapa_legado.adaptar %}
+                    <li><strong>{{ item.nome }}</strong>: {{ item.motivo }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Aposentar</div>
+                <ul class="small text-muted mb-0">
+                    {% for item in mapa_legado.aposentar %}
+                    <li><strong>{{ item.nome }}</strong>: {{ item.motivo }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Fontes externas</div>
+            <div class="card-body">
+                <div class="mb-3"><strong>Fonte oficial:</strong> {{ fontes_externas.fonte_oficial }}</div>
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Complementares</div>
+                <ul class="small text-muted">
+                    {% for item in fontes_externas.fontes_complementares %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="small text-uppercase text-muted fw-semibold mb-2">Política</div>
+                <ul class="small text-muted mb-0">
+                    {% for item in fontes_externas.politica %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div> -->
+{% endblock %}

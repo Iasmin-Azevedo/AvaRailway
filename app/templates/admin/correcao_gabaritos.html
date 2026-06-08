@@ -1,0 +1,273 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Correção de Gabaritos{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Secretaria / SME{% endblock %}
+{% block header_right %}{% set role_value = 'admin' %}{% include "shared/header_right_user_simple.html" %}{% endblock %}
+{% block offcanvas_links %}{% include "admin/partials/admin_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1">Correção de gabaritos</h2>
+        <!-- <p class="text-muted mb-0">Importação OCR/CSV, folhas de resposta e acompanhamento de quem já respondeu. -->
+            <!-- <a href="/static/docs/OCR_VALIDACAO_LOTE_POC.md" target="_blank" rel="noopener" class="small">Validação OCR PoC</a> -->
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        <form method="get" action="/admin/correcao-gabaritos" class="d-flex gap-2">
+            <select class="form-select form-select-sm" name="avaliacao_id" onchange="this.form.submit()" style="min-width: 180px;">
+                <option value="">Prova</option>
+                {% for a in avaliacoes %}
+                <option value="{{ a.id }}" {% if selected_avaliacao and selected_avaliacao.id == a.id %}selected{% endif %}>{{ a.titulo }}</option>
+                {% endfor %}
+            </select>
+            <select class="form-select form-select-sm" name="aplicacao_id" onchange="this.form.submit()" style="min-width: 180px;">
+                <option value="">Aplicação</option>
+                {% for a in aplicacoes %}
+                <option value="{{ a.id }}" {% if selected_aplicacao and selected_aplicacao.id == a.id %}selected{% endif %}>{{ a.titulo or ('Aplicação #' ~ a.id) }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+{% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+{% if flash_ok %}<div class="alert alert-success">Operação concluída com sucesso.</div>{% endif %}
+
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <button type="button" class="btn btn-mj-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalBanco">
+        <i class="fas fa-database me-1"></i> Banco de questões
+    </button>
+    <button type="button" class="btn btn-mj-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalProva">
+        <i class="fas fa-file-alt me-1"></i> Criar prova
+    </button>
+    <button type="button" class="btn btn-mj-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalMontar" {% if not selected_avaliacao %}disabled{% endif %}>
+        <i class="fas fa-puzzle-piece me-1"></i> Montar prova
+    </button>
+    <button type="button" class="btn btn-mj-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalAplicacao" {% if not selected_avaliacao %}disabled{% endif %}>
+        <i class="fas fa-calendar-check me-1"></i> Nova aplicação
+    </button>
+</div>
+
+{% if selected_avaliacao %}
+{% set _modo_sem_aplicacao = not selected_aplicacao %}
+<div class="card dash-card mb-4">
+    <div class="dash-card-header fw-bold d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span>
+            Correção —
+            {% if selected_aplicacao %}
+                {{ selected_aplicacao.titulo or ('Aplicação #' ~ selected_aplicacao.id) }}
+            {% else %}
+                Prova sem aplicação (modo trilha)
+            {% endif %}
+        </span>
+        <span class="badge bg-secondary">{{ selected_avaliacao.titulo if selected_avaliacao else '' }}</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3"><div class="border rounded-3 p-2 p-md-3 text-center"><div class="small text-muted">Elegíveis</div><div class="h5 mb-0">{{ resumo.elegiveis|default(0) }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="border rounded-3 p-2 p-md-3 text-center"><div class="small text-muted">Responderam</div><div class="h5 mb-0 text-success">{{ resumo.participantes|default(0) }}</div></div></div>
+            <div class="col-6 col-md-3"><div class="border rounded-3 p-2 p-md-3 text-center"><div class="small text-muted">Participação</div><div class="h5 mb-0">{{ resumo.participacao_pct|default(0) }}%</div></div></div>
+            <div class="col-6 col-md-3"><div class="border rounded-3 p-2 p-md-3 text-center"><div class="small text-muted">Nota média</div><div class="h5 mb-0">{{ resumo.nota_geral|default(0) }}</div></div></div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            {% if selected_aplicacao %}
+                <a class="btn btn-sm btn-mj" href="/admin/correcao-gabaritos/folhas.pdf?aplicacao_id={{ selected_aplicacao.id }}">
+                    <i class="fas fa-download me-1"></i> Gabarito Completo
+                </a>
+                <a class="btn btn-sm btn-mj-outline" href="/admin/correcao-gabaritos/folhas.pdf?aplicacao_id={{ selected_aplicacao.id }}&formato=zip"><i class="fas fa-download me-1"></i> Gabarito por aluno</a>
+                <a class="btn btn-sm btn-mj-outline" href="/admin/correcao-gabaritos/modelo.csv?aplicacao_id={{ selected_aplicacao.id }}">Modelo CSV</a>
+                <a class="btn btn-sm btn-mj-outline" href="/admin/correcao-gabaritos/export.csv?aplicacao_id={{ selected_aplicacao.id }}">Exportar notas</a>
+                <a class="btn btn-sm btn-mj-outline" href="/admin/correcao-gabaritos/imprimir?aplicacao_id={{ selected_aplicacao.id }}" target="_blank">Imprimir resultados</a>
+            {% else %}
+                <a class="btn btn-sm btn-mj" href="/admin/correcao-gabaritos/folhas.pdf?avaliacao_id={{ selected_avaliacao.id }}">
+                    <i class="fas fa-download me-1"></i> Gabarito Completo
+                </a>
+                <a class="btn btn-sm btn-mj-outline" href="/admin/correcao-gabaritos/folhas.pdf?avaliacao_id={{ selected_avaliacao.id }}&formato=zip"><i class="fas fa-download me-1"></i> Gabarito por aluno</a>
+                <a class="btn btn-sm btn-mj-outline" href="/admin/correcao-gabaritos/modelo.csv?avaliacao_id={{ selected_avaliacao.id }}">Modelo CSV</a>
+                <a class="btn btn-sm btn-mj-outline" href="/admin/correcao-gabaritos/export.csv?avaliacao_id={{ selected_avaliacao.id }}">Exportar notas</a>
+                <a class="btn btn-sm btn-mj-outline" href="/admin/correcao-gabaritos/imprimir?avaliacao_id={{ selected_avaliacao.id }}" target="_blank">Imprimir resultados</a>
+            {% endif %}
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-5">
+                <h6 class="fw-bold mb-2">Importar respostas</h6>
+                {% if selected_aplicacao %}
+                    <form method="post" action="/admin/correcao-gabaritos/ocr-preview?aplicacao_id={{ selected_aplicacao.id }}" enctype="multipart/form-data" class="d-grid gap-2 mb-3">
+                        <label class="small text-muted mb-0">Anexe várias folhas (JPG/PNG), um ZIP ou um PDF único com todos os gabaritos</label>
+                        <input type="file" class="form-control form-control-sm" name="folhas_imagem" accept="image/*" multiple>
+                        <input type="file" class="form-control form-control-sm" name="arquivo_zip" accept=".zip,application/zip">
+                        <input type="file" class="form-control form-control-sm" name="arquivo_pdf" accept=".pdf,application/pdf">
+                        <button class="btn btn-mj btn-sm" type="submit">Ler gabarito</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="/admin/correcao-gabaritos/ocr-preview?avaliacao_id={{ selected_avaliacao.id }}" enctype="multipart/form-data" class="d-grid gap-2 mb-3">
+                        <label class="small text-muted mb-0">Anexe várias folhas (JPG/PNG), um ZIP ou um PDF único com os gabaritos do ano escolar da trilha</label>
+                        <input type="file" class="form-control form-control-sm" name="folhas_imagem" accept="image/*" multiple>
+                        <input type="file" class="form-control form-control-sm" name="arquivo_zip" accept=".zip,application/zip">
+                        <input type="file" class="form-control form-control-sm" name="arquivo_pdf" accept=".pdf,application/pdf">
+                        <button class="btn btn-mj btn-sm" type="submit">Ler gabarito</button>
+                    </form>
+                {% endif %}
+                <form method="post" action="/admin/correcao-gabaritos/importar?{% if selected_aplicacao %}aplicacao_id={{ selected_aplicacao.id }}{% else %}avaliacao_id={{ selected_avaliacao.id }}{% endif %}" enctype="multipart/form-data" class="d-grid gap-2">
+                    <label class="small text-muted mb-0">CSV manual (planilha editável)</label>
+                    <input type="file" class="form-control form-control-sm" name="arquivo_csv" accept=".csv,text/csv" required>
+                    <button class="btn btn-mj-outline btn-sm" type="submit">Importar CSV</button>
+                </form>
+                <p class="small text-muted mt-2 mb-0">
+                    Use folhas geradas pelo sistema (grade com cantoneiras). Alunos que já concluíram todas as questões não terão respostas sobrescritas.
+                </p>
+            </div>
+            <div class="col-lg-7">
+                <h6 class="fw-bold mb-2">Status dos participantes</h6>
+                <div class="table-responsive" style="max-height: 320px;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Aluno</th>
+                                <th>Turma</th>
+                                <th>Questões</th>
+                                <th>Status</th>
+                                <th>Nota</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in resumo.por_aluno|default([]) %}
+                            <tr>
+                                <td>{{ row.aluno }}</td>
+                                <td class="small">{{ row.turma }}</td>
+                                <td>{{ row.respostas }}/{{ row.total_questoes|default('—') }}</td>
+                                <td>
+                                    {% if row.status_resposta == 'concluida' %}
+                                    <span class="badge bg-success">Concluída</span>
+                                    {% elif row.status_resposta == 'parcial' %}
+                                    <span class="badge bg-warning text-dark">Parcial</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pendente</span>
+                                    {% endif %}
+                                </td>
+                                <td>{% if row.status_resposta != 'pendente' %}{{ row.nota }}{% else %}—{% endif %}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">Nenhum participante nesta aplicação.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">Selecione uma prova e uma aplicação para corrigir gabaritos, gerar folhas e importar respostas.</div>
+{% endif %}
+
+{# Modais — fluxos auxiliares #}
+<div class="modal fade" id="modalBanco" tabindex="-1" aria-labelledby="modalBancoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="modalBancoLabel">Banco autoral de questões</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form method="post" action="/admin/correcao-gabaritos/banco-questoes" class="d-grid gap-2 mb-4">
+                    <div class="row g-2">
+                        <div class="col-md-6"><select class="form-select form-select-sm" name="curso_id"><option value="">Disciplina</option>{% for curso in cursos %}<option value="{{ curso.id }}">{{ curso.nome }}</option>{% endfor %}</select></div>
+                        <div class="col-md-6"><select class="form-select form-select-sm" name="descritor_id"><option value="">Descritor</option>{% for descritor in descritores %}<option value="{{ descritor.id }}">{{ descritor.codigo }}</option>{% endfor %}</select></div>
+                    </div>
+                    <textarea class="form-control form-control-sm" name="enunciado" rows="2" placeholder="Enunciado" required></textarea>
+                    <div class="row g-2">
+                        <div class="col"><input class="form-control form-control-sm" name="alternativa_a" placeholder="A" required></div>
+                        <div class="col"><input class="form-control form-control-sm" name="alternativa_b" placeholder="B" required></div>
+                        <div class="col"><input class="form-control form-control-sm" name="alternativa_c" placeholder="C" required></div>
+                        <div class="col"><input class="form-control form-control-sm" name="alternativa_d" placeholder="D" required></div>
+                        <div class="col"><input class="form-control form-control-sm" name="alternativa_e" placeholder="E" required></div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-4"><select class="form-select form-select-sm" name="gabarito" required>{% for L in ['A','B','C','D','E'] %}<option value="{{ L }}">{{ L }}</option>{% endfor %}</select></div>
+                        <div class="col-8"><button class="btn btn-mj btn-sm w-100" type="submit">Adicionar ao banco</button></div>
+                    </div>
+                </form>
+                <div class="table-responsive" style="max-height: 240px;">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light"><tr><th>Código</th><th>Curso</th><th>Descritor</th></tr></thead>
+                        <tbody>
+                            {% for item in banco_questoes %}
+                            <tr><td>{{ item.codigo_referencia or ('Q' ~ item.id) }}</td><td>{{ item.curso.nome if item.curso else '-' }}</td><td>{{ item.habilidade_saeb or (item.descritor.codigo if item.descritor else '-') }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-muted text-center">Vazio</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalProva" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Criar prova objetiva</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form method="post" action="/admin/correcao-gabaritos/avaliacoes" class="d-grid gap-2">
+                    <input class="form-control" name="titulo" placeholder="Título" required>
+                    <select class="form-select" name="curso_id"><option value="">Disciplina</option>{% for curso in cursos %}<option value="{{ curso.id }}">{{ curso.nome }}</option>{% endfor %}</select>
+                    <input class="form-control" name="ano_letivo" value="2026">
+                    <button class="btn btn-mj" type="submit">Criar prova</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalMontar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Montar prova — {{ selected_avaliacao.titulo if selected_avaliacao else '' }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form method="post" action="/admin/correcao-gabaritos/questoes" class="row g-2 mb-4">
+                    <input type="hidden" name="avaliacao_id" value="{{ selected_avaliacao.id if selected_avaliacao else '' }}">
+                    <div class="col-md-8"><select class="form-select form-select-sm" name="banco_questao_id"><option value="">Questão do banco</option>{% for item in banco_questoes %}<option value="{{ item.id }}">{{ item.codigo_referencia or ('Q' ~ item.id) }} — {{ item.enunciado[:50] }}</option>{% endfor %}</select></div>
+                    <div class="col-md-2"><input class="form-control form-control-sm" name="numero" type="number" min="1" placeholder="Nº"></div>
+                    <div class="col-md-2"><button class="btn btn-mj btn-sm w-100" type="submit">Anexar</button></div>
+                </form>
+                <table class="table table-sm">
+                    <thead class="table-light"><tr><th>Nº</th><th>Código</th><th>Peso</th></tr></thead>
+                    <tbody>
+                        {% for q in questoes %}
+                        <tr><td>{{ q.numero or '-' }}</td><td>{{ q.codigo or '-' }}</td><td>{{ q.peso }}</td></tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-muted text-center">Sem questões</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAplicacao" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Nova aplicação</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form method="post" action="/admin/correcao-gabaritos/aplicacoes" class="d-grid gap-2">
+                    <input type="hidden" name="avaliacao_id" value="{{ selected_avaliacao.id if selected_avaliacao else '' }}">
+                    <input class="form-control" name="titulo" placeholder="Nome da aplicação">
+                    <select class="form-select" name="escopo"><option value="turma">Turma</option><option value="escola">Escola</option><option value="rede">Rede</option></select>
+                    <select class="form-select" name="turma_id"><option value="">Turma</option>{% for turma in turmas %}<option value="{{ turma.id }}">{{ turma.nome }}</option>{% endfor %}</select>
+                    <select class="form-select" name="escola_id"><option value="">Escola</option>{% for escola in escolas %}<option value="{{ escola.id }}">{{ escola.nome }}</option>{% endfor %}</select>
+                    <input class="form-control" name="data_aplicacao" type="date">
+                    <button class="btn btn-mj" type="submit">Criar aplicação</button>
+                </form>
+                {% if aplicacoes %}
+                <hr>
+                <p class="small fw-bold mb-2">Aplicações existentes</p>
+                <ul class="list-group list-group-flush small">
+                    {% for item in aplicacoes %}
+                    <li class="list-group-item px-0 d-flex justify-content-between"><span>{{ item.titulo or ('#' ~ item.id) }}</span><span class="text-muted">{{ item.status.value if item.status.value is defined else item.status }}</span></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

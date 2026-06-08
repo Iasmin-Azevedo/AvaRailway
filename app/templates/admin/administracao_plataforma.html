@@ -1,0 +1,62 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Administração da Plataforma{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}
+{% if current_user and current_user.escopo_administrativo and (current_user.escopo_administrativo.value if current_user.escopo_administrativo.value is defined else current_user.escopo_administrativo) == 'secretaria_sme' %}
+Secretaria / SME
+{% else %}
+Admin técnico
+{% endif %}
+{% endblock %}
+{% block header_right %}{% set role_value = 'admin' %}{% include "shared/header_right_user_simple.html" %}{% endblock %}
+{% block offcanvas_links %}{% include "admin/partials/admin_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1">Administração da Plataforma</h2>
+        <!-- <p class="text-muted mb-0">Área de backoffice para manutenção da base do sistema: cadastros, conteúdos, suporte e operação técnica.</p> -->
+    </div>
+    <a class="btn btn-mj-outline rounded-pill" href="/admin">Voltar ao painel</a>
+</div>
+
+<!-- <div class="alert alert-light border rounded-4 mb-4">
+    Esta área não é um módulo da SME. Ela organiza os <strong>cadastros e a operação da plataforma</strong>, enquanto os módulos institucionais da Secretaria ficam em <a href="/admin/gestao-integrada" class="fw-bold text-decoration-none">Gestão Integrada SME</a>.
+</div> -->
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Usuários</span><div class="dash-stat-value">{{ usuarios_total }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Escolas</span><div class="dash-stat-value">{{ escolas_total }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Turmas</span><div class="dash-stat-value">{{ turmas_total }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Chamados abertos</span><div class="dash-stat-value">{{ tickets_abertos_total }}</div></div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Cadastros principais</div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/admin/usuarios" class="btn btn-light border text-start p-3"><strong>Usuários</strong><br><span class="small text-muted">{{ usuarios_total }} registros</span></a>
+                    <a href="/admin/escolas" class="btn btn-light border text-start p-3"><strong>Escolas</strong><br><span class="small text-muted">{{ escolas_total }} registros</span></a>
+                    <a href="/admin/turmas" class="btn btn-light border text-start p-3"><strong>Turmas</strong><br><span class="small text-muted">{{ turmas_total }} registros</span></a>
+                    <a href="/admin/cursos" class="btn btn-light border text-start p-3"><strong>Cursos</strong><br><span class="small text-muted">{{ cursos_total }} registros</span></a>
+                    <a href="/admin/trilhas" class="btn btn-light border text-start p-3"><strong>Trilhas</strong><br><span class="small text-muted">{{ trilhas_total }} registros</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Conteúdo e operação</div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/admin/atividades-h5p" class="btn btn-light border text-start p-3"><strong>Atividades H5P</strong><br><span class="small text-muted">{{ atividades_h5p_total }} registros</span></a>
+                    <a href="/admin/descritores" class="btn btn-light border text-start p-3"><strong>Descritores SAEB</strong><br><span class="small text-muted">{{ descritores_total }} registros</span></a>
+                    <a href="/admin/suporte" class="btn btn-light border text-start p-3"><strong>Chamados de suporte</strong><br><span class="small text-muted">{{ tickets_abertos_total }} chamados abertos</span></a>
+                    <a href="/admin/perfil" class="btn btn-light border text-start p-3"><strong>Meu perfil</strong><br><span class="small text-muted">Dados do usuário logado</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

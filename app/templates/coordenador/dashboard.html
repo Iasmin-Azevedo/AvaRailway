@@ -14,6 +14,83 @@
 {% endblock %}
 
 {% block main_content %}
+{% if flash_err %}
+<div class="alert alert-danger border-0 shadow-sm rounded-3 mb-3">{{ flash_err }}</div>
+{% endif %}
+{% if flash_ok == 'avaliacao_institucional' %}
+<div class="alert alert-success border-0 shadow-sm rounded-3 mb-3">Avaliação institucional respondida com sucesso.</div>
+{% endif %}
+{% if avaliacoes_institucionais_pendentes %}
+<div class="card dash-card mb-4">
+    <div class="dash-card-header d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0 text-dark">Avaliação institucional pendente</h6>
+        <span class="badge bg-warning text-dark">{{ avaliacoes_institucionais_pendentes|length }} pendente(s)</span>
+    </div>
+    <div class="card-body">
+        <!-- <p class="small text-muted mb-3">Clique para responder. O modal pode ser fechado, mas voltará a abrir enquanto houver pendência.</p> -->
+        <div class="d-flex flex-column gap-2">
+            {% for app in avaliacoes_institucionais_pendentes %}
+            <div class="d-flex justify-content-between align-items-center border rounded-3 p-2">
+                <div class="small fw-semibold">{{ app.instrumento_nome }}{% if app.escola_nome and app.escola_nome != '—' %} · {{ app.escola_nome }}{% endif %}</div>
+                <button class="btn btn-sm btn-mj" data-bs-toggle="modal" data-bs-target="#modalAvaliacaoCoord{{ app.id }}">Responder</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% for app in avaliacoes_institucionais_pendentes %}
+<div class="modal fade modal-avaliacao-pendente" id="modalAvaliacaoCoord{{ app.id }}" tabindex="-1" aria-hidden="true" data-auto-open="{% if loop.first %}1{% else %}0{% endif %}">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ app.instrumento_nome }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="/coordenador/avaliacao-semestral/{{ app.id }}/responder" class="d-grid gap-3">
+                    {% for criterio in app.criterios %}
+                    <div class="border rounded-3 p-3">
+                        <div class="fw-semibold mb-3">{{ criterio.titulo }}</div>
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <span class="small text-muted">Nao gostei</span>
+                            <div class="d-flex gap-2 flex-wrap justify-content-center">
+                                {% for nota in [0,1,2,3,4,5] %}
+                                <div class="text-center">
+                                    <div class="small text-muted">{{ nota }}</div>
+                                    <input type="radio" class="form-check-input" name="nota_{{ criterio.id }}" value="{{ nota }}" required>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <span class="small text-muted">Excelente</span>
+                        </div>
+                        <div class="mt-2">
+                            <input type="text" class="form-control form-control-sm" name="comentario_{{ criterio.id }}" maxlength="255" placeholder="Comentario opcional">
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div>
+                        <label class="form-label small text-muted">Devolutiva geral</label>
+                        <textarea class="form-control" name="devolutiva_resumo" rows="3" maxlength="2000" placeholder="Resumo da devolutiva"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                        <button type="submit" class="btn btn-mj">Enviar avaliação</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+<script>
+(function () {
+    var autoModalEl = document.querySelector('.modal-avaliacao-pendente[data-auto-open="1"]');
+    if (!autoModalEl || !window.bootstrap || !window.bootstrap.Modal) return;
+    var modal = new window.bootstrap.Modal(autoModalEl);
+    setTimeout(function () { modal.show(); }, 250);
+})();
+</script>
+{% endif %}
 <div class="row g-3 mb-4 text-center">
     <div class="col-md-3">
         <div class="card dash-stat-card dash-stat-card--primary h-100 text-start">
@@ -89,10 +166,10 @@
                     <table class="table table-hover align-middle mb-0 mj-table-min-wide">
                         <thead class="table-light small text-uppercase text-muted">
                             <tr>
-                                <th class="ps-4">Ano/Turma</th>
+                                <th class="ps-4">Turma</th>
                                 <th>Professor Responsável</th>
                                 <th>Adesão (Uso da Plataforma)</th>
-                                <th>Proficiência (Simulados)</th>
+                                <th>Média nas provas</th>
                                 <th class="pe-4 text-end">Analisar</th>
                             </tr>
                         </thead>
@@ -102,13 +179,9 @@
                                 <td class="ps-4 fw-bold text-dark">{{ row.turma }}</td>
                                 <td>{{ row.professor }}</td>
                                 <td><span class="fw-bold {% if row.adesao_pct < 60 %}text-danger{% elif row.adesao_pct < 85 %}text-mj-primary{% else %}text-success{% endif %}">{{ row.adesao_pct }}%</span></td>
-                                <td>
-                                    <span class="badge {% if row.status == 'Crítico' %}bg-danger text-white{% elif row.status == 'Bom' %}bg-primary bg-opacity-25 text-mj-primary border border-mj-primary{% elif row.status == 'Sem dados' or row.status == 'Sem atividades' %}bg-secondary bg-opacity-25 text-dark border border-secondary{% else %}bg-success bg-opacity-25 text-success border border-success{% endif %}">
-                                        {{ row.status }}
-                                    </span>
-                                </td>
+                                <td class="fw-bold {% if row.media_provas < 5 %}text-danger{% elif row.media_provas < 7 %}text-mj-primary{% else %}text-success{% endif %}">{{ row.media_provas }}</td>
                                 <td class="pe-4 text-end">
-                                    <a href="/coordenador/turmas/{{ row.turma_id }}/analise?disciplina={{ disciplina_monitor|default('geral') }}" class="btn btn-sm btn-mj-outline" title="Abrir análise detalhada da turma (proficiência média {{ row.proficiencia }})">
+                                    <a href="/coordenador/turmas/{{ row.turma_id }}/analise?disciplina={{ disciplina_monitor|default('geral') }}" class="btn btn-sm btn-mj-outline" title="Abrir análise detalhada da turma (média nas provas {{ row.media_provas }})">
                                         <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
                                         <span class="visually-hidden">Analisar {{ row.turma }}</span>
                                     </a>
@@ -231,6 +304,24 @@
                     <a href="/coordenador/relatorios" class="btn btn-mj-outline text-start p-3 rounded-3">
                         <i class="fa-solid fa-folder-open me-2"></i> Abrir central de relatórios
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card dash-card border-start border-success border-4">
+            <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h2 class="h6 fw-bold text-mj-dark mb-1">Desempenho institucional da escola</h2>
+                    <p class="small text-mj-muted mb-0">Consulte resultados por turma, participação e desempenho das aplicações vinculadas à sua escola.</p>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="/coordenador/avaliacoes-institucionais" class="btn btn-mj-outline rounded-pill">Abrir</a>
+                    <a href="/coordenador/avaliacoes-institucionais/imprimir" class="btn btn-mj-outline rounded-pill"><i class="fas fa-print me-1"></i> PDF</a>
+                    <a href="/coordenador/avaliacoes-institucionais/export.csv" class="btn btn-mj-outline rounded-pill"><i class="fas fa-download me-1"></i> CSV</a>
                 </div>
             </div>
         </div>

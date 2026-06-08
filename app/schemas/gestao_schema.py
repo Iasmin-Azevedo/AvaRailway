@@ -27,7 +27,8 @@ class EscolaResponse(EscolaBase):
 
 class TurmaBase(BaseModel):
     nome: str
-    ano_escolar: int  # 2, 5 ou 9
+    sigla: Optional[str] = None
+    ano_escolar: int  # 1 a 9
     escola_id: int
     ano_letivo: Optional[str] = None
 
@@ -38,6 +39,7 @@ class TurmaCreate(TurmaBase):
 
 class TurmaUpdate(BaseModel):
     nome: Optional[str] = None
+    sigla: Optional[str] = None
     ano_escolar: Optional[int] = None
     escola_id: Optional[int] = None
     ano_letivo: Optional[str] = None
@@ -77,6 +79,7 @@ class TrilhaBase(BaseModel):
     nome: str
     curso_id: int
     ano_escolar: Optional[int] = None
+    semestre: Optional[str] = None
     ordem: int = 0
 
 
@@ -88,6 +91,7 @@ class TrilhaUpdate(BaseModel):
     nome: Optional[str] = None
     curso_id: Optional[int] = None
     ano_escolar: Optional[int] = None
+    semestre: Optional[str] = None
     ordem: Optional[int] = None
 
 

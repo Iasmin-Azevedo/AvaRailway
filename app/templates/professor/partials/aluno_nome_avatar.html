@@ -1,0 +1,9 @@
+{# Espera: nome (obrigatório), avatar_url, iniciais #}
+<div class="d-flex align-items-center gap-2 min-w-0">
+    {% if avatar_url %}
+    <img src="{{ avatar_url }}" alt="" class="aluno-picker-avatar flex-shrink-0" width="36" height="36">
+    {% else %}
+    <span class="aluno-picker-avatar aluno-picker-avatar--fallback flex-shrink-0" style="width:36px;height:36px;font-size:0.75rem;">{{ iniciais|default('AL') }}</span>
+    {% endif %}
+    <span class="fw-bold text-dark text-truncate">{{ nome }}</span>
+</div>

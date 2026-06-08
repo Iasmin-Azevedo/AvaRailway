@@ -1,0 +1,392 @@
+{
+  "folhas": 28,
+  "folhas_ok": 27,
+  "media_taxa_leitura_pct": 95.5,
+  "n_questoes": 4,
+  "detalhes": [
+    {
+      "arquivo": "Group_241.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "C",
+        "2": "C",
+        "3": "C",
+        "4": "C"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_241_autocontrast.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "C",
+        "2": "C",
+        "3": "C",
+        "4": "C"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_241_bright.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "C",
+        "2": "C",
+        "3": "C",
+        "4": "C"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_241_contrast.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "C",
+        "2": "C",
+        "3": "C",
+        "4": "C"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_241_dim.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "C",
+        "2": "C",
+        "3": "C",
+        "4": "C"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_241_rot1.png",
+      "ok": false,
+      "erro": "QR Code não encontrado. Use folha gerada pelo sistema (PDF) e foto nítida.",
+      "taxa_leitura_pct": 0.0
+    },
+    {
+      "arquivo": "Group_241_rotm1.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "C",
+        "2": "C",
+        "3": "C",
+        "4": "C"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_243.png",
+      "ok": true,
+      "participacao_id": 20,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_243_autocontrast.png",
+      "ok": true,
+      "participacao_id": 20,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_243_bright.png",
+      "ok": true,
+      "participacao_id": 20,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_243_contrast.png",
+      "ok": true,
+      "participacao_id": 20,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_243_dim.png",
+      "ok": true,
+      "participacao_id": 20,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_243_rot1.png",
+      "ok": true,
+      "participacao_id": 20,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_243_rotm1.png",
+      "ok": true,
+      "participacao_id": 20,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_244.png",
+      "ok": true,
+      "participacao_id": 21,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_244_autocontrast.png",
+      "ok": true,
+      "participacao_id": 21,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_244_bright.png",
+      "ok": true,
+      "participacao_id": 21,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_244_contrast.png",
+      "ok": true,
+      "participacao_id": 21,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_244_dim.png",
+      "ok": true,
+      "participacao_id": 21,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_244_rot1.png",
+      "ok": true,
+      "participacao_id": 21,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_244_rotm1.png",
+      "ok": true,
+      "participacao_id": 21,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_245.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_245_autocontrast.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_245_bright.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_245_contrast.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_245_dim.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_245_rot1.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": "E",
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 4,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 100.0
+    },
+    {
+      "arquivo": "Group_245_rotm1.png",
+      "ok": true,
+      "participacao_id": 19,
+      "respostas": {
+        "1": null,
+        "2": "B",
+        "3": "B",
+        "4": "B"
+      },
+      "questoes_lidas": 3,
+      "questoes_total": 4,
+      "taxa_leitura_pct": 75.0
+    }
+  ]
+}

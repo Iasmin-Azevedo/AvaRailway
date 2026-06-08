@@ -1,0 +1,55 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}Editar aplicação{% endblock %}
+{% block offcanvas_links %}{% include "professor/partials/professor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="mb-3">
+    <a href="/professor/aplicacoes-prova" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar para aplicações</a>
+</div>
+
+<div class="card dash-card border-0">
+    <div class="dash-card-header fw-bold">Editar aplicação</div>
+    <div class="card-body">
+        {% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+        <form method="post" action="{{ form_action }}" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Título</label>
+                <input class="form-control" name="titulo" value="{{ aplicacao.titulo or '' }}" placeholder="Ex.: 5º A - Diagnóstica 1">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Ano letivo</label>
+                <input class="form-control" name="ano_letivo" value="{{ aplicacao.ano_letivo or '' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Período / ciclo</label>
+                <input class="form-control" name="periodo_referencia" value="{{ aplicacao.periodo_referencia or '' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Data da aplicação</label>
+                <input class="form-control" type="date" name="data_aplicacao" value="{{ aplicacao.data_aplicacao.strftime('%Y-%m-%d') if aplicacao.data_aplicacao else '' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    {% set status_val = aplicacao.status.value if aplicacao.status.value is defined else aplicacao.status %}
+                    <option value="planejada" {% if status_val == 'planejada' %}selected{% endif %}>Planejada</option>
+                    <option value="em_andamento" {% if status_val == 'em_andamento' %}selected{% endif %}>Em andamento</option>
+                    <option value="corrigida" {% if status_val == 'corrigida' %}selected{% endif %}>Corrigida</option>
+                    <option value="encerrada" {% if status_val == 'encerrada' %}selected{% endif %}>Encerrada</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Prova</label>
+                <input class="form-control" value="{{ aplicacao.avaliacao.titulo if aplicacao.avaliacao else 'Sem prova vinculada' }}" disabled>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Observações</label>
+                <textarea class="form-control" name="observacoes" rows="3">{{ aplicacao.observacoes or '' }}</textarea>
+            </div>
+            <div class="col-12 d-flex justify-content-end gap-2">
+                <a href="/professor/aplicacoes-prova" class="btn btn-mj-outline rounded-pill">Cancelar</a>
+                <button class="btn btn-mj rounded-pill" type="submit">Salvar alterações</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

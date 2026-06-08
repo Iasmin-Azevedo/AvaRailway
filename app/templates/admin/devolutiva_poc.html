@@ -1,0 +1,99 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Devolutiva PoC{% endblock %}
+{% block brand_link %}/admin/gestao-integrada{% endblock %}
+{% block offcanvas_links %}{% include "admin/partials/admin_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Devolutiva pedagógica — PoC Paracuru</h2>
+        <p class="text-muted mb-0">Síntese executiva para a SME após uso assistido dos módulos (dados consolidados da plataforma).</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="/admin/relatorios-sme" class="btn btn-mj-outline rounded-pill">Relatórios exportáveis</a>
+        <button type="button" class="btn btn-mj rounded-pill" onclick="window.print()"><i class="fas fa-print me-1"></i> Imprimir / PDF</button>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Escolas ativas</span><div class="dash-stat-value">{{ sme_stats.n_escolas|default(0) }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Aplicações de prova</span><div class="dash-stat-value">{{ sme_stats.aplicacoes_institucionais|default(0) }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Participantes BNCC</span><div class="dash-stat-value">{{ sme_stats.participantes_formacao|default(0) }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Ciclos semestrais</span><div class="dash-stat-value">{{ semestral|length }}</div></div></div>
+</div>
+
+<div class="card dash-card mb-4 border-start border-4 border-primary">
+    <div class="card-body">
+        <h6 class="fw-bold text-mj-dark mb-2">Leitura para a Secretaria</h6>
+        <p class="mb-2 small">
+            A rede passou a contar com <strong>visão consolidada</strong> do desempenho em provas objetivas,
+            correção de gabaritos em larga escala (OCR e planilha) e formação BNCC com certificação.
+            Os dados permitem comparar escolas e turmas, identificar descritores críticos e direcionar
+            intervenção pedagógica com base em evidências, não apenas em percepção.
+        </p>
+        <p class="mb-0 small text-muted">
+            Esta devolutiva resume o ciclo: <em>aplicar → corrigir → analisar → formar → certificar</em>.
+            Exporte CSV/PDF em <a href="/admin/relatorios-sme">Relatórios SME</a> para prestação de contas e reuniões com gestores.
+        </p>
+    </div>
+</div>
+
+{% if prova_resumo and prova_resumo.por_turma %}
+<div class="card dash-card mb-4">
+    <div class="dash-card-header fw-bold">Desempenho por turma (amostra)</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light"><tr><th>Turma</th><th>Nota média</th><th>Participantes</th></tr></thead>
+                <tbody>
+                    {% for row in prova_resumo.por_turma[:8] %}
+                    <tr>
+                        <td>{{ row.turma }}</td>
+                        <td>{{ row.nota_media }}</td>
+                        <td>{{ row.participantes|default('—') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Decisões pedagógicas sugeridas</div>
+            <div class="card-body small">
+                <ul class="mb-0">
+                    <li class="mb-2"><strong>Intervenção imediata:</strong> turmas com nota média abaixo de 5,0 — reforço por descritor SAEB.</li>
+                    <li class="mb-2"><strong>Formação:</strong> ampliar turmas BNCC para docentes das unidades com menor adesão digital.</li>
+                    <li class="mb-2"><strong>Gestão:</strong> usar avaliação semestral para plano de desenvolvimento dos gestores escolares.</li>
+                    <li><strong>Monitoramento:</strong> repetir aplicação no próximo bimestre e comparar evolução no painel SME.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">Próximos passos operacionais</div>
+            <div class="card-body small">
+                <ol class="mb-0 ps-3">
+                    <li class="mb-2">Consolidar adesão por perfil (gestor, professor, aluno).</li>
+                    <li class="mb-2">Revisar descritores com menor proficiência e plano de intervenção.</li>
+                    <li class="mb-2">Registrar encontros presenciais da formação BNCC na plataforma.</li>
+                    <li>Publicar devolutiva às escolas via relatórios exportáveis (CSV + PDF).</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card dash-card mb-3">
+    <div class="card-body">
+        <h6 class="fw-bold">Suporte e comunicação</h6>
+        <p class="small text-muted mb-2">Fóruns integrados estão previstos para evolução pós-PoC. Enquanto isso, o canal de <strong>suporte técnico</strong> atende dúvidas de usuários.</p>
+        <a href="/admin/suporte" class="btn btn-sm btn-mj-outline rounded-pill me-2">Painel de suporte</a>
+        <a href="/admin/comunicacao" class="btn btn-sm btn-mj-outline rounded-pill">Comunicação</a>
+    </div>
+</div>
+{% endblock %}

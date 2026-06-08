@@ -25,10 +25,84 @@
 {% if flash_err %}
 <div class="alert alert-danger border-0 shadow-sm rounded-3 mb-3">{{ flash_err }}</div>
 {% endif %}
+{% if flash_ok == 'avaliacao_institucional' %}
+<div class="alert alert-success border-0 shadow-sm rounded-3 mb-3">Avaliação institucional respondida com sucesso.</div>
+{% endif %}
 {% if flash_ok.startswith('medalha_') %}
 <div class="alert alert-success border-0 shadow-sm rounded-3 mb-3">
     Medalha enviada com sucesso para {{ flash_ok.replace('medalha_', '') }} aluno(s).
 </div>
+{% endif %}
+{% if current_user.funcao_docente and current_user.funcao_docente.value == 'professor_diretor_turma' and avaliacoes_institucionais_pendentes %}
+<div class="card dash-card mb-4">
+    <div class="dash-card-header d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0 text-dark">Avaliação institucional pendente (PDT)</h6>
+        <span class="badge bg-warning text-dark">{{ avaliacoes_institucionais_pendentes|length }} pendente(s)</span>
+    </div>
+    <div class="card-body">
+        <p class="small text-muted mb-3">Clique para responder. Se fechar sem enviar, o modal volta a abrir no próximo acesso.</p>
+        <div class="d-flex flex-column gap-2">
+            {% for app in avaliacoes_institucionais_pendentes %}
+            <div class="d-flex justify-content-between align-items-center border rounded-3 p-2">
+                <div class="small fw-semibold">{{ app.instrumento_nome }}{% if app.escola_nome and app.escola_nome != '—' %} · {{ app.escola_nome }}{% endif %}</div>
+                <button class="btn btn-sm btn-mj" data-bs-toggle="modal" data-bs-target="#modalAvaliacaoProfessor{{ app.id }}">Responder</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% for app in avaliacoes_institucionais_pendentes %}
+<div class="modal fade modal-avaliacao-pendente-prof" id="modalAvaliacaoProfessor{{ app.id }}" tabindex="-1" aria-hidden="true" data-auto-open="{% if loop.first %}1{% else %}0{% endif %}">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ app.instrumento_nome }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="/professor/avaliacao-semestral/{{ app.id }}/responder" class="d-grid gap-3">
+                    {% for criterio in app.criterios %}
+                    <div class="border rounded-3 p-3">
+                        <div class="fw-semibold mb-3">{{ criterio.titulo }}</div>
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <span class="small text-muted">Nao gostei</span>
+                            <div class="d-flex gap-2 flex-wrap justify-content-center">
+                                {% for nota in [0,1,2,3,4,5] %}
+                                <div class="text-center">
+                                    <div class="small text-muted">{{ nota }}</div>
+                                    <input type="radio" class="form-check-input" name="nota_{{ criterio.id }}" value="{{ nota }}" required>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <span class="small text-muted">Excelente</span>
+                        </div>
+                        <div class="mt-2">
+                            <input type="text" class="form-control form-control-sm" name="comentario_{{ criterio.id }}" maxlength="255" placeholder="Comentario opcional">
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div>
+                        <label class="form-label small text-muted">Devolutiva geral</label>
+                        <textarea class="form-control" name="devolutiva_resumo" rows="3" maxlength="2000" placeholder="Resumo da devolutiva"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                        <button type="submit" class="btn btn-mj">Enviar avaliação</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+<script>
+(function () {
+    var autoModalEl = document.querySelector('.modal-avaliacao-pendente-prof[data-auto-open="1"]');
+    if (!autoModalEl || !window.bootstrap || !window.bootstrap.Modal) return;
+    var modal = new window.bootstrap.Modal(autoModalEl);
+    setTimeout(function () { modal.show(); }, 250);
+})();
+</script>
 {% endif %}
 
 <div class="row g-3 mb-4">
@@ -92,14 +166,19 @@
                 <p class="small text-muted mb-0">Sem atividades vinculadas a descritores ou sem dados de conclusão para {% if turma_all %}as turmas selecionadas{% else %}esta turma{% endif %}.</p>
                 {% else %}
                 {% for r in descritores_preview %}
+                {% set eng = r.engajamento_pct|default(0)|int %}
+                {% set des = (((r.desempenho_score_10 if r.desempenho_score_10 is not none else 0) * 10))|int %}
                 <div class="row mb-3 align-items-center g-2">
                     <div class="col-12 col-md-4 small fw-bold text-muted text-break">{{ r.codigo }}</div>
                     <div class="col-12 col-md-6">
-                        <div class="progress" style="height: 10px;">
-                            <div class="progress-bar {% if r.taxa_pct < 40 %}bg-danger{% elif r.taxa_pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="width: {{ r.taxa_pct }}%"></div>
+                        <div class="progress mb-1" style="height: 8px;">
+                            <div class="progress-bar bg-info" style="width: {{ eng }}%" title="Engajamento (H5P)"></div>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: {{ des }}%" title="Desempenho (Prova)"></div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-2 text-md-end small fw-bold">{{ r.taxa_pct }}%</div>
+                    <div class="col-12 col-md-2 text-md-end small fw-bold">H5P {{ eng }}% · Prova {{ r.desempenho_score_10 if r.desempenho_score_10 is not none else '—' }}/10</div>
                 </div>
                 {% endfor %}
                 {% endif %}
@@ -125,7 +204,11 @@
                         <tbody class="small">
                             {% for a in radar_alunos %}
                             <tr>
-                                <td class="ps-4 fw-bold text-dark">{{ a.nome }}</td>
+                                <td class="ps-4">
+                                    {% with nome=a.nome, avatar_url=a.avatar_url, iniciais=a.iniciais %}
+                                    {% include "professor/partials/aluno_nome_avatar.html" %}
+                                    {% endwith %}
+                                </td>
                                 {% if turma_all %}<td class="text-muted small">{{ a.turma_nome }}</td>{% endif %}
                                 <td>
                                     {% if a.nivel_risco == 'BAIXO' %}
@@ -174,17 +257,23 @@
                 <h6 class="mb-0 fw-bold">Descritores com Menor Proficiência</h6>
             </div>
             <div class="card-body">
-                {% set descritores_chart = descritores_rows[:5] if descritores_rows else [] %}
+                {% set descritores_chart = ((descritores_rows|rejectattr('engajamento_pct', 'equalto', none)|sort(attribute='engajamento_pct')|list)[:5]) if descritores_rows else [] %}
                 {% if descritores_chart %}
                 <div class="row text-center small">
                     {% for d in descritores_chart %}
-                    {% set pct = d.taxa_pct|default(0)|int %}
+                    {% set pct_h5p = d.engajamento_pct|default(0)|int %}
+                    {% set pct_prova = (((d.desempenho_score_10 if d.desempenho_score_10 is not none else 0) * 10))|int %}
                     <div class="col">
                         <p class="mb-1 text-muted text-truncate" title="{{ d.codigo }} - {{ d.descricao }}">{{ d.codigo }}</p>
-                        <div class="progress mb-2 mx-auto" style="height: 100px; width: 30px; display: flex; flex-direction: column-reverse;">
-                            <div class="progress-bar {% if pct < 45 %}bg-danger{% elif pct < 70 %}bg-warning{% else %}bg-success{% endif %}" style="height: {{ pct }}%"></div>
+                        <div class="d-flex justify-content-center align-items-end gap-2 mb-2 mx-auto descritor-bars-dual" style="height: 100px; max-width: 4rem;">
+                            <div class="progress flex-grow-1" style="height: 100px; display: flex; flex-direction: column-reverse;" title="Engajamento H5P">
+                                <div class="progress-bar bg-info" style="height: {{ pct_h5p }}%"></div>
+                            </div>
+                            <div class="progress flex-grow-1" style="height: 100px; display: flex; flex-direction: column-reverse;" title="Desempenho Prova">
+                                <div class="progress-bar bg-success" style="height: {{ pct_prova }}%"></div>
+                            </div>
                         </div>
-                        <span class="fw-bold">{{ pct }}%</span>
+                        <span class="fw-bold">H5P {{ pct_h5p }}% · Prova {{ d.desempenho_score_10 if d.desempenho_score_10 is not none else '—' }}/10</span>
                     </div>
                     {% endfor %}
                 </div>
@@ -225,7 +314,7 @@
         <div class="card dash-card">
             <div class="dash-card-header d-flex align-items-center gap-2">
                 <i class="fa-solid fa-graduation-cap text-mj-primary fs-5"></i>
-                <h6 class="fw-bold mb-0 text-dark">Cursos de formação</h6>
+                <h6 class="fw-bold mb-0 text-dark">Formação BNCC / cursos remotos</h6>
             </div>
             <div class="card-body p-0">
                 {% if moodle_aviso %}
@@ -256,6 +345,9 @@
                 {% else %}
                 <div class="p-3 small text-muted">Nenhum curso atribuído.</div>
                 {% endif %}
+            </div>
+            <div class="card-footer bg-white border-top text-center py-2">
+                <a href="/professor/formacao-bncc" class="btn btn-link btn-sm text-decoration-none fw-bold text-mj-primary">Abrir trilha formativa BNCC</a>
             </div>
         </div>
 
@@ -380,12 +472,21 @@
             </div>
             <div id="medalha-aluno-wrap" class="d-none">
                 <label class="form-label small fw-bold mb-1">Aluno</label>
-                <select class="form-select" id="medalha-aluno-id" name="aluno_id">
-                    <option value="">— Selecione um aluno —</option>
+                <input type="hidden" id="medalha-aluno-id" name="aluno_id" value="">
+                <div class="list-group list-group-flush border rounded-3" style="max-height: 220px; overflow-y: auto;">
                     {% for a in medalha_alunos %}
-                    <option value="{{ a.aluno_id }}">{{ a.nome }}{% if a.turma_nome %} ({{ a.turma_nome }}){% endif %}</option>
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-2 medalha-aluno-pick" data-aluno-id="{{ a.aluno_id }}">
+                        {% if a.avatar_url %}
+                        <img src="{{ a.avatar_url }}" alt="" class="aluno-picker-avatar flex-shrink-0" width="36" height="36">
+                        {% else %}
+                        <span class="aluno-picker-avatar aluno-picker-avatar--fallback flex-shrink-0" style="width:36px;height:36px;font-size:0.75rem;">{{ a.iniciais }}</span>
+                        {% endif %}
+                        <span class="text-start small fw-semibold text-dark">{{ a.nome }}{% if a.turma_nome %} <span class="text-muted fw-normal">({{ a.turma_nome }})</span>{% endif %}</span>
+                    </button>
+                    {% else %}
+                    <div class="list-group-item text-muted small">Nenhum aluno na turma selecionada.</div>
                     {% endfor %}
-                </select>
+                </div>
             </div>
             <div>
                 <label class="form-label small fw-bold mb-1">Mensagem (opcional)</label>
@@ -407,6 +508,7 @@
     var medalhaAlvoSelect = document.getElementById('medalha-alvo-select');
     var medalhaAlunoWrap = document.getElementById('medalha-aluno-wrap');
     var medalhaAlunoInput = document.getElementById('medalha-aluno-id');
+    var medalhaAlunoPicks = document.querySelectorAll('.medalha-aluno-pick');
     var teacherHelpStatusButtons = document.querySelectorAll('.teacher-help-status-btn');
 
     toggleBtn && toggleBtn.addEventListener('click', function(event) {
@@ -427,10 +529,23 @@
         if (!medalhaAlvoSelect || !medalhaAlunoWrap || !medalhaAlunoInput) return;
         var isAluno = medalhaAlvoSelect.value === 'aluno';
         medalhaAlunoWrap.classList.toggle('d-none', !isAluno);
-        medalhaAlunoInput.required = isAluno;
-        if (!isAluno) medalhaAlunoInput.value = '';
+        if (medalhaAlunoInput) {
+            medalhaAlunoInput.required = isAluno;
+            if (!isAluno) medalhaAlunoInput.value = '';
+        }
+        document.querySelectorAll('.medalha-aluno-pick.active').forEach(function(btn) {
+            btn.classList.remove('active');
+        });
     }
     medalhaAlvoSelect && medalhaAlvoSelect.addEventListener('change', syncMedalhaAlvo);
+    medalhaAlunoPicks.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (!medalhaAlunoInput) return;
+            medalhaAlunoPicks.forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            medalhaAlunoInput.value = btn.getAttribute('data-aluno-id') || '';
+        });
+    });
     syncMedalhaAlvo();
 
     form && form.addEventListener('submit', async function(event) {

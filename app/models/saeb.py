@@ -7,6 +7,7 @@ class Descritor(Base):
     codigo = Column(String(10), unique=True)
     descricao = Column(String(255))
     disciplina = Column(String(50))
+    ano_escolar = Column(Integer, nullable=True)
 
 class Questao(Base):
     __tablename__ = "questoes"

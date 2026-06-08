@@ -1,0 +1,185 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Formação BNCC Computação{% endblock %}
+{% block brand_link %}/admin{% endblock %}
+{% block menu_title %}Secretaria / SME{% endblock %}
+{% block header_right %}{% set role_value = 'admin' %}{% include "shared/header_right_user_simple.html" %}{% endblock %}
+{% block offcanvas_links %}{% include "admin/partials/admin_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold text-mj-dark mb-1">Formação continuada</h2>
+        <!-- <p class="text-muted mb-0">Gestão híbrida de 80h com 50% presencial e 50% remoto, integrando trilhas H5P e cursos Moodle.</p> -->
+    </div>
+    <a href="/gestor/moodle/cursos" class="btn btn-mj-outline rounded-pill">Cursos Moodle</a>
+</div>
+{% if flash_err %}<div class="alert alert-danger">{{ flash_err }}</div>{% endif %}
+{% if flash_ok %}<div class="alert alert-success">Operação concluída com sucesso.</div>{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Programas ativos</span><div class="dash-stat-value">{{ resumo.programas_ativos|default(0) }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Turmas de formação</span><div class="dash-stat-value">{{ resumo.turmas_ativas|default(0) }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Participantes</span><div class="dash-stat-value">{{ resumo.participantes|default(0) }}</div></div></div>
+    <div class="col-md-3"><div class="card dash-stat-card h-100"><span class="dash-stat-label">Concluintes</span><div class="dash-stat-value">{{ resumo.concluidos|default(0) }}</div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">1. Novo programa</div>
+            <div class="card-body">
+                <form method="post" action="/admin/formacao-bncc/programas" class="d-grid gap-2">
+                    <input class="form-control" name="nome" placeholder="Nome do programa" required>
+                    <textarea class="form-control" name="descricao" rows="2" placeholder="Descrição"></textarea>
+                    <input class="form-control" name="publico_alvo" placeholder="Público-alvo">
+                    <button class="btn btn-mj" type="submit">Criar programa</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">2. Vincular recurso remoto</div>
+            <div class="card-body">
+                <form method="post" action="/admin/formacao-bncc/recursos" class="d-grid gap-2">
+                    <select class="form-select" name="programa_id" required>
+                        <option value="">Programa</option>
+                        {% for p in programas %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}
+                    </select>
+                    <select class="form-select" name="tipo_recurso" required>
+                        {% for t in tipo_recurso_choices %}<option value="{{ t.value }}">{{ t.value }}</option>{% endfor %}
+                    </select>
+                    <input class="form-control" name="titulo" placeholder="Título do recurso" required>
+                    <select class="form-select" name="trilha_id">
+                        <option value="">Sem trilha vinculada</option>
+                        {% for t in trilhas %}<option value="{{ t.id }}">{{ t.nome }}</option>{% endfor %}
+                    </select>
+                    <select class="form-select" name="moodle_course_id">
+                        <option value="">Sem curso Moodle vinculado</option>
+                        {% for c in moodle_catalog %}<option value="{{ c.moodle_course_id }}">{{ c.fullname }}</option>{% endfor %}
+                    </select>
+                    <textarea class="form-control" name="descricao" rows="2" placeholder="Descrição"></textarea>
+                    <button class="btn btn-mj-outline" type="submit">Vincular recurso</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card dash-card h-100">
+            <div class="dash-card-header fw-bold">3. Nova turma/coorte</div>
+            <div class="card-body">
+                <form method="post" action="/admin/formacao-bncc/turmas" class="d-grid gap-2">
+                    <select class="form-select" name="programa_id" required>
+                        <option value="">Programa</option>
+                        {% for p in programas %}<option value="{{ p.id }}">{{ p.nome }}</option>{% endfor %}
+                    </select>
+                    <input class="form-control" name="nome" placeholder="Nome da turma" required>
+                    <select class="form-select" name="escola_id">
+                        <option value="">Rede / SME</option>
+                        {% for e in escolas %}<option value="{{ e.id }}">{{ e.nome }}</option>{% endfor %}
+                    </select>
+                    <input type="number" class="form-control" name="limite_participantes" min="1" max="30" value="30">
+                    <button class="btn btn-mj" type="submit">Criar turma</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card dash-card mb-4">
+            <div class="dash-card-header fw-bold">Inscrever participante</div>
+            <div class="card-body">
+                <form method="post" action="/admin/formacao-bncc/inscricoes" class="d-grid gap-2">
+                    <select class="form-select" name="turma_id" required>
+                        <option value="">Turma</option>
+                        {% for t in turmas_formacao %}<option value="{{ t.id }}">{{ t.nome }}</option>{% endfor %}
+                    </select>
+                    <select class="form-select" name="usuario_id" required>
+                        <option value="">Participante</option>
+                        {% for u in usuarios_formacao %}<option value="{{ u.id }}">{{ u.nome }} - {{ u.role.value }}</option>{% endfor %}
+                    </select>
+                    <select class="form-select" name="papel_participante" required>
+                        {% for papel in papel_participante_choices %}<option value="{{ papel.value }}">{{ papel.value }}</option>{% endfor %}
+                    </select>
+                    <button class="btn btn-mj-outline" type="submit">Inscrever</button>
+                </form>
+            </div>
+        </div>
+        <div class="card dash-card">
+            <div class="dash-card-header fw-bold">Programas</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light"><tr><th>Programa</th><th>CH</th><th>Turmas</th></tr></thead>
+                        <tbody>
+                            {% for p in programas %}
+                            <tr><td>{{ p.nome }}</td><td>{{ p.carga_horaria_total }}h</td><td>{{ p.turmas|length }}</td></tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center text-muted py-4">Sem programas cadastrados.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card dash-card mb-4">
+            <div class="dash-card-header fw-bold">Encontros presenciais</div>
+            <div class="card-body">
+                <form method="post" action="/admin/formacao-bncc/encontros" class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <select class="form-select" name="turma_id" required>
+                            {% for t in turmas_formacao %}<option value="{{ t.id }}">{{ t.nome }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4"><input class="form-control" name="titulo" placeholder="Título" required></div>
+                    <div class="col-md-4"><input class="form-control" name="data_encontro" type="datetime-local" required></div>
+                    <div class="col-md-6"><input class="form-control" name="local" placeholder="Local"></div>
+                    <div class="col-md-3"><input class="form-control" name="carga_horaria" type="number" step="0.5" value="4"></div>
+                    <div class="col-md-3"><button class="btn btn-mj w-100" type="submit">Registrar</button></div>
+                </form>
+                <ul class="list-group list-group-flush small">
+                    {% for e in encontros %}
+                    <li class="list-group-item">{{ e.titulo }} — {{ e.data_encontro.strftime('%d/%m/%Y %H:%M') if e.data_encontro else '' }} ({{ e.carga_horaria }}h)</li>
+                    {% else %}
+                    <li class="list-group-item text-muted">Nenhum encontro cadastrado.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="card dash-card">
+            <div class="dash-card-header fw-bold">Participantes e devolutiva</div>
+            <div class="card-body">
+                <div class="accordion" id="accordionParticipantes">
+                    {% for p in participantes[:15] %}
+                    <div class="accordion-item mb-2 border rounded-3">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#part{{ p.id }}">
+                                {{ p.usuario.nome if p.usuario else ('Participante #' ~ p.id) }} - {{ p.papel_participante.value if p.papel_participante else p.papel_participante }} - {{ p.status.value if p.status else p.status }}
+                            </button>
+                        </h2>
+                        <div id="part{{ p.id }}" class="accordion-collapse collapse" data-bs-parent="#accordionParticipantes">
+                            <div class="accordion-body">
+                                <form method="post" action="/admin/formacao-bncc/participantes/{{ p.id }}/progresso" class="d-grid gap-2">
+                                    <input type="number" class="form-control" step="0.5" name="carga_horaria_remota_realizada" value="{{ p.carga_horaria_remota_realizada }}">
+                                    <input type="number" class="form-control" step="0.5" name="carga_horaria_presencial_realizada" value="{{ p.carga_horaria_presencial_realizada }}">
+                                    <textarea class="form-control" name="devolutiva" rows="2" placeholder="Devolutiva">{{ p.devolutiva or '' }}</textarea>
+                                    <button class="btn btn-mj" type="submit">Atualizar progresso</button>
+                                    {% if p.status.value == 'concluido' or p.certificado_emitido %}
+                                    <a class="btn btn-mj-outline" href="/admin/formacao-bncc/certificado/{{ p.id }}.pdf">Baixar certificado PDF</a>
+                                    {% endif %}
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Sem participantes inscritos.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

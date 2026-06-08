@@ -32,6 +32,11 @@
     <i class="fas fa-lock me-2"></i> Esta trilha ainda está bloqueada. Finalize a trilha anterior para liberar.
 </div>
 {% endif %}
+{% if request.query_params.get("acesso_negado_prova") %}
+<div class="alert alert-warning border-0 rounded-4 shadow-sm mb-3">
+    <i class="fas fa-lock me-2"></i> Essa prova não está disponível para o seu acesso neste momento.
+</div>
+{% endif %}
 <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <h2 class="fw-bold text-mj-dark mb-1"><i class="fas fa-route me-2 text-mj-primary"></i> Jornada de {{
@@ -253,6 +258,45 @@
         </article>
         {% endif %}
 
+        {% if provas_avulsas %}
+        <article class="gm-card hover-lift border-bottom border-mj-primary border-1 mb-4">
+            <div class="p-4">
+                <h5 class="small fw-bold text-mj-dark text-uppercase mb-3">Provas agendadas (fora da trilha)</h5>
+                <div class="vstack gap-3">
+                    {% for prova in provas_avulsas %}
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-body p-3">
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+                                <div class="min-w-0 w-100">
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                        <span class="badge rounded-pill bg-mj-light text-mj-primary">{{ prova.contexto_label }}</span>
+                                        <span class="badge rounded-pill bg-light text-dark">{{ prova.questoes_total }} quest{% if prova.questoes_total == 1 %}ão{% else %}ões{% endif %}</span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-1">{{ prova.avaliacao.titulo }}</h6>
+                                    {% if prova.aplicacao and prova.aplicacao.titulo %}
+                                    <p class="small text-mj-muted mb-0">{{ prova.aplicacao.titulo }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="align-self-end align-self-sm-center ms-auto ms-sm-0 flex-shrink-0">
+                                    {% if prova.agendada %}
+                                    <span class="btn btn-secondary px-4 rounded-pill fw-bold shadow-sm disabled">
+                                        Disponível em {{ prova.aplicacao.data_aplicacao.strftime('%d/%m/%Y') if prova.aplicacao and prova.aplicacao.data_aplicacao else '—' }}
+                                    </span>
+                                    {% else %}
+                                    <a href="{{ prova.url }}" class="btn btn-mj px-4 rounded-pill fw-bold shadow-sm">
+                                        {% if prova.concluida %}Revisar{% else %}Responder{% endif %}
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </article>
+        {% endif %}
+
         {% for t in trilhas %}
         {% set p = progresso_por_trilha.get(t.id, {"total": 0, "concluidas": 0, "pct": 0}) %}
         {% set bloqueada = t.id in trilhas_bloqueadas %}
@@ -299,6 +343,72 @@
                     </div>
 
                     <div class="col-12 col-lg-7 offset-lg-1">
+                        {% set provas = provas_por_trilha.get(t.id, []) %}
+                        <h5 class="small fw-bold text-mj-dark text-uppercase mb-3">Provas</h5>
+                        {% if provas %}
+                        <div class="vstack gap-3 mb-4">
+                            {% for prova in provas %}
+                            <div class="card border-0 shadow-sm rounded-4">
+                                <div class="card-body p-3">
+                                    <!-- Mudamos para flex-column no mobile e flex-sm-row em telas maiores -->
+                                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+                                        
+                                        <div class="min-w-0 w-100">
+                                            <!-- Badges -->
+                                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                                <span class="badge rounded-pill bg-mj-light text-mj-primary">{{ prova.contexto_label }}</span>
+                                                <span class="badge rounded-pill bg-light text-dark">{{ prova.questoes_total }} quest{% if prova.questoes_total == 1 %}ão{% else %}ões{% endif %}</span>
+                                                <span class="badge rounded-pill {% if prova.concluida %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning{% endif %}">
+                                                    {% if prova.concluida %}Concluída{% else %}Disponível{% endif %}
+                                                </span>
+                                            </div>
+                                            
+                                            <!-- Título e Subtítulo -->
+                                            <h6 class="fw-bold text-dark mb-1">{{ prova.avaliacao.titulo }}</h6>
+                                            <p class="small text-mj-muted mb-2">
+                                                {% if prova.aplicacao and prova.aplicacao.titulo %}
+                                                    {{ prova.aplicacao.titulo }}
+                                                {% else %}
+                                                    Responda a prova diretamente nesta trilha.
+                                                {% endif %}
+                                            </p>
+                                            
+                                            <!-- Informações inferiores (Adicionado gap-x-3 para separar melhor os ícones) -->
+                                            <div class="d-flex flex-wrap gap-x-3 gap-y-1 small text-mj-muted">
+                                                {% if prova.aplicacao and prova.aplicacao.data_aplicacao %}
+                                                    <span class="me-2"><i class="fas fa-calendar-alt me-1"></i> {{ prova.aplicacao.data_aplicacao.strftime('%d/%m/%Y %H:%M') }}</span>
+                                                {% endif %}
+                                                {% if prova.respondidas %}
+                                                    <span class="me-2"><i class="fas fa-pen me-1"></i> {{ prova.respondidas }}/{{ prova.questoes_total }} respondidas</span>
+                                                {% endif %}
+                                                {% if prova.concluida %}
+                                                    <span><i class="fas fa-check-circle me-1"></i> {{ prova.acertos }} acertos</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                            
+                                        <!-- Botão: Alinha à direita no desktop e se ajusta melhor no mobile -->
+                                        <div class="align-self-end align-self-sm-center ms-auto ms-sm-0 flex-shrink-0">
+                                            {% if prova.agendada %}
+                                            <span class="btn btn-secondary px-4 rounded-pill fw-bold shadow-sm disabled" title="Aguardando data de liberação">
+                                                Disponível em {{ prova.aplicacao.data_aplicacao.strftime('%d/%m/%Y') if prova.aplicacao and prova.aplicacao.data_aplicacao else '—' }}
+                                            </span>
+                                            {% else %}
+                                            <a href="{{ prova.url }}" class="btn btn-mj px-4 rounded-pill fw-bold shadow-sm">
+                                                {% if prova.concluida %}Revisar{% else %}Responder{% endif %}
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                            
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="small text-mj-muted mb-4">Nenhuma prova disponível nesta trilha por enquanto.</p>
+                        {% endif %}
+
                         <h5 class="small fw-bold text-mj-dark text-uppercase mb-3">Atividades</h5>
                         {% if acts %}
                         <ul class="list-unstyled mb-0 jornada-atividades-list">

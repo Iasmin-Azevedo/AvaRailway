@@ -12,9 +12,22 @@
     'professor': 'Professor(a)',
     'gestor': 'Gestor(a)',
     'coordenador': 'Coordenador(a)',
-    'admin': 'Administrador(a)'
+    'admin': 'Admin técnico'
 } %}
+{% set _admin_scope = '' %}
+{% if current_user and current_user.escopo_administrativo %}
+  {% set _admin_scope = (current_user.escopo_administrativo.value if current_user.escopo_administrativo.value is defined else current_user.escopo_administrativo)|lower %}
+{% endif %}
+{% set _teacher_role = '' %}
+{% if current_user and current_user.funcao_docente %}
+  {% set _teacher_role = (current_user.funcao_docente.value if current_user.funcao_docente.value is defined else current_user.funcao_docente)|lower %}
+{% endif %}
 {% set _role_label = _role_map.get((role_value or '')|lower, 'Usuário(a)') %}
+{% if (role_value or '')|lower == 'admin' and _admin_scope == 'secretaria_sme' %}
+  {% set _role_label = 'Secretaria / SME' %}
+{% elif (role_value or '')|lower == 'professor' and _teacher_role == 'professor_diretor_turma' %}
+  {% set _role_label = 'Professor Diretor de Turma' %}
+{% endif %}
 <div class="d-flex align-items-center gap-3 flex-shrink-0">
     <div class="text-end d-none d-md-block">
         <div class="mission-user-name mb-0">{{ current_user.nome if current_user else "Usuário(a)" }}</div>

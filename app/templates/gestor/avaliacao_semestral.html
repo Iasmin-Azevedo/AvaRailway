@@ -1,0 +1,24 @@
+{% extends "base_dashboard.html" %}
+{% block page_title %}Avaliação semestral{% endblock %}
+{% block brand_link %}/gestor{% endblock %}
+{% block offcanvas_links %}{% include "gestor/partials/gestor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="mb-3"><a href="/gestor" class="small text-mj-primary">← Painel</a></div>
+<h2 class="h4 fw-bold mb-3">Avaliação semestral (escopo da unidade)</h2>
+<div class="table-responsive card dash-card">
+    <table class="table table-hover mb-0 small">
+        <thead class="table-light"><tr><th>Instrumento</th><th>Status</th><th>Nota</th></tr></thead>
+        <tbody>
+            {% for app, inst in rows %}
+            <tr>
+                <td>{{ inst.nome }}</td>
+                <td>{{ app.status.value if app.status.value is defined else app.status }}</td>
+                <td>{{ app.nota_final if app.nota_final is not none else '—' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4">Sem aplicações no seu escopo.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

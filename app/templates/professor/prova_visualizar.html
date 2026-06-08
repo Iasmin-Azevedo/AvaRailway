@@ -1,0 +1,148 @@
+{% extends "professor/base_professor.html" %}
+{% block page_title %}Caderno — {{ avaliacao.titulo }}{% endblock %}
+{% block offcanvas_links %}{% include "professor/partials/professor_menu_links.html" %}{% endblock %}
+{% block main_content %}
+<div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-3 prova-print-actions">
+    <div>
+        <a href="/professor/provas" class="text-mj-primary text-decoration-none small"><i class="fas fa-arrow-left me-1"></i> Voltar às provas</a>
+        <h2 class="fw-bold text-mj-dark mt-2 mb-1">{{ avaliacao.titulo }}</h2>
+        <p class="text-muted small mb-0">
+            Caderno de questões para impressão.
+            {% if avaliacao.trilha %} · Trilha: {{ avaliacao.trilha.nome }}{% endif %}
+            {% if avaliacao.curso %} · {{ avaliacao.curso.nome }}{% endif %}
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-mj rounded-pill" onclick="window.print()"><i class="fas fa-print me-1"></i> Imprimir</button>
+        <a href="/professor/provas/{{ avaliacao.id }}/resultados" class="btn btn-mj-outline rounded-pill">Ver notas</a>
+    </div>
+</div>
+
+<!-- <div class="alert alert-light border small mb-4 prova-print-actions">
+    <strong>Prova</strong> = conjunto de questões (caderno). <strong>Aplicação</strong> = quando você agenda essa prova para uma turma em uma data; cada aplicação gera participações e notas por aluno.
+</div> -->
+
+<section class="card dash-card border-0 mb-3 prova-header-print">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
+            <div class="d-flex align-items-center gap-3">
+                <img src="/static/img/paracuru.png" alt="Paracuru" style="height: 56px; width: auto;">
+                <div>
+                    <div class="fw-bold text-uppercase" style="font-size: 0.95rem;">Prefeitura de Paracuru</div>
+                    <!-- <div class="small text-muted">Caderno de prova</div> -->
+                </div>
+            </div>
+            <div class="small text-muted">
+                {% if avaliacao.ano_letivo %}Ano letivo: {{ avaliacao.ano_letivo }} · {% endif %}
+                {% if avaliacao.curso %}{{ avaliacao.curso.nome }}{% endif %}
+            </div>
+        </div>
+        <div class="fw-bold mb-2">{{ avaliacao.titulo }}</div>
+        <div class="row g-2 small">
+            <div class="col-12">
+                <div class="border rounded px-2 py-2">Nome do aluno: </div>
+            </div>
+            <div class="col-6">
+                <div class="border rounded px-2 py-2">Escola: </div>
+            </div>
+            <div class="col-6">
+                <div class="border rounded px-2 py-2">Data: ___/____/______</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% for questao in questoes %}
+<article class="card dash-card border-0 mb-4 prova-questao-print">
+    <div class="card-body p-3 p-md-3">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            <span class=" fs-5 fw-bold text-dark">Questão {{ questao.numero or loop.index }}</span>
+            {% if questao.habilidade_saeb %}
+            <!-- <span class="badge bg-light text-dark border">{{ questao.habilidade_saeb }}</span> -->
+            {% endif %}
+            {% if questao.gabarito %}
+            <!-- <span class="badge bg-secondary-subtle text-secondary-emphasis prova-print-actions">Gabarito: {{ questao.gabarito }}</span> -->
+            {% endif %}
+        </div>
+        <div class="mb-2 text-dark prova-enunciado">{{ (questao.enunciado or '<p>Sem enunciado.</p>')|safe }}</div>
+        <div class="vstack gap-1">
+            {% for letra, texto in [
+                ('A', questao.alternativa_a),
+                ('B', questao.alternativa_b),
+                ('C', questao.alternativa_c),
+                ('D', questao.alternativa_d),
+                ('E', questao.alternativa_e),
+            ] %}
+            {% if texto %}
+            <div class=" px-2 py-1 d-flex gap-2 prova-alternativa">
+                <span class="fw-bold text-dark">{{ letra }})</span>
+                <span>{{ texto }}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</article>
+{% else %}
+<div class="alert alert-warning">Esta prova não possui questões cadastradas.</div>
+{% endfor %}
+
+<style>
+.prova-header-print {
+    border: 1px solid #d9d9d9;
+}
+.prova-questao-print {
+    border: 1px solid #e5e7eb;
+}
+.prova-enunciado,
+.prova-alternativa {
+    font-size: 0.95rem;
+    line-height: 1.35;
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 10mm 8mm;
+    }
+    body {
+        font-size: 11px !important;
+        line-height: 1.28 !important;
+        color: #111 !important;
+        background: #fff !important;
+    }
+    .prova-print-actions, .professor-sidebar, .professor-header, .offcanvas, nav { display: none !important; }
+    .container-fluid, .container, main, .content {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
+    .card {
+        box-shadow: none !important;
+    }
+    .prova-header-print {
+        margin-bottom: 6mm !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    .prova-questao-print {
+        margin: 0 0 3mm 0 !important;
+        break-inside: auto;
+        page-break-inside: auto;
+    }
+    .prova-questao-print .card-body {
+        padding: 2.5mm !important;
+    }
+    .prova-enunciado,
+    .prova-alternativa {
+        font-size: 10.5px !important;
+        line-height: 1.25 !important;
+    }
+    .badge {
+        border: 1px solid #bbb !important;
+        background: #fff !important;
+        color: #111 !important;
+    }
+}
+</style>
+{% endblock %}

@@ -24,7 +24,16 @@ class AuthService:
         detalhes: str,
         ip: str | None = None,
     ) -> None:
-        db.add(AuditLog(usuario_id=user_id, acao=acao, detalhes=detalhes, ip=ip))
+        db.add(
+            AuditLog(
+                usuario_id=user_id,
+                acao=acao,
+                categoria="auth",
+                entidade="sessao",
+                detalhes=detalhes,
+                ip=ip,
+            )
+        )
         db.commit()
 
     def login(self, db: Session, dados: LoginRequest, ip: str | None = None):

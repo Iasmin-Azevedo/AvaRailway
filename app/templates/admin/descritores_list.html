@@ -15,6 +15,34 @@
         <a href="/admin" class="btn btn-mj-outline rounded-pill"><i class="fa-solid fa-arrow-left me-1"></i> Voltar</a>
     </div>
 </div>
+<div class="card dash-card border-0 mb-4">
+    <div class="card-body">
+        <form method="get" action="/admin/descritores" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Matéria</label>
+                <select name="disciplina" class="form-select rounded-pill">
+                    <option value="">Todas</option>
+                    {% for curso in cursos %}
+                    <option value="{{ curso.nome }}" {% if selected_disciplina == curso.nome %}selected{% endif %}>{{ curso.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Ano</label>
+                <select name="ano_escolar" class="form-select rounded-pill">
+                    <option value="">Todos</option>
+                    {% for year in school_years %}
+                    <option value="{{ year }}" {% if selected_ano_escolar == year %}selected{% endif %}>{{ year }}º ano</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex justify-content-end gap-2">
+                <a href="/admin/descritores" class="btn btn-mj-outline rounded-pill">Limpar</a>
+                <button type="submit" class="btn btn-mj rounded-pill">Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% if request.query_params.get("ok") == "deletado" %}
 <div class="alert alert-success py-2">Descritor removido com sucesso.</div>
 {% elif request.query_params.get("erro") == "vinculos" %}
@@ -26,9 +54,10 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-4">Código</th>
+                        <th class="ps-4">Cod</th>
                         <th>Descrição</th>
-                        <th>Disciplina</th>
+                        <th>Matéria</th>
+                        <th>Ano</th>
                         <th class="pe-4 text-end">Ações</th>
                     </tr>
                 </thead>
@@ -38,6 +67,7 @@
                         <td class="ps-4 fw-bold">{{ d.codigo }}</td>
                         <td>{{ d.descricao }}</td>
                         <td><span class="badge bg-mj-primary bg-opacity-25 text-light">{{ d.disciplina }}</span></td>
+                        <td>{{ d.ano_escolar ~ "º ano" if d.ano_escolar else "—" }}</td>
                         <td class="pe-4 text-end">
                             <a href="/admin/descritores/{{ d.id }}/editar" class="btn btn-sm btn-mj-outline">Editar</a>
                             <form method="post" action="/admin/descritores/{{ d.id }}/deletar" class="d-inline">
@@ -46,7 +76,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="4" class="text-center text-muted py-4">Nenhum descritor cadastrado.</td></tr>
+                    <tr><td colspan="5" class="text-center text-muted py-4">Nenhum descritor cadastrado.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
